@@ -1,0 +1,71 @@
+# ─── .NET ───────────────────────────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+*.DotSettings.user
+
+# Publish output
+publish/
+out/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Test results & coverage
+TestResults/
+coverage/
+*.trx
+*.coveragexml
+coverage-report/
+
+# ─── .NET Aspire ────────────────────────────────────────────────────────────
+# Aspire generates launch profiles and dashboard certs locally
+.aspire/
+launchSettings.json
+
+# ─── Secrets & credentials ──────────────────────────────────────────────────
+# Never commit secrets — loaded from Secrets Manager at runtime
+appsettings.*.local.json
+*.pfx
+*.p12
+*.key
+*.pem
+secrets/
+.secrets/
+
+# ─── Terraform ──────────────────────────────────────────────────────────────
+iac/.terraform/
+iac/.terraform.lock.hcl
+iac/*.tfstate
+iac/*.tfstate.*
+iac/*.tfvars
+iac/override.tf
+iac/override.tf.json
+iac/*_override.tf
+iac/*_override.tf.json
+iac/.terraformrc
+iac/terraform.rc
+
+# ─── OS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── JetBrains Rider ────────────────────────────────────────────────────────
+.idea/
+*.sln.iml
+
+# ─── Logs ───────────────────────────────────────────────────────────────────
+*.log
+logs/
