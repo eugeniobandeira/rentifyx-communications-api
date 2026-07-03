@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>$(NoWarn);CA1848;CA1873;EnableGenerateDocumentationFile;IDE0060</NoWarn>
+    <NuGetAuditMode>direct</NuGetAuditMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SonarAnalyzer.CSharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <Target Name="ConfigureGitHooks" BeforeTargets="Build" Condition="'$(CI)' == ''">
+    <Exec Command="git config core.hooksPath $(MSBuildThisFileDirectory).hooks" ContinueOnError="true" />
+    <Exec Command="chmod +x $(MSBuildThisFileDirectory).hooks/pre-commit" ContinueOnError="true" />
+  </Target>
+
+</Project>

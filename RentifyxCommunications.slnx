@@ -1,0 +1,46 @@
+<Solution>
+  <Folder Name="/00 - solution-items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Folder Name="/01-aspire/" />
+  <Folder Name="/01-aspire/01-AppHost/">
+    <Project Path="01-aspire/01-AppHost/RentifyxCommunications.AppHost/RentifyxCommunications.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/01-aspire/02-ServiceDefaults/">
+    <Project Path="01-aspire/02-ServiceDefaults/RentifyxCommunications.ServiceDefaults/RentifyxCommunications.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/02-src/" />
+  <Folder Name="/02-src/01-Api/">
+    <Project Path="02-src/01-Api/RentifyxCommunications.Api/RentifyxCommunications.Api.csproj" />
+  </Folder>
+  <Folder Name="/02-src/02-Application/">
+    <Project Path="02-src/02-Application/RentifyxCommunications.Application/RentifyxCommunications.Application.csproj" />
+  </Folder>
+  <Folder Name="/02-src/03-Domain/">
+    <Project Path="02-src/03-Domain/RentifyxCommunications.Domain/RentifyxCommunications.Domain.csproj" />
+  </Folder>
+  <Folder Name="/02-src/04-IoC/">
+    <Project Path="02-src/04-IoC/RentifyxCommunications.IoC/RentifyxCommunications.IoC.csproj" />
+  </Folder>
+  <Folder Name="/02-src/05-Infrastructure/">
+    <Project Path="02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/RentifyxCommunications.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/03-tests/" />
+  <Folder Name="/03-tests/01-Common/">
+    <Project Path="03-tests/01-Common/RentifyxCommunications.Tests.Common/RentifyxCommunications.Tests.Common.csproj" />
+  </Folder>
+  <Folder Name="/03-tests/02-Validators/">
+    <Project Path="03-tests/02-Validators/RentifyxCommunications.Tests.Validators/RentifyxCommunications.Tests.Validators.csproj" />
+  </Folder>
+  <Folder Name="/03-tests/03-Handlers/">
+    <Project Path="03-tests/03-Handlers/RentifyxCommunications.Tests.Handlers/RentifyxCommunications.Tests.Handlers.csproj" />
+  </Folder>
+  <Folder Name="/03-tests/04-Repositories/">
+    <Project Path="03-tests/04-Repositories/RentifyxCommunications.Tests.Repositories/RentifyxCommunications.Tests.Repositories.csproj" />
+  </Folder>
+  <Folder Name="/03-tests/05-Integration/">
+    <Project Path="03-tests/05-Integration/RentifyxCommunications.Tests.Integration/RentifyxCommunications.Tests.Integration.csproj" />
+  </Folder>
+</Solution>
