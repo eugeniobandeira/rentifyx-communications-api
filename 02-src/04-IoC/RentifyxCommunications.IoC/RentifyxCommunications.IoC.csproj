@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\02-Application\RentifyxCommunications.Application\RentifyxCommunications.Application.csproj" />
+    <ProjectReference Include="..\..\03-Domain\RentifyxCommunications.Domain\RentifyxCommunications.Domain.csproj" />
+    <ProjectReference Include="..\..\05-Infrastructure\RentifyxCommunications.Infrastructure\RentifyxCommunications.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Serilog.AspNetCore" />
+  </ItemGroup>
+</Project>
