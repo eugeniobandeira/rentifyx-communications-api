@@ -1,0 +1,13 @@
+#!/bin/sh
+# Pre-commit hook: blocks commit if the solution does not compile.
+
+SOLUTION=$(git rev-parse --show-toplevel)/templates/clean-arch/RentifyxCommunications.slnx
+
+echo "Running dotnet build before commit..."
+dotnet build "$SOLUTION" --no-incremental -v quiet 2>&1
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Commit blocked: build failed. Fix the compilation errors and try again."
+  exit 1
+fi
