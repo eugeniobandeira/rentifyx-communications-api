@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.3.1" />
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\01-aspire\02-ServiceDefaults\RentifyxCommunications.ServiceDefaults\RentifyxCommunications.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\02-src\01-Api\RentifyxCommunications.Api\RentifyxCommunications.Api.csproj" />
+  </ItemGroup>
+</Project>
