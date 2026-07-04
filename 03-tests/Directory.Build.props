@@ -1,0 +1,12 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- Suppress analyzer rules that conflict with common test conventions -->
+    <!-- CA1707: test methods use underscore naming (Given_When_Then) -->
+    <!-- CA1859: _sut fields are intentionally typed as interfaces for substitutability -->
+    <!-- CA1305: string formatting in test assertions doesn't need culture-aware overloads -->
+    <!-- CA1001: false positive when IAsyncLifetime handles disposal instead of IDisposable -->
+    <NoWarn>$(NoWarn);CA1707;CA1859;CA1305;CA1001</NoWarn>
+  </PropertyGroup>
+</Project>
