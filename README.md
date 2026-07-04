@@ -1,78 +1,151 @@
-# Clean Architecture Template
+# RentifyX Communications API
 
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
+![Build](https://github.com/eugeniobandeira/rentifyx-communications-api/actions/workflows/ci.yml/badge.svg)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A .NET 10 project template for building production-ready Web APIs using Clean Architecture.
+Channel-agnostic notification microservice for the RentifyX platform. Consumes `NotificationRequested` events from Kafka and delivers email via AWS SES with LGPD-compliant consent enforcement, atomic idempotency, and production-grade resilience.
+
+> **v1 scope:** Email only (AWS SES). SMS and push channels are modelled in the domain but not implemented.
+
+## Architecture Overview
+
+```
+identity-api ──┐
+asset-registry  ├──→ Kafka (notification-requested) ──→ NotificationRequestedConsumer
+leasing-api ───┘                                              │
+                                                              ▼
+                                               DispatchNotificationHandler
+                                                   │              │
+                                          ConsentRepository   TemplateRenderer
+                                                   │              │
+                                               (DynamoDB)    (Scriban)
+                                                              │
+                                                         SesEmailSender
+                                                         (AWS SES)
+                                                              │
+                                                    DynamoDB notification log
+```
+
+The Kafka consumer runs as an `IHostedService` inside the same API host — one deployable, shared health checks and observability (ADR-C06).
 
 ## Tech Stack
 
-| Concern | Library / Technology |
+| Concern | Technology |
 |---|---|
 | Framework | ASP.NET Core 10 Minimal APIs |
-| Error Handling | ErrorOr 2.0.1 |
-| Validation | FluentValidation 12.1.1 |
-| Logging | Serilog 10.0.0 |
-| API Versioning | Asp.Versioning.Http 8.1.0 |
-| API Documentation | Scalar + Microsoft.AspNetCore.OpenApi |
 | Orchestration | .NET Aspire 9.3.1 |
+| Event intake | Apache Kafka (Confluent.Kafka) — `IHostedService` consumer |
+| Email delivery | AWS SES (`AWSSDK.SimpleEmail`) |
+| Persistence | AWS DynamoDB (`AWSSDK.DynamoDBv2`) — single-table design |
+| Secrets | AWS Secrets Manager (`AWSSDK.SecretsManager`) |
+| Template rendering | Scriban |
+| Resilience | Polly (circuit breaker + retry) |
+| Error handling | ErrorOr 2.0.1 |
+| Validation | FluentValidation 12.1.1 |
+| Logging | Serilog 10.0.0 (structured JSON) |
 | Observability | OpenTelemetry (traces, metrics, logs) |
-| Testing | xUnit, Moq, FluentAssertions, Bogus |
-| Code Analysis | SonarAnalyzer.CSharp |
+| API docs | Scalar + Microsoft.AspNetCore.OpenApi |
+| Testing | xUnit, Moq, FluentAssertions, Bogus, Testcontainers |
+| Local AWS | LocalStack (DynamoDB, SES, SecretsManager, KMS) |
+| IaC | Terraform + Helm |
 
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for LocalStack + Kafka via Aspire)
 - .NET Aspire workload:
 
 ```bash
 dotnet workload install aspire
 ```
 
-## Quick Start
+- git-secrets (for pre-commit hook):
 
 ```bash
-dotnet new install EugenioBandeira.RentifyxCommunicationsTemplate
-dotnet new clean-arch -n MyProject
+# macOS
+brew install git-secrets
+
+# Windows
+choco install git-secrets
+```
+
+After cloning, activate the pre-commit hook:
+
+```bash
+git config core.hooksPath .hooks
+```
+
+## Running Locally
+
+```bash
+dotnet run --project "01-aspire/01-AppHost/RentifyxCommunications.AppHost"
+```
+
+This boots: API host · LocalStack (DynamoDB, SES, SecretsManager, KMS) · Kafka · Aspire dashboard.
+
+| Resource | URL |
+|---|---|
+| API | `http://localhost:5000` |
+| Scalar UI | `http://localhost:5000/scalar` |
+| Health | `http://localhost:5000/health` |
+| Aspire dashboard | `http://localhost:15888` |
+| LocalStack | `http://localhost:4566` |
+
+## Running with Docker
+
+```bash
+docker build -t rentifyx-comms:local .
+docker run -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Production rentifyx-comms:local
+```
+
+## Running Tests
+
+```bash
+# Unit tests only (fast, no containers)
+dotnet test --filter "Category!=Integration"
+
+# All tests including integration (requires Docker)
+dotnet test
 ```
 
 ## Project Structure
 
 ```
-MyProject/
+rentifyx-communications-api/
 ├── 01-aspire/
 │   ├── 01-AppHost/
-│   │   └── MyProject.AppHost/              # .NET Aspire orchestration
+│   │   └── RentifyxCommunications.AppHost/     # Aspire orchestration + LocalStack + Kafka
 │   └── 02-ServiceDefaults/
-│       └── MyProject.ServiceDefaults/      # OpenTelemetry, health checks, service discovery
+│       └── RentifyxCommunications.ServiceDefaults/  # OTEL, health checks, service discovery
 ├── 02-src/
 │   ├── 01-Api/
-│   │   └── MyProject.Api/                  # Endpoints, middlewares, extensions
+│   │   └── RentifyxCommunications.Api/         # Endpoints, middlewares, Kafka consumer registration
 │   ├── 02-Application/
-│   │   └── MyProject.Application/          # Handlers, validators, DTOs, mappers
+│   │   └── RentifyxCommunications.Application/ # Handlers, validators, DTOs, ISecretsProvider
 │   ├── 03-Domain/
-│   │   └── MyProject.Domain/               # Entities, repository interfaces, constants
+│   │   └── RentifyxCommunications.Domain/      # Notification aggregate, consent, repository interfaces
 │   ├── 04-IoC/
-│   │   └── MyProject.IoC/                  # Dependency injection wiring
+│   │   └── RentifyxCommunications.IoC/         # DI wiring
 │   └── 05-Infrastructure/
-│       └── MyProject.Infrastructure/       # Repository implementations
+│       └── RentifyxCommunications.Infrastructure/ # SES, DynamoDB, SecretsManager implementations
 ├── 03-tests/
-│   ├── 01-Common/                          # Shared builders (Bogus)
-│   ├── 02-Validators/                      # FluentValidation unit tests
-│   ├── 03-Handlers/                        # Handler unit tests
-│   ├── 04-Repositories/                    # Repository tests
-│   └── 05-Integration/                     # API integration tests (WebApplicationFactory)
-├── docs/                                   # Architecture docs, ADRs, feature specs
-├── iac/                                    # Infrastructure as Code (Terraform, Bicep, etc.)
-├── k8s/                                    # Kubernetes manifests (Kustomize)
-│   ├── base/
-│   └── overlays/
-│       ├── dev/
-│       └── prod/
-├── Directory.Build.props                   # Shared build settings for all projects
-├── Directory.Packages.props                # Centralized NuGet package versions
-├── Dockerfile
-└── RentifyxCommunications.slnx
+│   ├── 01-Common/      # Shared builders (Bogus)
+│   ├── 02-Validators/  # FluentValidation unit tests
+│   ├── 03-Handlers/    # Handler unit tests
+│   ├── 04-Repositories/# Repository integration tests (Testcontainers)
+│   └── 05-Integration/ # API integration tests (WebApplicationFactory)
+├── docs/
+│   ├── architecture/   # Architecture overview
+│   ├── decisions/      # ADRs (C01–C09)
+│   └── guides/         # Contributor guides
+├── iac/                # Terraform modules (SES, DynamoDB, Secrets Manager, IAM IRSA)
+├── k8s/                # Kustomize manifests (base + dev/prod overlays)
+├── .specs/             # TLC spec-driven docs (PROJECT, ROADMAP, STATE, feature specs)
+├── .hooks/             # git-secrets pre-commit hook
+├── Directory.Build.props
+├── Directory.Packages.props
+└── Dockerfile
 ```
 
 ## Architecture
@@ -81,11 +154,11 @@ MyProject/
 
 | Layer | Responsibility | Allowed dependencies |
 |---|---|---|
-| Domain | Entities, repository interfaces, error codes | None |
-| Application | Handlers, validators, DTOs, mappers | Domain |
-| Infrastructure | Repository implementations | Domain |
+| Domain | `Notification` aggregate, `ConsentPreference`, repository/service interfaces | None |
+| Application | Handlers, validators, `ISecretsProvider`, DTOs, mappers | Domain |
+| Infrastructure | SES, DynamoDB, SecretsManager implementations | Domain |
 | IoC | DI registration | All layers |
-| Api | Endpoints, middlewares, HTTP mapping | Application, Domain |
+| Api | Endpoints, Kafka consumer, middlewares, HTTP mapping | Application, Domain |
 
 ### Dependency flow
 
@@ -95,432 +168,174 @@ Api → Application → Domain ← Infrastructure
               IoC (wires all layers)
 ```
 
-- **Domain** has no outbound dependencies — it defines interfaces, not implementations.
-- **Infrastructure** implements Domain interfaces. It never references Application.
-- **Application** depends only on Domain interfaces, never on Infrastructure directly.
-- **IoC** is the only layer that references all others — it is the composition root.
-- **Api** depends on Application (handlers) and IoC.
+### Notification lifecycle (outbox pattern — ADR-C07)
 
-### Handler pattern
+```
+Kafka message received
+        │
+SaveIfNotExists(status=Pending)   ← atomic conditional write on correlationId (ADR-C08)
+        │   duplicate? → ack, skip
+        ▼
+UpdateStatus(Rendering)
+        │
+TemplateRenderer.Render()
+        │
+ConsentRepository.GetPreference()  ← LGPD Art. 8 check (ADR-C04)
+        │   opted-out? → status=Suppressed, raise NotificationSuppressed
+        ▼
+UpdateStatus(Dispatching)          ← persisted before SES call
+        │
+SesEmailSender.Send()              ← token-bucket limiter + circuit breaker (ADR-C09)
+        │
+UpdateStatus(Sent | Failed)
+```
 
-Every use case implements `IHandler<TRequest, TResponse>`, returning `ErrorOr<T>` instead of throwing exceptions:
+If the process crashes between `Dispatching` and the final status flip, the reconciliation job (`IHostedService`) resolves stuck records on the next cycle.
 
-```csharp
-public interface IHandler<TRequest, TResponse>
+### DynamoDB single-table design
+
+| Key | Purpose |
+|---|---|
+| `PK = NOTIF#{id}` | Primary access by notification ID |
+| `GSI1 = RECIPIENT#{recipientId}` | Query notification history per recipient |
+| `GSI2 = CORRELATION#{correlationId}` | Idempotency lookup (conditional write target) |
+
+TTL: 90 days on all notification records (LGPD Art. 46 data minimization).
+
+### Key architectural decisions
+
+| ADR | Decision |
+|---|---|
+| C01 | Kafka-driven intake — producers publish events, not HTTP calls |
+| C02 | Channel-agnostic `NotificationRequested` schema (SMS/push reserved in enum) |
+| C03 | Reuse `SesEmailSender` pattern from identity-api |
+| C04 | Consent check inside this service — never trusted from producers |
+| C05 | Server-side template rendering (Scriban) — templates versioned in code |
+| C06 | Kafka consumer as `IHostedService` in API host — single deployable |
+| C07 | Outbox-style status lifecycle — persist before send |
+| C08 | Atomic idempotency via DynamoDB `attribute_not_exists(correlationId)` |
+| C09 | Token-bucket rate limiter + Polly circuit breaker in front of `IEmailSender` |
+
+Full ADR docs: [`docs/decisions/`](docs/decisions/)
+
+## HTTP Endpoints
+
+This service is primarily event-driven. The HTTP surface is minimal:
+
+| Method | Route | Purpose |
+|---|---|---|
+| `GET` | `/v1/api/notifications/{id}` | Delivery status + timestamps |
+| `GET` | `/v1/api/notifications/recipient/{recipientId}` | Notification history |
+| `GET` | `/v1/api/consent/{recipientId}` | Current opt-in/out preferences per channel |
+| `PUT` | `/v1/api/consent/{recipientId}` | Update consent (LGPD Art. 8) |
+| `GET` | `/health` | All health checks |
+| `GET` | `/scalar` | API documentation (Development only) |
+
+## Kafka Contract
+
+Topic: `notification-requested`
+
+```json
 {
-    Task<ErrorOr<TResponse>> Handle(TRequest request, CancellationToken cancellationToken = default);
+  "correlationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "recipientId": "usr_01J...",
+  "channel": "Email",
+  "templateId": "AssetApprovedEmail",
+  "payload": {
+    "recipientName": "Maria",
+    "assetTitle": "Apartamento Centro"
+  }
 }
 ```
 
-Handlers are registered explicitly in `ApplicationDependencyInjection.cs`:
+`correlationId` is the idempotency key — duplicate messages with the same ID are acknowledged and skipped without reprocessing.
 
-```csharp
-services.AddScoped<IHandler<CreateExampleRequest, ExampleEntity>, CreateExampleHandler>();
-services.AddScoped<IHandler<Guid, ExampleEntity>, GetByIdExampleHandler>();
-// ...
-```
+Available templates: `AssetApprovedEmail`, `AssetRejectedEmail`, `GenericNotificationEmail`.
 
-### Repository interfaces
+## Secrets
 
-Repositories use **segregated interfaces** — one interface per operation — combined into a feature-specific composite interface:
+Secrets are loaded from AWS Secrets Manager at startup — never from `appsettings.json` or environment variables committed to source control.
 
-```csharp
-// Segregated interfaces (Domain/Interfaces/Common)
-IAddRepository<T>
-IGetByIdRepository<T>
-IUpdateRepository<T>
-IDeleteRepository<T>
-IGetAllRepository<T, TFilter>   // TFilter lives in Domain/Filters
+| Secret key | Value |
+|---|---|
+| `rentifyx/comms/ses-arn` | SES verified sender identity ARN |
+| `rentifyx/comms/kafka-sasl-username` | Kafka SASL username |
+| `rentifyx/comms/kafka-sasl-password` | Kafka SASL password |
 
-// Composite interface per feature (Domain/Interfaces/<Feature>)
-public interface IExampleRepository :
-    IAddRepository<ExampleEntity>,
-    IGetByIdRepository<ExampleEntity>,
-    IGetAllRepository<ExampleEntity, ExampleFilter>,
-    IUpdateRepository<ExampleEntity>,
-    IDeleteRepository<ExampleEntity>
-{ }
-```
+Locally, these are created automatically by the LocalStack init script when the AppHost starts.
 
-A concrete repository implements only the composite interface:
+Missing a required secret on startup → `[Critical]` log + immediate process exit (fail fast).
 
-```csharp
-public sealed class ExampleRepository : IExampleRepository
-{ ... }
-```
+## Observability
 
-**Filter types** (`ExampleFilter`, etc.) live in `Domain/Filters/` — keeping the Domain layer free of Application or Infrastructure dependencies. Handlers map the HTTP request to the filter via the feature mapper:
+### Custom OTEL metrics
 
-```csharp
-// Application/Features/Example/Mapper/ExampleMapper.cs
-public static ExampleFilter ToFilter(GetAllExampleRequest request)
-    => new(request.Page, request.PageSize, request.Name, request.IsActive);
-```
+| Metric | Type | Description |
+|---|---|---|
+| `notifications_sent_total` | Counter | Successful SES deliveries |
+| `notifications_suppressed_total` | Counter | Opted-out recipients skipped |
+| `notifications_failed_total` | Counter | Failed deliveries |
+| `kafka_consumer_lag_notification_requested` | Gauge | Consumer lag on the intake topic |
+| `notification_dispatch_duration_seconds` | Histogram | p50/p99 dispatch latency |
 
-Repository and interface registrations are explicit in `InfrastructureDependencyInjection.cs` — no reflection-based discovery.
+### SLOs
 
-### Feature organization
+| SLO | Target |
+|---|---|
+| Send success rate | > 99% |
+| p99 dispatch latency | < 5s |
+| DLQ rate | < 0.5% |
+| Consumer lag (sustained) | < 30s |
 
-Features are organized by name inside `Application/Features/{Feature}/`:
+### Environment variables (OTEL export)
 
-```
-Application/Features/Example/
-├── ExampleResponse.cs
-├── Mapper/ExampleMapper.cs
-└── Handlers/
-    ├── Create/
-    │   ├── CreateExampleHandler.cs
-    │   ├── Request/CreateExampleRequest.cs
-    │   └── Validator/CreateExampleValidator.cs
-    ├── GetById/GetByIdExampleHandler.cs
-    ├── GetAll/
-    │   ├── GetAllExampleHandler.cs
-    │   └── Request/GetAllExampleRequest.cs
-    ├── Update/
-    │   ├── UpdateExampleHandler.cs
-    │   ├── Request/UpdateExampleRequest.cs
-    │   └── Validator/UpdateExampleValidator.cs
-    └── Delete/DeleteExampleHandler.cs
-```
-
-Endpoints follow the same convention in the Api layer:
-
-```
-Api/Endpoints/Example/
-├── Create.cs
-├── GetById.cs
-├── GetAll.cs
-├── Update.cs
-└── Delete.cs
-```
-
-### Endpoints
-
-Each endpoint is a single file implementing `IEndpoint` and is auto-registered via reflection — no manual wiring:
-
-```csharp
-internal sealed class Create : IEndpoint
-{
-    public void MapEndpoint(IEndpointRouteBuilder app)
-    {
-        app.MapPost("/examples", HandleAsync)
-           .WithName("CreateExample")
-           .WithTags(Tags.EXAMPLE);
-    }
-}
-```
-
-All endpoints are mounted under `/api/v1` with rate limiting applied automatically.
-
-## Centralized Package Management
-
-All NuGet package versions are declared once in `Directory.Packages.props` at the solution root. Individual `.csproj` files reference packages **without specifying versions** — versions are resolved centrally.
-
-```xml
-<!-- Directory.Packages.props -->
-<Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-  </PropertyGroup>
-
-  <ItemGroup Label="Application">
-    <PackageVersion Include="ErrorOr" Version="2.0.1" />
-    <PackageVersion Include="FluentValidation" Version="12.1.1" />
-  </ItemGroup>
-
-  <ItemGroup Label="Api">
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.14.14" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
-  </ItemGroup>
-
-  <ItemGroup Label="Tests">
-    <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="Moq" Version="4.20.72" />
-    <PackageVersion Include="FluentAssertions" Version="8.2.0" />
-  </ItemGroup>
-  <!-- ... -->
-</Project>
-```
-
-**Benefits:**
-- No version conflicts between projects — a single source of truth.
-- To upgrade a package, edit one line in `Directory.Packages.props`.
-- PRs show version changes in one file, making upgrades easy to review.
-
-### Shared build settings
-
-`Directory.Build.props` at the solution root applies common MSBuild properties to every project automatically:
-
-```xml
-<Project>
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <AnalysisMode>Recommended</AnalysisMode>
-    <LangVersion>latest</LangVersion>
-    <NuGetAuditMode>direct</NuGetAuditMode>
-  </PropertyGroup>
-</Project>
-```
-
-`03-tests/Directory.Build.props` extends the root file and suppresses analyzer rules that conflict with test conventions (underscore naming, interface-typed fields, etc.) — without touching production project settings.
+| Variable | Description |
+|---|---|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Collector URL (empty = export disabled) |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` or `grpc` |
+| `OTEL_SERVICE_NAME` | Defaults to `RentifyxCommunications.Api` |
 
 ## Middlewares
 
 ### CorrelationIdMiddleware
 
-Tracks every request end-to-end across logs, responses, and error payloads.
-
-- Reads `X-Correlation-Id` from the request header; generates a new `Guid` if absent.
-- Sanitizes the value (alphanumeric + dashes, max 64 chars) to prevent header injection.
-- Stores the value in `HttpContext.Items` and echoes it in the `X-Correlation-Id` response header.
-- Pushes it to Serilog's `LogContext` — every log line in that request automatically includes `{CorrelationId}`.
+- Reads `X-Correlation-Id` from request header; generates a new `Guid` if absent.
+- Sanitizes value (alphanumeric + dashes, max 64 chars) to prevent header injection.
+- Echoes the ID in the response header and pushes it to Serilog's `LogContext`.
 
 ### GlobalExceptionHandler
 
-Catches all unhandled exceptions and returns a structured `ProblemDetails` response (RFC 7807):
+Returns RFC 7807 `ProblemDetails` for all unhandled exceptions. Exception details are suppressed in Production; full message returned in Development. Correlation ID is included in `extensions`.
 
-```json
-{
-  "status": 500,
-  "title": "An unexpected error occurred.",
-  "instance": "/api/v1/examples",
-  "extensions": {
-    "correlationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
-    "exceptionType": "System.InvalidOperationException",
-    "exceptionMessage": "Sequence contains no elements."
-  }
-}
-```
+## LGPD Compliance
 
-`OperationCanceledException` triggered by client disconnection returns HTTP 499 and is logged as a warning, not an error.
+- **Art. 8 (Consent):** Every dispatch checks `IConsentRepository` before calling SES. Opted-out recipients get status `Suppressed` — SES is never called.
+- **Art. 46 (Security):** DynamoDB TTL expires notification records after 90 days. No plaintext email addresses or payload content persisted beyond that window.
+- **Consent audit log:** Every `PUT /v1/api/consent` change is recorded with `recipientId`, timestamp, previous value, and new value.
 
-### Rate Limiting
-
-Fixed window policy applied globally to all versioned endpoints. Configurable via `appsettings.json`:
-
-```json
-"RateLimit": {
-  "PermitLimit": 100,
-  "WindowSeconds": 60,
-  "QueueLimit": 0
-}
-```
-
-### CORS
-
-Configured via `appsettings.json`. Update the allowed origins before going to production:
-
-```json
-"Cors": {
-  "AllowedOrigins": [ "https://your-frontend.com" ]
-}
-```
-
-## Health Endpoints
-
-| Route | Purpose |
-|---|---|
-| `GET /health` | All registered health checks |
-| `GET /alive` | Liveness probe (checks tagged `live`) |
-| `GET /api/v1/health` | Application-level health check (versioned, documented in Swagger) |
-
-## Error Handling
-
-Business logic never throws — it returns `ErrorOr<T>`. Endpoints map the result to HTTP responses:
-
-```csharp
-ErrorOr<ExampleEntity> result = await handler.Handle(request, cancellationToken);
-
-return result.Match(
-    entity => Results.Ok(entity.ToResponse()),
-    errors => errors.ToProblem(httpContext));
-```
-
-Error types are mapped to HTTP status codes automatically:
-
-| ErrorOr type | HTTP status |
-|---|---|
-| `Error.Validation` | 422 Unprocessable Entity |
-| `Error.NotFound` | 404 Not Found |
-| `Error.Conflict` | 409 Conflict |
-| `Error.Unauthorized` | 401 Unauthorized |
-| Other | 500 Internal Server Error |
-
-## Observability
-
-The template ships with OpenTelemetry pre-configured for traces, metrics, and logs via `.NET Aspire ServiceDefaults`.
-
-Set the following environment variables to enable export to any OTLP-compatible collector:
-
-| Variable | Description | Default |
-|---|---|---|
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Collector URL | _(empty — export disabled)_ |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` or `grpc` | `http/protobuf` |
-| `OTEL_EXPORTER_OTLP_HEADERS` | Auth headers (e.g. API key) | _(empty)_ |
-| `OTEL_SERVICE_NAME` | Service name in traces/metrics | `RentifyxCommunications.Api` |
-| `OTEL_RESOURCE_ATTRIBUTES` | Additional resource metadata | `deployment.environment=production` |
-
-Compatible platforms: Grafana Cloud, Datadog, New Relic, Honeycomb, Elastic, Jaeger, OpenTelemetry Collector.
-
-### Serilog sinks (logs only)
-
-If you prefer sending logs via a Serilog sink instead of OTLP:
+## Infrastructure as Code
 
 ```bash
-dotnet add package Serilog.Sinks.Seq
-dotnet add package Serilog.Sinks.Datadog.Logs
-dotnet add package Serilog.Sinks.Elasticsearch
+cd iac/
+terraform init
+terraform apply
 ```
 
-Configure in `appsettings.json` under `Serilog.WriteTo`.
-
-## Post-Generation Setup
-
-After running `dotnet new clean-arch -n MyProject`, complete the following steps:
-
-### 1. Replace the connection string
-
-In `appsettings.json`:
-
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "your-real-connection-string"
-}
-```
-
-### 2. Implement the repository
-
-Open `Infrastructure/Repositories/ExampleRepository.cs` and implement the methods using your chosen persistence technology (EF Core, Dapper, MongoDB, etc.):
-
-```csharp
-public sealed class ExampleRepository : IExampleRepository
-{
-    // Your implementation here
-}
-```
-
-### 3. Update CORS origins
-
-In `appsettings.json`, replace the placeholder with your frontend URL:
-
-```json
-"Cors": {
-  "AllowedOrigins": [ "https://your-frontend.com" ]
-}
-```
-
-### 4. Update OpenAPI contact info
-
-In `appsettings.json`:
-
-```json
-"OpenApi": {
-  "ContactName": "your-name",
-  "ContactUrl": "https://github.com/your-handle"
-}
-```
-
-### 5. Configure observability (optional)
-
-Set `OTEL_EXPORTER_OTLP_ENDPOINT` to point to your collector. Leave it empty to disable export during local development.
-
-### 6. Replace the Example stubs
-
-The `Example*` files throughout the project are working stubs that demonstrate all patterns end-to-end. Use them as a reference, then replace them with your own features.
-
-## Adding a New Feature
-
-The workflow for adding a feature (e.g. `Product`) mirrors the existing `Example` feature:
-
-**1. Domain** — add entity and error codes:
-
-```
-Domain/Entities/ProductEntity.cs
-Domain/Constants/ProductErrorCodes.cs
-```
-
-**2. Application** — add handlers, requests, validators, mapper:
-
-```
-Application/Features/Products/
-├── ProductResponse.cs
-├── Mapper/ProductMapper.cs
-└── Handlers/
-    ├── Create/
-    │   ├── CreateProductHandler.cs
-    │   ├── Request/CreateProductRequest.cs
-    │   └── Validator/CreateProductValidator.cs
-    ├── GetById/GetByIdProductHandler.cs
-    ├── GetAll/
-    │   ├── GetAllProductHandler.cs
-    │   └── Request/GetAllProductRequest.cs
-    ├── Update/
-    │   ├── UpdateProductHandler.cs
-    │   ├── Request/UpdateProductRequest.cs
-    │   └── Validator/UpdateProductValidator.cs
-    └── Delete/DeleteProductHandler.cs
-```
-
-**3. Infrastructure** — implement the repository:
-
-```csharp
-public sealed class ProductRepository : IRepository<ProductEntity, GetAllProductRequest>
-{
-    // EF Core, Dapper, etc.
-}
-```
-
-**4. IoC** — nenhuma alteração necessária. Handlers e repositórios são registrados automaticamente via reflection ao implementar `IHandler<,>` e `IRepository<,>`.
-
-**5. Api** — add one file per endpoint:
-
-```
-Api/Endpoints/Products/
-├── Create.cs
-├── GetById.cs
-├── GetAll.cs
-├── Update.cs
-└── Delete.cs
-```
-
-Endpoints are registered automatically via reflection — no additional wiring needed.
-
-## Running Locally
-
-With Aspire orchestration (recommended):
+Terraform provisions: SES domain identity + DKIM/SPF, DynamoDB tables with GSIs, Secrets Manager entries, IAM IRSA least-privilege role (SES send + DynamoDB only).
 
 ```bash
-dotnet run --project "01-aspire/01-AppHost/RentifyxCommunications.AppHost"
-```
-
-Or directly:
-
-```bash
-dotnet run --project "02-src/01-Api/RentifyxCommunications.Api"
-```
-
-## Running with Docker
-
-```bash
-docker build -t myproject .
-docker run -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Production myproject
-```
-
-## Running on Kubernetes
-
-```bash
+# Deploy to Kubernetes
 kubectl apply -k k8s/overlays/dev
 kubectl apply -k k8s/overlays/prod
 ```
 
+Helm chart: HPA min 2 / max 6 replicas, liveness/readiness probes, PodDisruptionBudget.
+
 ## Contributing
 
-See [docs/](docs/) for architecture docs, ADRs, and contributor guides.
+See [`docs/`](docs/) for architecture overview, ADRs, and the contributor guide.
+
+Project planning and feature specs live in [`.specs/`](.specs/) — start with [`.specs/project/PROJECT.md`](.specs/project/PROJECT.md).
 
 ## License
 
