@@ -1,11 +1,25 @@
 # State
 
-**Last Updated:** 2026-07-03T00:00:00Z
-**Current Work:** Project Initialization
+**Last Updated:** 2026-07-11T00:00:00Z
+**Current Work:** Project Initialization; scope expanded to include marketing campaigns (E-07) and identity-api integration contract (E-08). E-07 Design and Tasks phases complete (`.specs/features/e07-marketing-campaigns/{design,tasks}.md`, T01–T19) — next up is Execute for E-07 (note: E-07 depends on E-02–E-04's `Notification` aggregate, `IConsentRepository`, `DispatchNotificationHandler` existing first — E-01 foundation should land before E-07 execution begins).
 
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-010: Marketing email added to v1 scope as E-07, sequenced last (2026-07-11)
+
+**Decision:** Marketing campaign email (fan-out, unsubscribe, throughput isolation, bounce/complaint feedback) is in v1 scope, not deferred to a separate future feature — but implemented as E-07/E-08 after the transactional core (E-01–E-06) ships, so campaign work never risks the transactional SLOs already hardened in the original plan.
+**Reason:** User wants this service usable for marketing from the start rather than re-scoping later, but campaign fan-out is structurally different (one-to-many, different consent channel, public unsubscribe, reputation risk) and must not be bolted onto the single-recipient dispatch path that E-04 hardened.
+**Trade-off:** v1 timeline extends beyond the original 14–16 day estimate; exact new estimate pending Design/Tasks phase for E-07.
+**Impact:** New feature specs `.specs/features/e07-marketing-campaigns/spec.md`; `Channel` enum gains a `Marketing` value with its own consent semantics (opt-out only, default-deny — see MKT edge cases); separate Kafka topic/consumer group/rate-limit budget from transactional.
+
+### AD-011: identity-api integration is contract-only this cycle, migration deferred (2026-07-11)
+
+**Decision:** Design and document the `NotificationRequested` contract against identity-api's auth-critical use cases (verification, password reset) now (E-08), but do not touch `rentifyx-identity-api` code in this cycle. Migration off its own direct-SES sender happens after communications-api's v1.0.0 has stabilized in production.
+**Reason:** identity-api's own SES sending is already working in production; migrating it now would couple two repos' release timelines together before communications-api has proven itself. Locking the contract now avoids a breaking schema change later.
+**Trade-off:** Duplicated SES-sending logic between the two services persists until the migration actually happens — must not be forgotten (tracked explicitly, not just implied).
+**Impact:** New feature spec `.specs/features/e08-identity-integration/spec.md`; `docs/contracts/notification-requested.md` becomes the canonical schema both services reference; DLQ records for auth-critical templates get a `severity=auth-critical` tag so failures page instead of queueing passively.
 
 ### AD-001: ADR-C01 — Kafka-driven event intake, not synchronous HTTP (2026-07-03)
 
@@ -100,8 +114,10 @@
 ## Deferred Ideas
 
 - [ ] Event contract versioning ADR — needs to be written before leasing-api integration begins. Captured during: project initialization.
-- [ ] SES bounce/complaint webhook processing (v1.1 backlog) — needed for long-term sender reputation health. Captured during: project initialization.
-- [ ] Token-bucket resizing strategy when both identity-api and communications-api are under heavy concurrent load. Captured during: project initialization.
+- [ ] Token-bucket resizing strategy across transactional + campaign + identity-api load once all three are live. Captured during: project initialization; updated 2026-07-11 to include campaign traffic.
+- [ ] identity-api code migration off its own `SesEmailSender` (publish `NotificationRequested` instead) — trigger: communications-api v1.0.0 stable in production for an agreed window. Owner: write the migration ADR in `rentifyx-identity-api`'s own `.specs/`, not here — this repo only owns the contract side (E-08). Captured during: 2026-07-11 scope discussion.
+- [ ] Campaign creation/management UI or admin API — only if manually publishing `CampaignRequested` events proves insufficient in practice. Captured during: E-07 scoping, 2026-07-11.
+- [x] SES bounce/complaint webhook processing — was v1.1 backlog, promoted into v1 scope as E-07 F-14 (MKT-04) since marketing volume makes reputation risk real. Captured during: project initialization; resolved into roadmap 2026-07-11.
 
 ---
 

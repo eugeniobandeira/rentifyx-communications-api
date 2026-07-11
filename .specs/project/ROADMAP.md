@@ -141,10 +141,51 @@
 
 ---
 
+## E-07 · Marketing Email Campaigns
+
+**Goal:** Add campaign fan-out (`CampaignRequested` → per-recipient notifications) as an additive flow that reuses SES/template/consent/idempotency building blocks without disturbing transactional SLOs. Public token-based unsubscribe, isolated throughput budget, bounce/complaint auto opt-out.
+**Target:** Planned after E-06 (v1 core) stabilizes — added to v1 scope per 2026-07-11 decision, but sequenced last so it doesn't block the transactional ship gate.
+**Spec:** `.specs/features/e07-marketing-campaigns/spec.md`
+
+### Features
+
+**F-13 · Campaign Fan-Out & Unsubscribe** — PLANNED
+
+- `CampaignRequested` Kafka contract: `campaignId`, `templateId`, `recipientIds[]`, `payload`
+- Per-recipient idempotency key (`campaignId + recipientId`), reuses `IConsentRepository`/`Marketing` channel, reuses outbox lifecycle
+- `GET /v1/api/campaigns/{campaignId}` aggregate status endpoint
+- Public `GET /v1/api/unsubscribe?token=...` — signed, single-purpose, no auth — reuses consent audit log
+
+**F-14 · Campaign Throughput Isolation & Reputation** — PLANNED
+
+- Separate Kafka topic/consumer group (`campaign-requested`) and separate token-bucket budget from transactional
+- SES SNS bounce/complaint feedback consumer → auto opt-out per channel (hard bounce/complaint only, not soft bounce)
+- Load test: campaign burst concurrent with steady transactional traffic, transactional SLO must hold
+
+---
+
+## E-08 · Identity-API Integration Contract
+
+**Goal:** Lock the `NotificationRequested` contract against identity-api's auth-critical use cases (email verification, password reset) now, so identity-api's future migration off its own direct-SES sender is a swap, not a redesign. Contract/ADR only — no code changes to `rentifyx-identity-api` in this cycle (decision: 2026-07-11, migrate after E-06 ships to production).
+**Target:** Alongside E-07 spec work; no implementation dependency on E-01–E-06 completing first (this is a documentation/contract deliverable).
+**Spec:** `.specs/features/e08-identity-integration/spec.md`
+
+### Features
+
+**F-15 · Auth-Critical Contract & Migration Plan** — PLANNED
+
+- `docs/contracts/notification-requested.md` — canonical schema doc, validated against `EmailVerification`/`PasswordReset` example payloads
+- `auth-critical` severity tag on DLQ records for templates flagged as auth-critical (pages instead of passive queue)
+- Migration decommission plan: trigger condition (v1.0.0 + stabilization window) and rollback path (feature flag / no dual-active sending) documented for a future identity-api-side ADR
+
+---
+
 ## Future Considerations (Post v1)
 
 - SMS channel implementation (likely triggered by leasing-api requirement)
 - Push notification channel
-- SES bounce/complaint feedback loop processing (v1.1 backlog)
 - Event contract versioning ADR before leasing-api integration begins
-- Token-bucket resizing once shared SES quota with identity-api is confirmed under joint load
+- Token-bucket resizing once shared SES quota with identity-api (and now marketing campaigns) is confirmed under joint load
+- identity-api code migration off its own `SesEmailSender` — tracked by E-08 F-15's decommission plan, executes after E-06 stabilizes in production
+- Campaign creation/management UI or admin API, if manual `CampaignRequested` publishing proves insufficient
+- Segmentation-as-a-service inside communications-api, if producers can't reasonably resolve their own recipient lists
