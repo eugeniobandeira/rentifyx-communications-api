@@ -1,8 +1,8 @@
-using RentifyxCommunications.AppHost;
+﻿using RentifyxCommunications.AppHost;
 
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddProject<Projects.RentifyxCommunications_Api>("clean-arch-api")
+builder.AddProject<Projects.RentifyxCommunications_Api>("rentifyx-communications-api")
     .WithHttpHealthCheck("/health")
     .WithScalar();
 
