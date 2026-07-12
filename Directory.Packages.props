@@ -40,6 +40,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
+    <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.100.3" />
   </ItemGroup>
   <ItemGroup Label="Tests">
     <PackageVersion Include="Bogus" Version="35.6.1" />
