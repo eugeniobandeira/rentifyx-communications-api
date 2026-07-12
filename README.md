@@ -74,7 +74,13 @@ The Kafka consumer runs as an `IHostedService` inside the same API host — one 
 dotnet workload install aspire
 ```
 
-- **AWS credentials for a dev/sandbox account** — a named profile with access to DynamoDB, SES, SecretsManager, and KMS in that account. No LocalStack is used (AD-012); see [`docs/architecture/overview.md`](docs/architecture/overview.md#aws-dev-account-requirements) for the resources that must already exist in that account (tables, SES identity, secrets).
+- **AWS credentials for a dev/sandbox account** — a named profile with access to DynamoDB, SES, SecretsManager, and KMS in that account. No LocalStack is used (AD-012); see [`docs/architecture/overview.md`](docs/architecture/overview.md#aws-dev-account-requirements) for the resources that must already exist in that account (tables, SES identity, secrets). Point the API at your profile via user-secrets (never commit it to `appsettings.*.json`):
+
+```bash
+dotnet user-secrets set "AWS:Profile" "<your-profile-name>" --project 02-src/01-Api/RentifyxCommunications.Api
+```
+
+  Required not just for `dotnet run --project AppHost`, but also for `AppHostTests` (`03-tests/05-Integration`) — that suite boots the real API process, which fails fast at startup if `AWS:Profile` is missing (T07's fail-fast check).
 - git-secrets (for pre-commit hook):
 
 ```bash
@@ -341,9 +347,9 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | T04 Aspire AppHost + ServiceDefaults | ✅ Done |
 | T05 Serilog JSON, health checks, Scalar, ErrorOr | ✅ Done |
 | T06 GlobalExceptionHandler (RFC 7807, prod-safe) | ✅ Done |
-| T07 AWS SDK config for dev/sandbox account | 🔜 Next (reworked per AD-012 — was LocalStack) |
-| T08 Document dev-account resource requirements | Pending |
-| T09 Kafka container in AppHost | Pending |
+| T07 AWS SDK config for dev/sandbox account | ✅ Done (reworked per AD-012 — was LocalStack) |
+| T08 Document dev-account resource requirements | ✅ Done |
+| T09 Kafka container in AppHost | ✅ Done |
 | T10–T17 | Pending (consumer skeleton, secrets provider, CI pipeline, Dockerfile/Trivy, OWASP check, branch protection, git-secrets hook) |
 
 **Not started:** E-02 through E-06 (domain model through IaC/ship gate), E-07 (marketing campaigns — spec/design/tasks written), E-08 (identity-api contract — spec written).

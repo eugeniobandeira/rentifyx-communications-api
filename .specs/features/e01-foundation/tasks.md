@@ -302,7 +302,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T09: Add Kafka container to Aspire AppHost [P]
+### T09: Add Kafka container to Aspire AppHost [P] — ✅ DONE (2026-07-12)
+
+**Resolution note**: `builder.AddKafka("kafka")` registered in AppHost (KRaft mode, no ZooKeeper, per current Aspire Kafka hosting docs) and referenced from the API project via `.WithReference(kafka)`. Along the way fixed `AppHostTests.cs`, which still referenced the stale `"clean-arch-api"` resource name from the `a34a23f` rename and was failing as a result. Added `AppHost_StartsKafkaResource_AndBrokerIsReachable` (producer connects and persists a message) per this task's "Done when". `dotnet build --no-incremental` → 0 errors, 0 warnings. Verification of both `AppHostTests` (health-check + Kafka) required Docker Desktop up and `AWS:Profile` set via `dotnet user-secrets` on the Api project — the health-check test was silently broken since T07 introduced its fail-fast AWS credential check (T07 landed after T04, which originally added that test); added `UserSecretsId` to `RentifyxCommunications.Api.csproj` to unblock this locally. Both tests pass. Gap between this local-only fix and CI (which has no real AWS profile) tracked in `.specs/project/STATE.md` Todos.
 
 **What**: Register Kafka container in AppHost (KRaft mode, no ZooKeeper); expose broker address to API project as configuration
 **Where**: `01-aspire/RentifyX.Communications.AppHost/Program.cs`

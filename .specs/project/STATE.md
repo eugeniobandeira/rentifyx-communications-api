@@ -1,7 +1,7 @@
 # State
 
-**Last Updated:** 2026-07-12T00:00:00Z
-**Current Work:** Executing E-01 foundation task-by-task (`.specs/features/e01-foundation/tasks.md`). T01–T08 done (scaffold verified, Aspire AppHost+ServiceDefaults wired, Serilog JSON logging, JSON health checks, ErrorOr in Domain, GlobalExceptionHandler production-safe, AWSOptions wired against real dev/sandbox account with fail-fast credential check, AWS dev-account resource requirements documented). Per the Execution Plan, next up are the parallel Phase 2/3 tracks not yet started: T09 (Kafka container in AppHost), T11 (ISecretsProvider interface), T13 (CI workflow), T17. Per AD-013, LocalStack scope was narrowed back to automated tests only (T12 rework) — manual dev run keeps using real AWS. Scope also includes marketing campaigns (E-07) and identity-api integration contract (E-08), both spec'd (E-07 also has design+tasks) but Execute not started — both depend on E-02–E-04 domain work landing after E-01.
+**Last Updated:** 2026-07-12T14:20:00Z
+**Current Work:** Executing E-01 foundation task-by-task (`.specs/features/e01-foundation/tasks.md`). T01–T09 done (scaffold verified, Aspire AppHost+ServiceDefaults wired, Serilog JSON logging, JSON health checks, ErrorOr in Domain, GlobalExceptionHandler production-safe, AWSOptions wired against real dev/sandbox account with fail-fast credential check, AWS dev-account resource requirements documented, Kafka container (KRaft mode) added to AppHost). T09 verified: both `AppHostTests` (health-check + Kafka-reachability) pass with Docker Desktop up and `AWS:Profile` set via user-secrets — surfaced and fixed a gap where T07's fail-fast check broke the pre-existing health test (tracked in Todos re: CI). Per the Execution Plan, next up are the parallel Phase 2/3 tracks not yet started: T11 (ISecretsProvider interface), T13 (CI workflow), T17 (git-secrets hook). Per AD-013, LocalStack scope was narrowed back to automated tests only (T12 rework) — manual dev run keeps using real AWS. Scope also includes marketing campaigns (E-07) and identity-api integration contract (E-08), both spec'd (E-07 also has design+tasks) but Execute not started — both depend on E-02–E-04 domain work landing after E-01.
 
 ---
 
@@ -141,7 +141,8 @@
 
 - [ ] Confirm actual AWS SES sending-rate quota (account-level) before implementing US-C019 token bucket — resolves B-001.
 - [ ] Decide on Scriban vs. Razor Class Library for template rendering (ADR-C05) — currently open choice, both are valid.
-- [ ] Verify identity-api's Kafka broker config is reusable for local dev, or set up standalone Kafka container in AppHost (US-C002).
+- [x] Verify identity-api's Kafka broker config is reusable for local dev, or set up standalone Kafka container in AppHost (US-C002) — resolved by T09: standalone `AddKafka("kafka")` in AppHost, KRaft mode.
+- [ ] `AppHostTests` (T04's health-check test + T09's Kafka test) boots the real API process, not LocalStack — it hits T07's fail-fast `AWS:Profile` check same as a manual run. Works locally once `dotnet user-secrets set "AWS:Profile" "<profile>"` is set on the Api project, but CI has no real AWS profile — this suite will fail in CI (T13) until resolved (e.g. a dedicated CI-only AWS identity, or point `AppHostTests` at LocalStack too). Discovered 2026-07-12 while verifying T09.
 
 ---
 
