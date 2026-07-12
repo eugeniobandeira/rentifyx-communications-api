@@ -364,7 +364,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T11: Define ISecretsProvider interface + Application layer registration [P]
+### T11: Define ISecretsProvider interface + Application layer registration [P] — ✅ DONE (2026-07-12)
+
+**Resolution note**: `ISecretsProvider` and `SecretsProviderOptions` added under `RentifyxCommunications.Application/Abstractions/`. `SecretsProviderOptions` holds the three Secrets Manager *key names* (not values), defaulted to the entries documented in T08 (`rentifyx/comms/ses-arn`, `rentifyx/comms/kafka-sasl-username`, `rentifyx/comms/kafka-sasl-password`). Application project already had zero Infrastructure reference (only Domain), so that constraint was satisfied by construction. 3 new unit tests added in `RentifyxCommunications.Tests.Handlers/Abstractions/SecretsProviderTests.cs` (assembly/namespace placement, method signature via reflection, options defaults). No DI registration added — there's no implementation to register yet (that's T12).
 
 **What**: `ISecretsProvider` interface in Application layer with `GetSecretAsync(key)` method; typed wrapper over Secrets Manager; no implementation yet
 **Where**: `02-src/RentifyX.Communications.Application/Abstractions/ISecretsProvider.cs`

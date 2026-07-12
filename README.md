@@ -350,7 +350,9 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | T07 AWS SDK config for dev/sandbox account | ✅ Done (reworked per AD-012 — was LocalStack) |
 | T08 Document dev-account resource requirements | ✅ Done |
 | T09 Kafka container in AppHost | ✅ Done |
-| T10–T17 | Pending (consumer skeleton, secrets provider, CI pipeline, Dockerfile/Trivy, OWASP check, branch protection, git-secrets hook) |
+| T10 NotificationRequestedConsumer skeleton | Pending |
+| T11 ISecretsProvider interface | ✅ Done |
+| T12–T17 | Pending (SecretsManagerProvider, CI pipeline, Dockerfile/Trivy, OWASP check, branch protection, git-secrets hook) |
 
 **Not started:** E-02 through E-06 (domain model through IaC/ship gate), E-07 (marketing campaigns — spec/design/tasks written), E-08 (identity-api contract — spec written).
 
