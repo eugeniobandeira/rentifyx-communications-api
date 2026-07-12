@@ -1,8 +1,12 @@
-﻿using RentifyxCommunications.AppHost;
+﻿using Aspire.Hosting.ApplicationModel;
+using RentifyxCommunications.AppHost;
 
 IDistributedApplicationBuilder builder = DistributedApplication.CreateBuilder(args);
 
+IResourceBuilder<KafkaServerResource> kafka = builder.AddKafka("kafka");
+
 builder.AddProject<Projects.RentifyxCommunications_Api>("rentifyx-communications-api")
+    .WithReference(kafka)
     .WithHttpHealthCheck("/health")
     .WithScalar();
 
