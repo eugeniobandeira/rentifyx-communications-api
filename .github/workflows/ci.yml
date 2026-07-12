@@ -2,12 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  build-and-test:
+  build-test-coverage:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,4 +30,47 @@ jobs:
         run: dotnet build RentifyxCommunications.slnx --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test RentifyxCommunications.slnx --no-build --configuration Release --verbosity normal
+        run: >
+          dotnet test RentifyxCommunications.slnx
+          --no-build
+          --configuration Release
+          --filter "Category!=Integration"
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ./TestResults
+          --collect:"XPlat Code Coverage"
+
+      - name: Install ReportGenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.*
+
+      - name: Generate coverage report
+        run: >
+          reportgenerator
+          -reports:./TestResults/**/coverage.cobertura.xml
+          -targetdir:./TestResults/CoverageReport
+          -reporttypes:"Html;JsonSummary"
+
+      - name: Enforce 80% line coverage gate
+        shell: bash
+        run: |
+          node -e "
+            const coverage = require('./TestResults/CoverageReport/Summary.json').summary.linecoverage;
+            console.log('Line coverage: ' + coverage + '%');
+            if (coverage < 80) {
+              console.log('::error::Line coverage ' + coverage + '% is below the required 80% threshold');
+              process.exit(1);
+            }
+          "
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./TestResults/*.trx
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ./TestResults/CoverageReport

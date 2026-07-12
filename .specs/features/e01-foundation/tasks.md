@@ -428,7 +428,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T13: Create GitHub Actions CI workflow (build + test + coverage) [P]
+### T13: Create GitHub Actions CI workflow (build + test + coverage) [P] — ✅ DONE (2026-07-12)
+
+**Resolution note**: A prior `.github/workflows/ci.yml` already existed (build+test, no coverage) but triggered on `master`, not `main` — fixed. Test step scoped to `--filter "Category!=Integration"` rather than the full suite: `AppHostTests` boots the real API via `DistributedApplicationTestingBuilder` and needs Docker + a real AWS profile (see T09/STATE.md Todo), neither available in CI, so running the full suite would make every CI run fail regardless of code correctness — consistent with AD-013 ("CI needs no real AWS credentials"). This surfaced that no test in the repo actually carried a `Category=Integration` trait (the documented "quick" gate filter was a no-op) — added `[Trait("Category", "Integration")]` to `AppHostTests` as a class-level attribute to make the filter real; verified locally that it now excludes those tests. Coverage: `--collect:"XPlat Code Coverage"` (coverlet, already referenced in every test project) → `reportgenerator` (JsonSummary) → a Node one-liner reads `summary.linecoverage` from `Summary.json` and fails the step below 80%. **Current repo coverage is ~5.6%** (E-01 is foundational scaffolding; the `Examples` feature is template boilerplate with placeholder `[Fact(Skip=...)]` tests) — the gate is intentionally on with the real 80% threshold per explicit user decision, so CI will be red until real tests land alongside E-02+ feature work, rather than quietly deferring the debt. `actionlint` isn't installed locally; validated YAML syntax with `npx js-yaml` instead (semantic step/action correctness will be confirmed on first real CI run).
 
 **What**: `.github/workflows/ci.yml` — build → test → coverage gate ≥80%; produces artifacts for test results and coverage report
 **Where**: `.github/workflows/ci.yml`

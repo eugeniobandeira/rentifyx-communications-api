@@ -10,6 +10,7 @@ using Xunit;
 
 namespace RentifyxCommunications.Tests.Integration;
 
+[Trait("Category", "Integration")]
 public sealed class AppHostTests
 {
     [Fact]
