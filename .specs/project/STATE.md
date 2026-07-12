@@ -1,7 +1,7 @@
 # State
 
-**Last Updated:** 2026-07-11T00:00:00Z
-**Current Work:** Executing E-01 foundation task-by-task (`.specs/features/e01-foundation/tasks.md`). T01–T06 done (scaffold verified, Aspire AppHost+ServiceDefaults wired, Serilog JSON logging, JSON health checks, ErrorOr in Domain, GlobalExceptionHandler production-safe). T07/T08 reworked per AD-012 (LocalStack dropped — real AWS dev/sandbox account instead); next up is the reworked T07. Scope also includes marketing campaigns (E-07) and identity-api integration contract (E-08), both spec'd (E-07 also has design+tasks) but Execute not started — both depend on E-02–E-04 domain work landing after E-01.
+**Last Updated:** 2026-07-12T00:00:00Z
+**Current Work:** Executing E-01 foundation task-by-task (`.specs/features/e01-foundation/tasks.md`). T01–T08 done (scaffold verified, Aspire AppHost+ServiceDefaults wired, Serilog JSON logging, JSON health checks, ErrorOr in Domain, GlobalExceptionHandler production-safe, AWSOptions wired against real dev/sandbox account with fail-fast credential check, AWS dev-account resource requirements documented). Per the Execution Plan, next up are the parallel Phase 2/3 tracks not yet started: T09 (Kafka container in AppHost), T11 (ISecretsProvider interface), T13 (CI workflow), T17. Per AD-013, LocalStack scope was narrowed back to automated tests only (T12 rework) — manual dev run keeps using real AWS. Scope also includes marketing campaigns (E-07) and identity-api integration contract (E-08), both spec'd (E-07 also has design+tasks) but Execute not started — both depend on E-02–E-04 domain work landing after E-01.
 
 ---
 
@@ -20,6 +20,13 @@
 **Reason:** identity-api's own SES sending is already working in production; migrating it now would couple two repos' release timelines together before communications-api has proven itself. Locking the contract now avoids a breaking schema change later.
 **Trade-off:** Duplicated SES-sending logic between the two services persists until the migration actually happens — must not be forgotten (tracked explicitly, not just implied).
 **Impact:** New feature spec `.specs/features/e08-identity-integration/spec.md`; `docs/contracts/notification-requested.md` becomes the canonical schema both services reference; DLQ records for auth-critical templates get a `severity=auth-critical` tag so failures page instead of queueing passively.
+
+### AD-013: LocalStack scope narrowed to automated tests only; manual dev run still uses real AWS (2026-07-12)
+
+**Decision:** Refines AD-012. Manually running the app (`dotnet run --project AppHost`) still targets the real AWS dev/sandbox account via the named credentials profile (T07, already implemented). But automated integration tests (Testcontainers-based, run in CI and locally on-demand) use a LocalStack container instead of hitting the real dev account. Kafka in AppHost remains a local container either way (never affected).
+**Reason:** User wants to occasionally spin up the app against real AWS data to validate true end-to-end integration, then tear the resources down — that's a deliberate, occasional, manual action, not something that should happen on every test run. Hitting real AWS on every `dotnet test` is slow, costs money, requires every CI run to have real AWS credentials, and risks tests polluting/depending on dev-account state.
+**Trade-off:** Two code paths for AWS client configuration must both be kept correct — real profile-based credentials (manual dev) vs. LocalStack endpoint override (tests). Testcontainers LocalStack behavior can still diverge from real AWS at the margins (the original LocalStack objection from AD-012), but that risk is now confined to test-only scenarios, not dev/prod-shaped runs.
+**Impact:** `.specs/features/e01-foundation/tasks.md` T12 reworked — `SecretsManagerProvider` integration tests now run against a LocalStack Secrets Manager container (Testcontainers), not the real dev-account Secrets Manager. Resolves the open CI-credential-strategy todo below (LocalStack needs no real AWS credentials in CI). E-07 F-14's original SNS/SQS-on-LocalStack test plan is correct as originally written — no rework needed after all.
 
 ### AD-012: Drop LocalStack — local dev targets a real AWS dev/sandbox account (2026-07-11)
 

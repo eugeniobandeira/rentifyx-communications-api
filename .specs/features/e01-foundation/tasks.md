@@ -239,7 +239,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T07: Configure AWS SDK against real dev/sandbox account (REWORKED per AD-012, 2026-07-11)
+### T07: Configure AWS SDK against real dev/sandbox account — ✅ DONE (2026-07-12, REWORKED per AD-012)
+
+**Resolution note**: Wired in `InfrastructureDependencyInjection.AddAwsOptions` (not `AppHost.cs` — Aspire's orchestration file has no need to touch AWS credentials; the API process resolves them at DI-registration time, which is where the fail-fast check also lives). Added `AWSSDK.Extensions.NETCore.Setup` package. Fail-fast implemented as two checks before `AddDefaultAWSOptions`: (1) `AWS:Profile` config key missing/blank → throws with a clear message; (2) `CredentialProfileStoreChain.TryGetAWSCredentials` fails to resolve the named profile → throws naming the profile and the `aws configure` fix. Verified manually: running the API with no profile configured fails fast with the clear message (not a raw SDK stack trace) — see terminal output at 2026-07-12T12:32 in session log. `AWS:Profile`/`AWS:Region` placeholders added to `appsettings.Development.json` (`Profile` left empty — developer sets the real value via `dotnet user-secrets`, per the "never committed" requirement). `dotnet build --no-incremental` → 0 errors, 0 warnings.
 
 **What**: Wire `AWSSDKConfig` (region + named credentials profile) in the AppHost so the API and any AWS SDK clients (DynamoDB, SES, SecretsManager, KMS) resolve against a real AWS dev/sandbox account — no LocalStack container. The profile name is read from configuration (e.g. `AWS:Profile`), never hardcoded.
 **Where**: `01-aspire/RentifyxCommunications.AppHost/AppHost.cs`; `02-src/01-Api/RentifyxCommunications.Api/appsettings.Development.json` (profile name + region only — no secrets)
@@ -247,7 +249,7 @@ Phase 4 — Integration (after deps):
 **Reuses**: `AWSSDK.Extensions.NETCore.Setup` (`AddDefaultAWSOptions`) for standard SDK credential resolution via named profile
 **Requirement**: E01-09
 
-**Original LocalStack plan superseded**: See `.specs/project/STATE.md` AD-012. LocalStack was rejected outright — real AWS dev/sandbox account used instead for both local dev and integration tests.
+**Original LocalStack plan superseded**: See `.specs/project/STATE.md` AD-012 and AD-013. Manual dev run always uses the real AWS dev/sandbox account (this task). Per AD-013, automated integration tests use LocalStack instead (see T12) — LocalStack is not used for manual dev/AppHost runs.
 
 **Tools**:
 - MCP: context7 (AWSSDK.Extensions.NETCore.Setup — AddDefaultAWSOptions / AWSOptions patterns)
@@ -259,7 +261,7 @@ Phase 4 — Integration (after deps):
 - [ ] Missing/invalid AWS credentials at startup produce a clear, fail-fast error (not a hang or silent no-op) — ties into E01-25's fail-fast pattern
 - [ ] `dotnet run --project AppHost` starts the API without errors when a valid profile is configured locally
 
-**Tests**: none (credential resolution is exercised by T12's integration tests against the real Secrets Manager)
+**Tests**: none (credential resolution is exercised by T12's integration tests against a LocalStack Secrets Manager container, per AD-013)
 **Gate**: build — `dotnet build --no-incremental`
 
 **Verify**: With a valid local AWS profile configured, `dotnet run --project AppHost` starts cleanly; with an invalid/missing profile, startup fails with a clear error naming the missing credential source (not a raw SDK stack trace).
@@ -268,7 +270,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T08: Document dev-account AWS resource requirements (REWORKED per AD-012, 2026-07-11 — docs only, no provisioning)
+### T08: Document dev-account AWS resource requirements — ✅ DONE (2026-07-12, REWORKED per AD-012)
+
+**Resolution note**: The "AWS Dev Account Requirements" section already existed in `docs/architecture/overview.md` (added in an earlier commit alongside AD-012). Updated it for AD-013: the `Environments` table's CI row now states LocalStack resolves the credential question (previously "not yet decided"), and both the environments table and the requirements intro clarify these dev-account resources are for manual `dotnet run --project AppHost` sessions only — automated tests use LocalStack, not this account. All 5 `Done when` items verified against the current doc content.
 
 **What**: Document the AWS resources this service expects to already exist in the dev/sandbox account (DynamoDB tables, SES sender identity, Secrets Manager entries) — provisioning itself is manual and out of scope for this task (per user decision, 2026-07-11). This replaces the original LocalStack init script.
 **Where**: `docs/architecture/overview.md` (new "AWS Dev Account Requirements" section) — no code, no init script
@@ -287,6 +291,7 @@ Phase 4 — Integration (after deps):
 - [ ] Doc lists the required SES sender identity (domain/email) and notes it must be verified in the dev account before sends succeed
 - [ ] Doc lists required Secrets Manager entries (`rentifyx/comms/ses-arn`, `rentifyx/comms/kafka-sasl-username`, `rentifyx/comms/kafka-sasl-password`)
 - [ ] Doc explicitly states these are NOT auto-provisioned by this service — a manual step (or the future E-06 Terraform apply) is required first
+- [ ] Doc notes these dev-account resources are only needed for manual `dotnet run --project AppHost` sessions — automated tests use LocalStack (AD-013) and don't require them
 
 **Tests**: none
 **Gate**: build — n/a (docs only, no build impact)
@@ -385,32 +390,33 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T12: Implement SecretsManagerProvider + wire into API startup
+### T12: Implement SecretsManagerProvider + wire into API startup (REWORKED per AD-013, 2026-07-12)
 
-**What**: `SecretsManagerProvider` implementing `ISecretsProvider` — loads from the real AWS Secrets Manager in the dev/sandbox account (AD-012 — no LocalStack), 5-min in-memory cache, fail-fast on missing secrets at startup
-**Where**: `02-src/RentifyX.Communications.Infrastructure/Secrets/SecretsManagerProvider.cs`; registered in `Program.cs`
+**What**: `SecretsManagerProvider` implementing `ISecretsProvider` — at runtime resolves against the real AWS Secrets Manager in the dev/sandbox account (via the same named profile as T07), 5-min in-memory cache, fail-fast on missing secrets at startup. Its integration test suite runs against a **LocalStack Secrets Manager container** (Testcontainers), not the real dev account (AD-013) — the client's endpoint is overridden to the LocalStack container URL only in the test host, never in `Program.cs`.
+**Where**: `02-src/RentifyX.Communications.Infrastructure/Secrets/SecretsManagerProvider.cs`; registered in `Program.cs`; test fixture in `03-tests/05-Integration` wires the LocalStack container
 **Depends on**: T05, T11
-**Reuses**: `AWSSDK.SecretsManager` NuGet; `IMemoryCache` for TTL caching
+**Reuses**: `AWSSDK.SecretsManager` NuGet; `IMemoryCache` for TTL caching; `Testcontainers.LocalStack` NuGet for the integration test fixture
 **Requirement**: E01-22, E01-24, E01-25, E01-26, E01-27, E01-28
 
 **Tools**:
-- MCP: context7 (AWSSDK.SecretsManager)
+- MCP: context7 (AWSSDK.SecretsManager; Testcontainers.LocalStack)
 - Skill: none
 
 **Done when**:
-- [ ] `SecretsManagerProvider` implements `ISecretsProvider`; resolves against the real AWS Secrets Manager using the dev/sandbox account's named credentials profile (T07)
+- [ ] `SecretsManagerProvider` implements `ISecretsProvider`; at runtime resolves against the real AWS Secrets Manager using the dev/sandbox account's named credentials profile (T07) — no LocalStack-specific code in `Program.cs` or the provider itself
 - [ ] `GetSecretAsync`: retrieves secret, caches value in `IMemoryCache` with 5-minute absolute expiry
 - [ ] Startup validation: on host start, resolves `SecretsProviderOptions` keys (`SesArn`, `KafkaSaslUsername`, `KafkaSaslPassword`) — if any secret is missing, logs `Critical` and throws (fail fast)
 - [ ] `ISecretsProvider` registered in DI with `SecretsManagerProvider` implementation
-- [ ] Integration test: dev-account Secrets Manager has required secrets → startup succeeds, `GetSecretAsync` returns correct values
-- [ ] Integration test: dev-account Secrets Manager missing a required secret → startup throws with `Critical` log entry
+- [ ] Integration test fixture spins up a LocalStack container (Testcontainers) with Secrets Manager enabled and seeds the required secrets before each test
+- [ ] Integration test: LocalStack Secrets Manager has required secrets → startup succeeds, `GetSecretAsync` returns correct values
+- [ ] Integration test: LocalStack Secrets Manager missing a required secret → startup throws with `Critical` log entry
 - [ ] Integration test: second call within 5 min uses cache (Secrets Manager called only once)
 - [ ] Full gate passes
 
 **Tests**: integration
 **Gate**: full — `dotnet test`
 
-**Note**: These integration tests hit the real AWS dev/sandbox account (AD-012). CI's credential strategy for running them (same dev account vs. a dedicated CI IAM identity) is still an open decision — see STATE.md Todos.
+**Note**: Per AD-013, these integration tests run against LocalStack, not the real AWS dev/sandbox account — this also resolves the previously-open CI credential-strategy question (CI needs no real AWS credentials to run this suite, just a LocalStack container).
 
 **Verify**: Start AppHost, remove a secret from the dev account's Secrets Manager → API logs `[Critical] Required secret 'SesArn' not found. Startup aborted.` and exits non-zero
 
