@@ -144,7 +144,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T04: Configure Aspire AppHost + ServiceDefaults
+### T04: Configure Aspire AppHost + ServiceDefaults — ✅ DONE (2026-07-11)
+
+**Resolution note**: AddServiceDefaults()/health checks/resilience were already wired in ServiceDefaults+Program.cs. Added: `IsAspireProjectResource="false"` on the AppHost→ServiceDefaults reference (fixes ASPIRE004 warning deferred from T02); `Aspire.Hosting.Testing` package; an aliased (`AppHostRef`) ProjectReference from Tests.Integration to AppHost (avoids `Program` type clash with the Api project); `AppHostTests.cs` using `DistributedApplicationTestingBuilder` to boot the AppHost and assert `/health` responds successfully. Full gate passed (build 0 errors, integration test green in ~45s).
 
 **What**: Wire Aspire AppHost project with ServiceDefaults — OpenTelemetry, health checks, service discovery defaults applied to the API project
 **Where**: `01-aspire/RentifyX.Communications.AppHost/`, `01-aspire/RentifyX.Communications.ServiceDefaults/`
@@ -686,7 +688,7 @@ All ✅ — no test co-location violations.
 | E01-06 | T05 | Pending |
 | E01-07 | T05 | Pending |
 | E01-08 | T03 | Done — CA5xxx rules already enforced |
-| E01-09 | T04, T07, T09 | Pending |
+| E01-09 | T04, T07, T09 | T04 done; T07/T09 pending |
 | E01-10 | T07, T08 | Pending |
 | E01-11 | T08 | Pending |
 | E01-12 | T09 | Pending |

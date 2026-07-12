@@ -5,8 +5,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\02-src\01-Api\RentifyxCommunications.Api\RentifyxCommunications.Api.csproj" />
     <ProjectReference Include="..\..\01-Common\RentifyxCommunications.Tests.Common\RentifyxCommunications.Tests.Common.csproj" />
+    <ProjectReference Include="..\..\..\01-aspire\01-AppHost\RentifyxCommunications.AppHost\RentifyxCommunications.AppHost.csproj" Aliases="AppHostRef" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Testing" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
