@@ -1,5 +1,81 @@
 # Architecture Overview
 
+## Target Architecture (Ideal)
+
+```mermaid
+flowchart TB
+    subgraph Producers["Event Producers"]
+        IdentityAPI["identity-api"]
+        AssetRegistry["asset-registry"]
+        LeasingAPI["leasing-api"]
+    end
+
+    Producers -->|"NotificationRequested"| Topic[["Kafka topic:<br/>notification-requested"]]
+
+    subgraph Host["RentifyX.Communications.Api — single deployable (ADR-C06)"]
+        Consumer["NotificationRequestedConsumer<br/>(IHostedService)"]
+        Handler["DispatchNotificationHandler"]
+        Idempotency["SaveIfNotExists<br/>(conditional write, ADR-C08)"]
+        Consent{"IConsentRepository<br/>LGPD Art. 8 check"}
+        Renderer["ITemplateRenderer<br/>(Scriban)"]
+        Limiter["Token-bucket limiter<br/>+ Polly circuit breaker (ADR-C09)"]
+        Sender["IEmailSender<br/>(SesEmailSender)"]
+        Secrets["ISecretsProvider"]
+
+        Topic --> Consumer --> Handler
+        Handler --> Idempotency --> Consent
+        Consent -->|opted-in| Renderer --> Limiter --> Sender
+        Consent -->|opted-out| Suppressed["status = Suppressed<br/>(SES never called)"]
+    end
+
+    subgraph AWS["Real AWS account (dev/sandbox locally — AD-012; same account family in staging/prod)"]
+        DynamoDB[("DynamoDB<br/>notifications + delivery-log")]
+        SES[("SES")]
+        SecretsManager[("Secrets Manager")]
+        KMS[("KMS")]
+    end
+
+    Idempotency -.-> DynamoDB
+    Consent -.-> DynamoDB
+    Sender --> SES
+    Secrets -.->|SES ARN, Kafka SASL creds| SecretsManager
+    SecretsManager -.-> KMS
+    Host -.->|resolves secrets at startup| Secrets
+
+    subgraph Obs["Observability"]
+        OTEL["OpenTelemetry SDK"] --> Collector["OTEL Collector"]
+        Collector --> Dash["Aspire Dashboard (local) /<br/>APM backend (staging/prod)"]
+    end
+
+    Host -.-> OTEL
+```
+
+**Key properties of the target design:**
+
+- The Kafka consumer runs **inside** the API host as an `IHostedService` (ADR-C06) — one deployable, shared health checks, no separate consumer process to operate.
+- Every dispatch follows the outbox lifecycle (`Pending → Rendering → Dispatching → Sent | Failed | Suppressed`, ADR-C07) so a crash mid-send can be reconciled without duplicate emails.
+- Consent is checked **inside** this service, never trusted from the producer (ADR-C04) — centralizes LGPD Art. 8 compliance in one place.
+- `ISecretsProvider` is the same abstraction and code path in every environment (local dev, staging, prod) — only the underlying AWS account/credentials differ (AD-012).
+
+## Environments
+
+| Environment | AWS access | Kafka | Notes |
+|---|---|---|---|
+| Local dev | Real AWS dev/sandbox account via a named credentials profile (`AWS:Profile` config key) | Local container via Aspire AppHost | No LocalStack (AD-012, 2026-07-11) — dev-account resources (tables, SES identity, secrets) must exist before running; see "AWS Dev Account Requirements" below |
+| CI (integration tests) | Same dev/sandbox account, or a dedicated CI IAM identity — **not yet decided**, see `.specs/project/STATE.md` Todos | Testcontainers Kafka | Open decision |
+| Staging / Production | IRSA (IAM Roles for Service Accounts) — no static credentials on the pod | Managed Kafka cluster | Provisioned via Terraform (`iac/`), deployed via Helm (`k8s/`) |
+
+## AWS Dev Account Requirements
+
+These resources are **not** auto-provisioned by this service — they must exist in the dev/sandbox account before the app can run end-to-end (manually today; via the E-06 Terraform module once that lands):
+
+| Resource | Detail |
+|---|---|
+| DynamoDB table `notifications` | PK = `NOTIF#{id}` (S), billing mode `PAY_PER_REQUEST` |
+| DynamoDB table `delivery-log` | PK = `LOG#{id}` (S), billing mode `PAY_PER_REQUEST` |
+| SES sender identity | A verified domain or email identity for outbound sends |
+| Secrets Manager entries | `rentifyx/comms/ses-arn`, `rentifyx/comms/kafka-sasl-username`, `rentifyx/comms/kafka-sasl-password` |
+
 ## Layer Structure
 
 ```

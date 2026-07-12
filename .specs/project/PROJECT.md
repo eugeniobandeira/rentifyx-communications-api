@@ -33,7 +33,7 @@
 **Supporting:**
 
 - AWS Secrets Manager + KMS — secrets at rest
-- LocalStack — local AWS emulation (DynamoDB, SES, SecretsManager, KMS)
+- Real AWS dev/sandbox account — local dev and integration testing target real DynamoDB/SES/SecretsManager/KMS via a named credentials profile (no LocalStack — AD-012, 2026-07-11)
 - Testcontainers — integration tests
 - GitHub Actions — CI/CD with OWASP + Trivy gates
 

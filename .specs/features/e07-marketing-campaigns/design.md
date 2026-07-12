@@ -60,7 +60,7 @@ graph TD
 | --- | --- |
 | Kafka | New topic `campaign-requested`, new consumer group — isolated from `notification-requested` so campaign backlog never raises transactional consumer lag |
 | DynamoDB (existing table) | New item type `CAMPAIGN#{campaignId}` with atomic counters; existing `Notification` items gain `CampaignId` (nullable) and `Category` (`Transactional` \| `Campaign`) attributes |
-| SES → SNS → SQS | New AWS wiring: SES configuration set with bounce/complaint event destinations → SNS topic → SQS queue, polled by `SesFeedbackConsumer`. LocalStack must add SNS + SQS to the local AppHost stack (currently DynamoDB/SES/SecretsManager/KMS only) |
+| SES → SNS → SQS | New AWS wiring: SES configuration set with bounce/complaint event destinations → SNS topic → SQS queue, polled by `SesFeedbackConsumer`. Provisioned as real SNS/SQS resources in the dev/sandbox account (AD-012, 2026-07-11 — no LocalStack) alongside the existing DynamoDB/SES/SecretsManager/KMS resources |
 | Secrets Manager | New secret `rentifyx/comms/unsubscribe-signing-key` (HMAC key), loaded at startup like the existing SES/Kafka secrets — missing key is fail-fast per existing convention |
 
 ---
@@ -199,7 +199,7 @@ No `correlationId` field at the event level — idempotency is per-recipient (`c
 | Campaign aggregate counts: query vs. denormalized counters | Denormalized atomic counters on a `CampaignSummary` item, updated via `UpdateItem ADD` as each recipient resolves | A campaign can have up to 50,000 recipients (spec edge case ceiling); scanning that many items on every status poll is wasteful and doesn't scale. Atomic `ADD` avoids read-then-write races, consistent with ADR-C08's philosophy |
 | Unsubscribe token format | Compact HMAC-signed token (`base64url(payload).base64url(HMAC-SHA256)`), not a full JWT | Single claim (recipientId + channel + expiry), single purpose — pulling in a JWT library for this is unjustified ceremony. Verification is fully stateless (no DB lookup), which is what makes replay-safety free |
 | Unsubscribe token expiry | 90 days | Matches the existing DynamoDB TTL / data-minimization window (Art. 46) already established for notification records — one retention story instead of two |
-| Bounce/complaint transport | SES → SNS → SQS, polled by a new `IHostedService`, not routed through the existing Kafka topics | Bounce/complaint notifications are AWS-native (SES's only native delivery mechanism); forcing them through Kafka would mean a bridge component for no benefit. LocalStack gains SNS+SQS alongside its existing DynamoDB/SES/SecretsManager/KMS setup |
+| Bounce/complaint transport | SES → SNS → SQS, polled by a new `IHostedService`, not routed through the existing Kafka topics | Bounce/complaint notifications are AWS-native (SES's only native delivery mechanism); forcing them through Kafka would mean a bridge component for no benefit. Dev/sandbox account gains real SNS+SQS resources alongside its existing DynamoDB/SES/SecretsManager/KMS setup (AD-012 — no LocalStack) |
 | Campaign topic isolation | Separate Kafka topic (`campaign-requested`) + separate consumer group + separate token bucket, sharing the same handler code path (`DispatchNotificationHandler`) | Isolates blast radius at the intake/throughput edges (spec MKT-03) without duplicating the dispatch logic itself — cheapest way to protect the transactional SLO |
 
 ---

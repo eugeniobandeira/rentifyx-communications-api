@@ -10,24 +10,38 @@ Channel-agnostic notification microservice for the RentifyX platform. Consumes `
 
 ## Architecture Overview
 
-```
-identity-api ──┐
-asset-registry  ├──→ Kafka (notification-requested) ──→ NotificationRequestedConsumer
-leasing-api ───┘                                              │
-                                                              ▼
-                                               DispatchNotificationHandler
-                                                   │              │
-                                          ConsentRepository   TemplateRenderer
-                                                   │              │
-                                               (DynamoDB)    (Scriban)
-                                                              │
-                                                         SesEmailSender
-                                                         (AWS SES)
-                                                              │
-                                                    DynamoDB notification log
+```mermaid
+flowchart TB
+    subgraph Producers["Event Producers"]
+        IdentityAPI["identity-api"]
+        AssetRegistry["asset-registry"]
+        LeasingAPI["leasing-api"]
+    end
+
+    Producers -->|"NotificationRequested"| Topic[["Kafka topic:<br/>notification-requested"]]
+
+    subgraph Host["RentifyX.Communications.Api — single deployable"]
+        Consumer["NotificationRequestedConsumer<br/>(IHostedService)"] --> Handler["DispatchNotificationHandler"]
+        Handler --> Idempotency["SaveIfNotExists<br/>(conditional write)"] --> Consent{"IConsentRepository<br/>LGPD Art. 8 check"}
+        Consent -->|opted-in| Renderer["ITemplateRenderer<br/>(Scriban)"] --> Limiter["Rate limiter +<br/>circuit breaker"] --> Sender["SesEmailSender"]
+        Consent -->|opted-out| Suppressed["status = Suppressed"]
+    end
+
+    subgraph AWS["Real AWS account (dev/sandbox locally, same family in prod)"]
+        DynamoDB[("DynamoDB")]
+        SES[("SES")]
+        SecretsManager[("Secrets Manager")]
+    end
+
+    Idempotency -.-> DynamoDB
+    Consent -.-> DynamoDB
+    Sender --> SES
+    Host -.->|secrets at startup| SecretsManager
 ```
 
-The Kafka consumer runs as an `IHostedService` inside the same API host — one deployable, shared health checks and observability (ADR-C06).
+The Kafka consumer runs as an `IHostedService` inside the same API host — one deployable, shared health checks and observability (ADR-C06). Full diagram + environment matrix: [`docs/architecture/overview.md`](docs/architecture/overview.md).
+
+> **No LocalStack.** Local development and integration tests connect to a real AWS dev/sandbox account instead of an emulator (decision AD-012, 2026-07-11 — see `.specs/project/STATE.md`). See [Prerequisites](#prerequisites) for what that requires.
 
 ## Tech Stack
 
@@ -47,19 +61,20 @@ The Kafka consumer runs as an `IHostedService` inside the same API host — one 
 | Observability | OpenTelemetry (traces, metrics, logs) |
 | API docs | Scalar + Microsoft.AspNetCore.OpenApi |
 | Testing | xUnit, Moq, FluentAssertions, Bogus, Testcontainers |
-| Local AWS | LocalStack (DynamoDB, SES, SecretsManager, KMS) |
+| AWS environment | Real dev/sandbox AWS account (DynamoDB, SES, SecretsManager, KMS) — no local emulation (AD-012) |
 | IaC | Terraform + Helm |
 
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for LocalStack + Kafka via Aspire)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for the Kafka container via Aspire)
 - .NET Aspire workload:
 
 ```bash
 dotnet workload install aspire
 ```
 
+- **AWS credentials for a dev/sandbox account** — a named profile with access to DynamoDB, SES, SecretsManager, and KMS in that account. No LocalStack is used (AD-012); see [`docs/architecture/overview.md`](docs/architecture/overview.md#aws-dev-account-requirements) for the resources that must already exist in that account (tables, SES identity, secrets).
 - git-secrets (for pre-commit hook):
 
 ```bash
@@ -82,7 +97,7 @@ git config core.hooksPath .hooks
 dotnet run --project "01-aspire/01-AppHost/RentifyxCommunications.AppHost"
 ```
 
-This boots: API host · LocalStack (DynamoDB, SES, SecretsManager, KMS) · Kafka · Aspire dashboard.
+This boots: API host · Kafka · Aspire dashboard. The API connects to DynamoDB/SES/SecretsManager/KMS in your configured AWS dev/sandbox account — no local AWS emulation.
 
 | Resource | URL |
 |---|---|
@@ -90,7 +105,6 @@ This boots: API host · LocalStack (DynamoDB, SES, SecretsManager, KMS) · Kafka
 | Scalar UI | `http://localhost:5000/scalar` |
 | Health | `http://localhost:5000/health` |
 | Aspire dashboard | `http://localhost:15888` |
-| LocalStack | `http://localhost:4566` |
 
 ## Running with Docker
 
@@ -115,7 +129,7 @@ dotnet test
 rentifyx-communications-api/
 ├── 01-aspire/
 │   ├── 01-AppHost/
-│   │   └── RentifyxCommunications.AppHost/     # Aspire orchestration + LocalStack + Kafka
+│   │   └── RentifyxCommunications.AppHost/     # Aspire orchestration + Kafka (AWS = real dev/sandbox account)
 │   └── 02-ServiceDefaults/
 │       └── RentifyxCommunications.ServiceDefaults/  # OTEL, health checks, service discovery
 ├── 02-src/
@@ -262,7 +276,7 @@ Secrets are loaded from AWS Secrets Manager at startup — never from `appsettin
 | `rentifyx/comms/kafka-sasl-username` | Kafka SASL username |
 | `rentifyx/comms/kafka-sasl-password` | Kafka SASL password |
 
-Locally, these are created automatically by the LocalStack init script when the AppHost starts.
+These must already exist in the AWS dev/sandbox account before running locally — see [`docs/architecture/overview.md`](docs/architecture/overview.md#aws-dev-account-requirements). Nothing auto-creates them (no LocalStack, no init script — AD-012).
 
 Missing a required secret on startup → `[Critical]` log + immediate process exit (fail fast).
 
@@ -312,6 +326,27 @@ Returns RFC 7807 `ProblemDetails` for all unhandled exceptions. Exception detail
 - **Art. 8 (Consent):** Every dispatch checks `IConsentRepository` before calling SES. Opted-out recipients get status `Suppressed` — SES is never called.
 - **Art. 46 (Security):** DynamoDB TTL expires notification records after 90 days. No plaintext email addresses or payload content persisted beyond that window.
 - **Consent audit log:** Every `PUT /v1/api/consent` change is recorded with `recipientId`, timestamp, previous value, and new value.
+
+## Project Status
+
+Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning docs), not here — this table is a snapshot and will go stale. See `.specs/project/ROADMAP.md` for the full epic breakdown and `.specs/features/e01-foundation/tasks.md` for task-level detail.
+
+**E-01 · Project Foundation** (current milestone):
+
+| Task | Status |
+|---|---|
+| T01 Solution scaffold | ✅ Done |
+| T02 Build props / package management | ✅ Done |
+| T03 CA5xxx security analyzer rules | ✅ Done |
+| T04 Aspire AppHost + ServiceDefaults | ✅ Done |
+| T05 Serilog JSON, health checks, Scalar, ErrorOr | ✅ Done |
+| T06 GlobalExceptionHandler (RFC 7807, prod-safe) | ✅ Done |
+| T07 AWS SDK config for dev/sandbox account | 🔜 Next (reworked per AD-012 — was LocalStack) |
+| T08 Document dev-account resource requirements | Pending |
+| T09 Kafka container in AppHost | Pending |
+| T10–T17 | Pending (consumer skeleton, secrets provider, CI pipeline, Dockerfile/Trivy, OWASP check, branch protection, git-secrets hook) |
+
+**Not started:** E-02 through E-06 (domain model through IaC/ship gate), E-07 (marketing campaigns — spec/design/tasks written), E-08 (identity-api contract — spec written).
 
 ## Infrastructure as Code
 

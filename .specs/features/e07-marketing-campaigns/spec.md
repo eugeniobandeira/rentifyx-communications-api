@@ -39,7 +39,7 @@ v1 (E-01–E-06) covers transactional, single-recipient email only (`Notificatio
 4. WHEN fan-out is in progress THEN individual recipient failures (bad address, render error) SHALL NOT block or fail the rest of the campaign
 5. WHEN a producer queries campaign progress THEN it SHALL be able to do so via `GET /v1/api/campaigns/{campaignId}` returning aggregate counts (sent/suppressed/failed/pending)
 
-**Independent Test**: Publish a `CampaignRequested` event with 5 recipient IDs (2 opted out) against LocalStack; confirm 3 SES sends, 2 suppressed records, and `GET /v1/api/campaigns/{campaignId}` reports `{sent:3, suppressed:2, failed:0}`.
+**Independent Test**: Publish a `CampaignRequested` event with 5 recipient IDs (2 opted out) against the real AWS dev/sandbox account (AD-012 — no LocalStack); confirm 3 SES sends, 2 suppressed records, and `GET /v1/api/campaigns/{campaignId}` reports `{sent:3, suppressed:2, failed:0}`.
 
 ---
 
@@ -57,7 +57,7 @@ v1 (E-01–E-06) covers transactional, single-recipient email only (`Notificatio
 4. WHEN an unsubscribe token is replayed after successful use THEN the system SHALL treat it as idempotent (still opted out, no error) — a recipient double-clicking shouldn't see a failure
 5. WHEN a recipient unsubscribes THEN the same consent audit log used for `PUT /v1/api/consent` (US-C026) SHALL record the change, tagged with source `unsubscribe-link`
 
-**Independent Test**: Send a campaign email via LocalStack SES mock, extract the unsubscribe token from the rendered body, call the endpoint, confirm `GET /v1/api/consent/{recipientId}` now shows `Marketing: opted-out`, and confirm replaying the same token doesn't error.
+**Independent Test**: Send a campaign email via the real AWS dev/sandbox account SES (AD-012 — no LocalStack mock), extract the unsubscribe token from the rendered body, call the endpoint, confirm `GET /v1/api/consent/{recipientId}` now shows `Marketing: opted-out`, and confirm replaying the same token doesn't error.
 
 ---
 

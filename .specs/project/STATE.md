@@ -1,7 +1,7 @@
 # State
 
 **Last Updated:** 2026-07-11T00:00:00Z
-**Current Work:** Project Initialization; scope expanded to include marketing campaigns (E-07) and identity-api integration contract (E-08). E-07 Design and Tasks phases complete (`.specs/features/e07-marketing-campaigns/{design,tasks}.md`, T01–T19) — next up is Execute for E-07 (note: E-07 depends on E-02–E-04's `Notification` aggregate, `IConsentRepository`, `DispatchNotificationHandler` existing first — E-01 foundation should land before E-07 execution begins).
+**Current Work:** Executing E-01 foundation task-by-task (`.specs/features/e01-foundation/tasks.md`). T01–T06 done (scaffold verified, Aspire AppHost+ServiceDefaults wired, Serilog JSON logging, JSON health checks, ErrorOr in Domain, GlobalExceptionHandler production-safe). T07/T08 reworked per AD-012 (LocalStack dropped — real AWS dev/sandbox account instead); next up is the reworked T07. Scope also includes marketing campaigns (E-07) and identity-api integration contract (E-08), both spec'd (E-07 also has design+tasks) but Execute not started — both depend on E-02–E-04 domain work landing after E-01.
 
 ---
 
@@ -20,6 +20,15 @@
 **Reason:** identity-api's own SES sending is already working in production; migrating it now would couple two repos' release timelines together before communications-api has proven itself. Locking the contract now avoids a breaking schema change later.
 **Trade-off:** Duplicated SES-sending logic between the two services persists until the migration actually happens — must not be forgotten (tracked explicitly, not just implied).
 **Impact:** New feature spec `.specs/features/e08-identity-integration/spec.md`; `docs/contracts/notification-requested.md` becomes the canonical schema both services reference; DLQ records for auth-critical templates get a `severity=auth-critical` tag so failures page instead of queueing passively.
+
+### AD-012: Drop LocalStack — local dev targets a real AWS dev/sandbox account (2026-07-11)
+
+**Decision:** Local development and integration testing do NOT use LocalStack. Instead, the AppHost and API connect to a real AWS dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via a named AWS credentials profile. Kafka remains a local container in Aspire (unaffected — Kafka has no LocalStack dependency).
+**Reason:** User rejected LocalStack outright as providing no value for this workflow. Using the real AWS dev account also removes an entire class of emulation-parity bugs (LocalStack behavior diverging from real AWS) and removes the need for an init script to fabricate tables/identities that would otherwise need to exist for real in staging/prod anyway.
+**Trade-off:** Every developer needs real AWS credentials (a named profile) configured locally, and dev-account AWS resources (DynamoDB tables, SES sender identity, Secrets Manager entries) must be provisioned before the app can run — this is currently a manual/deferred step, not automated by any init script. CI integration tests' AWS access strategy (same dev account vs. a dedicated CI IAM identity) is still an open decision (see Todos).
+**Impact:** Supersedes the LocalStack container/init-script portions of E-01 F-01 (T07/T08 reworked — see `.specs/features/e01-foundation/tasks.md`). `.specs/features/e01-foundation/spec.md` US-C002 rewritten. E-07's SNS/SQS-on-LocalStack plan (F-14) also needs rework when E-07 execution starts — flagged, not yet rewritten task-by-task. README/PROJECT.md/ROADMAP.md updated to remove LocalStack from the tech stack and running-locally instructions.
+
+---
 
 ### AD-001: ADR-C01 — Kafka-driven event intake, not synchronous HTTP (2026-07-03)
 

@@ -7,18 +7,20 @@
 
 ## E-01 · Project Foundation & DevSecOps Pipeline
 
-**Goal:** Repo scaffold, local dev environment (Aspire + LocalStack + Kafka), CI/CD pipeline with security gates, secrets loading from Secrets Manager — all wired before domain work begins.
+**Goal:** Repo scaffold, local dev environment (Aspire + real AWS dev/sandbox account + Kafka), CI/CD pipeline with security gates, secrets loading from Secrets Manager — all wired before domain work begins.
 **Target:** Day 1
+
+**2026-07-11 update (AD-012):** LocalStack dropped from local dev — the AppHost/API connect to a real AWS dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via a named credentials profile instead. Kafka is unaffected (still a local Aspire container). See `.specs/project/STATE.md` AD-012.
 
 ### Features
 
 **F-01 · Repo & Solution Structure** — IN PROGRESS
 
-- Clean solution scaffold via `dotnet new clean-arch` (API, Application, Domain, Infrastructure, Tests layers)
-- Aspire AppHost + ServiceDefaults, Serilog, CorrelationId, GlobalExceptionHandler, Scalar UI, ErrorOr\<T\>
-- LocalStack containers (DynamoDB, SES, SecretsManager, KMS) + Kafka container in AppHost
-- LocalStack init script: DynamoDB tables (notifications, delivery-log), SES verified sender identity
-- `NotificationRequestedConsumer` registered as `IHostedService` with graceful stop/drain
+- Clean solution scaffold via `dotnet new clean-arch` (API, Application, Domain, Infrastructure, Tests layers) — ✅ done
+- Aspire AppHost + ServiceDefaults, Serilog, CorrelationId, GlobalExceptionHandler, Scalar UI, ErrorOr\<T\> — ✅ done
+- AWS SDK configured against a real dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via named credentials profile + Kafka container in AppHost — reworked per AD-012, in progress
+- Dev-account resource provisioning (DynamoDB tables `notifications`/`delivery-log`, SES verified sender identity, Secrets Manager entries) — manual for now, not automated; tracked as a todo
+- `NotificationRequestedConsumer` registered as `IHostedService` with graceful stop/drain — pending
 
 **F-02 · CI/CD Pipeline & DevSecOps Baseline** — IN PROGRESS
 
@@ -85,7 +87,7 @@
 - `DynamoDbNotificationRepository`: SaveIfNotExists, GetById, GetByRecipient, UpdateStatus
 - Single-table design: PK=`NOTIF#{id}`, GSI1=`RECIPIENT#{recipientId}`, GSI2=`CORRELATION#{correlationId}`
 - DynamoDB TTL: 90-day auto-expiry on notification records (LGPD Art. 46 data minimization)
-- Testcontainers.LocalStack integration tests for SES + DynamoDB including conditional-write race
+- Integration tests for SES + DynamoDB (including conditional-write race) run against the real AWS dev/sandbox account — no LocalStack (AD-012); CI credential strategy still to be decided (see STATE.md Todos)
 
 **F-08 · Throttling & Circuit Breaking** — PLANNED
 
@@ -161,6 +163,7 @@
 - Separate Kafka topic/consumer group (`campaign-requested`) and separate token-bucket budget from transactional
 - SES SNS bounce/complaint feedback consumer → auto opt-out per channel (hard bounce/complaint only, not soft bounce)
 - Load test: campaign burst concurrent with steady transactional traffic, transactional SLO must hold
+- **2026-07-11 note (AD-012):** F-14's SNS/SQS-for-SES-feedback plan assumed a LocalStack-hosted SNS/SQS stack; now needs rework against the real AWS dev/sandbox account when E-07 execution starts (not yet rewritten task-by-task — see `.specs/features/e07-marketing-campaigns/`)
 
 ---
 

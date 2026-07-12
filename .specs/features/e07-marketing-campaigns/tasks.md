@@ -3,6 +3,8 @@
 **Design**: `.specs/features/e07-marketing-campaigns/design.md`
 **Status**: Draft
 
+**2026-07-11 note (AD-012)**: LocalStack was dropped from this project — this task list's integration tests target the real AWS dev/sandbox account (DynamoDB, SQS/SNS) instead. Not yet rewritten task-by-task since E-07 Execute hasn't started; T13 below still needs a full rework pass when execution begins.
+
 ---
 
 ## Test Strategy (TESTING.md not yet created — defined inline, mirrors E-01's convention)
@@ -11,11 +13,11 @@
 |---|---|---|
 | **build** | `dotnet build --no-incremental` | Config/wiring/IaC tasks with no testable business logic |
 | **quick** | `dotnet test --filter "Category!=Integration"` | Unit tests only |
-| **full** | `dotnet test` | Unit + integration (Testcontainers/LocalStack) |
+| **full** | `dotnet test` | Unit + integration (real AWS dev/sandbox account) |
 
 **Parallelism:**
 - Unit tests → parallel-safe ✅
-- Integration tests (Testcontainers/LocalStack: DynamoDB, SQS/SNS, WebApplicationFactory) → NOT parallel-safe ❌ (shared container/table lifecycle)
+- Integration tests (real AWS dev/sandbox account: DynamoDB, SQS/SNS, WebApplicationFactory) → NOT parallel-safe ❌ (shared table/resource lifecycle)
 - Build-only / IaC validate → parallel-safe ✅
 
 ---
@@ -249,7 +251,7 @@ Phase 5 — Validation, IaC & Docs (Sequential tail):
 - [ ] `CreateIfNotExists` called twice with the same `campaignId` results in exactly one summary record
 - [ ] `IncrementCounter` called concurrently (simulated race) results in correct final counts — no lost updates
 - [ ] `GetSummary` returns correct aggregate counts after a mixed batch of sent/suppressed/failed
-- [ ] Gate check passes: `dotnet test` (Testcontainers/LocalStack DynamoDB)
+- [ ] Gate check passes: `dotnet test` (real AWS dev/sandbox account DynamoDB)
 - [ ] Test count: 4+ new tests pass (no silent deletions)
 
 **Tests**: integration
@@ -275,7 +277,7 @@ Phase 5 — Validation, IaC & Docs (Sequential tail):
 - [ ] Two concurrent handlers racing on the same `campaignId + recipientId` → exactly one succeeds in creating the record (same race test shape as US-C013's transactional test, applied to campaign keys)
 - [ ] `GSI3` query by `campaignId` returns all per-recipient notification records for that campaign
 - [ ] Existing transactional `correlationId` idempotency path is unaffected (regression check)
-- [ ] Gate check passes: `dotnet test` (Testcontainers/LocalStack DynamoDB)
+- [ ] Gate check passes: `dotnet test` (real AWS dev/sandbox account DynamoDB)
 - [ ] Test count: 3+ new tests pass, 0 existing tests broken
 
 **Tests**: integration
@@ -323,7 +325,7 @@ Phase 5 — Validation, IaC & Docs (Sequential tail):
 - Skill: none
 
 **Done when**:
-- [ ] `campaign-requested` topic is created by the LocalStack/Kafka init alongside `notification-requested`
+- [ ] `campaign-requested` topic is created by the Kafka init (dev-account resources are provisioned manually, not via a LocalStack init script — AD-012) alongside `notification-requested`
 - [ ] Consumer group IDs are distinct and documented (e.g., `comms-campaign-consumer` vs `comms-notification-consumer`)
 - [ ] `dotnet run --project AppHost` boots both consumers cleanly, visible in Aspire dashboard
 - [ ] `dotnet build` passes
@@ -362,28 +364,27 @@ Phase 5 — Validation, IaC & Docs (Sequential tail):
 
 ---
 
-### T13: LocalStack/AppHost — add SNS + SQS for SES feedback
+### T13: Dev-account SNS + SQS for SES feedback (REWORKED per AD-012, 2026-07-11 — needs full pass when E-07 execution starts)
 
-**What**: Add SNS topic and SQS queue resources to the local LocalStack stack in Aspire AppHost, with the SQS queue subscribed to the SNS topic, so `SesFeedbackConsumer` (T12) has something to poll locally
-**Where**: `01-aspire/01-AppHost/RentifyxCommunications.AppHost/`, LocalStack init script
+**What**: Provision real SNS topic and SQS queue resources in the AWS dev/sandbox account, with the SQS queue subscribed to the SNS topic, so `SesFeedbackConsumer` (T12) has something to poll. No LocalStack container/init script — mirrors E-01 T07/T08's AD-012 rework (AWS SDK config against the real account; resource existence documented, not auto-provisioned by this service).
+**Where**: `01-aspire/01-AppHost/RentifyxCommunications.AppHost/` (AWS SDK config only — no container); `docs/architecture/overview.md` (document the required SNS/SQS resources, same convention as E-01 T08)
 **Depends on**: T12
-**Reuses**: Existing LocalStack container wiring pattern (DynamoDB/SES/SecretsManager/KMS, E-01)
+**Reuses**: E-01's AWS dev-account SDK configuration pattern (T07) and dev-account resource documentation pattern (T08)
 **Requirement**: MKT-04
 
 **Tools**:
-- MCP: `context7` (LocalStack SNS/SQS resource provisioning reference, if the existing Aspire LocalStack extension doesn't already expose these)
+- MCP: `context7` (AWSSDK.SimpleNotificationService / AWSSDK.SQS setup patterns)
 - Skill: none
 
 **Done when**:
-- [ ] `dotnet run --project AppHost` provisions the SNS topic and SQS subscription alongside existing LocalStack resources
-- [ ] `SesFeedbackConsumer` connects and polls successfully against the local queue on startup
-- [ ] Init script remains idempotent (safe to re-run), matching E-01's convention
+- [ ] Required SNS topic + SQS subscription documented in `docs/architecture/overview.md` alongside E-01's dev-account resource list
+- [ ] `SesFeedbackConsumer` connects and polls successfully against the real dev-account queue on startup
 - [ ] `dotnet build` passes
 
-**Tests**: none (local infra wiring)
+**Tests**: none (infra wiring/docs)
 **Gate**: build — `dotnet build --no-incremental`
 
-**Commit**: `chore(infra): add SNS/SQS to LocalStack AppHost for SES feedback`
+**Commit**: `chore(infra): configure dev-account SNS/SQS for SES feedback`
 
 ---
 

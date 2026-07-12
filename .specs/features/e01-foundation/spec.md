@@ -6,7 +6,7 @@ Before any domain or application code can be written, the project needs a workin
 
 ## Goals
 
-- [ ] `dotnet run --project AppHost` boots all services (API, LocalStack, Kafka) with zero manual steps
+- [ ] `dotnet run --project AppHost` boots all services (API, Kafka) with zero manual steps, connecting to a real AWS dev/sandbox account for DynamoDB/SES/SecretsManager/KMS (AD-012, 2026-07-11 — supersedes the original LocalStack plan)
 - [ ] Kafka consumer starts and stops gracefully with the host lifecycle (no messages lost on shutdown)
 - [ ] Secrets (SES ARN, Kafka credentials) load from Secrets Manager — never from appsettings or env vars committed to git
 - [ ] CI pipeline passes: build → test → coverage ≥80% → OWASP dependency check → Trivy image scan
@@ -49,22 +49,22 @@ Before any domain or application code can be written, the project needs a workin
 
 ---
 
-### P1: US-C002 — Local Dev Environment (Aspire + LocalStack + Kafka) ⭐ MVP
+### P1: US-C002 — Local Dev Environment (Aspire + real AWS dev account + Kafka) ⭐ MVP
 
-**User Story**: As a dev, I want AWS services (DynamoDB, SES, SecretsManager, KMS) and Kafka available locally via Aspire so I can develop and test without AWS credentials.
+**User Story**: As a dev, I want a Kafka container via Aspire and the AWS SDK configured against a real dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) so I can develop and test against real AWS behavior, not an emulator.
 
-**Why P1**: Without a working local environment, integration tests and local development require real AWS — blocks every developer and CI run.
+**Why P1**: Without a working local environment, integration tests and local development can't run at all. (Superseded 2026-07-11 — AD-012: LocalStack was rejected as adding no value; the team develops against a real AWS dev/sandbox account instead.)
 
 **Acceptance Criteria**:
 
-1. WHEN `dotnet run --project AppHost` is run THEN it SHALL start: the API host, a LocalStack container (DynamoDB + SES + SecretsManager + KMS), and a Kafka container
-2. WHEN LocalStack starts THEN an init script SHALL create: DynamoDB tables `notifications` and `delivery-log`, and a verified SES sender identity
-3. WHEN LocalStack starts THEN the init script SHALL be idempotent (safe to run multiple times without errors)
-4. WHEN Kafka starts THEN it SHALL be reachable at the configured broker address from within the API host
-5. WHEN the AppHost starts THEN Aspire dashboard SHALL display health status for all resources
-6. WHEN any container fails to start THEN the AppHost SHALL surface a clear error (not silently proceed)
+1. WHEN `dotnet run --project AppHost` is run THEN it SHALL start the API host and a Kafka container; the API SHALL connect to DynamoDB/SES/SecretsManager/KMS in the configured AWS dev/sandbox account (via a named credentials profile), not an emulator
+2. WHEN the AWS dev/sandbox account is provisioned (manually, outside this task) THEN it SHALL have: DynamoDB tables `notifications` and `delivery-log`, and a verified SES sender identity
+3. WHEN Kafka starts THEN it SHALL be reachable at the configured broker address from within the API host
+4. WHEN the AppHost starts THEN Aspire dashboard SHALL display health status for all resources
+5. WHEN Kafka fails to start THEN the AppHost SHALL surface a clear error (not silently proceed)
+6. WHEN AWS credentials are missing or invalid THEN the application SHALL fail fast at startup with a clear error, not hang or silently degrade
 
-**Independent Test**: Run `dotnet run --project AppHost`; verify Aspire dashboard shows all resources healthy; confirm DynamoDB tables exist via LocalStack AWS CLI; confirm Kafka broker is reachable.
+**Independent Test**: Run `dotnet run --project AppHost`; verify Aspire dashboard shows all resources healthy; confirm the API can read/write to the real dev-account DynamoDB tables and send via SES; confirm Kafka broker is reachable.
 
 ---
 
@@ -117,7 +117,7 @@ Before any domain or application code can be written, the project needs a workin
 2. WHEN `ISecretsProvider` is injected THEN it SHALL abstract the Secrets Manager client behind a typed interface (not `IConfiguration` directly)
 3. WHEN a secret is fetched THEN it SHALL be cached for 5 minutes to avoid excess Secrets Manager API calls
 4. WHEN a required secret is missing or inaccessible THEN the application SHALL log a descriptive error at `Critical` level and fail fast on startup (not start in a broken state)
-5. WHEN running locally via Aspire + LocalStack THEN the same `ISecretsProvider` SHALL work against LocalStack SecretsManager (no separate code path for local vs. prod)
+5. WHEN running locally via Aspire THEN the same `ISecretsProvider` SHALL work against the real AWS Secrets Manager in the dev/sandbox account (no separate code path for local vs. prod — AD-012)
 6. WHEN `git commit` is run THEN the git-secrets pre-commit hook SHALL scan staged files and block the commit if any secret pattern (AWS key format, connection string pattern) is detected
 7. WHEN `appsettings.json` or any committed config file is inspected THEN it SHALL contain zero secret values — only non-sensitive defaults and placeholder references
 
@@ -127,9 +127,9 @@ Before any domain or application code can be written, the project needs a workin
 
 ## Edge Cases
 
-- WHEN LocalStack is not running and the API starts THEN it SHALL fail fast with a clear "dependency unavailable" error, not hang indefinitely
+- WHEN AWS credentials for the dev/sandbox account are invalid or the account is unreachable THEN the API SHALL fail fast with a clear error, not hang indefinitely
 - WHEN Kafka broker is unreachable on consumer startup THEN consumer SHALL retry with exponential backoff (not crash the host)
-- WHEN the LocalStack init script runs against an already-initialized LocalStack THEN it SHALL complete without errors (idempotent)
+- WHEN dev-account DynamoDB tables or the SES sender identity don't exist yet THEN startup SHALL fail with a clear "resource not found" error rather than a cryptic AWS SDK exception (provisioning is currently manual, not automated by this service)
 - WHEN `dotnet build` is run with CA5xxx rules enabled THEN any use of insecure crypto APIs SHALL be a build error, not a warning
 - WHEN the OWASP check runs and a transitive (indirect) dependency has a HIGH CVE THEN the pipeline SHALL still fail (not only direct dependencies)
 - WHEN secrets cache TTL expires mid-request THEN the provider SHALL refresh transparently without returning stale or null values
@@ -140,17 +140,17 @@ Before any domain or application code can be written, the project needs a workin
 
 | Requirement ID | Story | Status |
 | --- | --- | --- |
-| E01-01 | US-C001: Solution layers present and compiling | Pending |
-| E01-02 | US-C001: Zero build warnings (TreatWarningsAsErrors) | Pending |
-| E01-03 | US-C001: /health returns 200 | Pending |
-| E01-04 | US-C001: Serilog structured JSON logging | Pending |
-| E01-05 | US-C001: GlobalExceptionHandler returns ProblemDetails, no stack traces | Pending |
-| E01-06 | US-C001: Scalar UI at /scalar in Development | Pending |
-| E01-07 | US-C001: CorrelationId middleware on all requests | Pending |
-| E01-08 | US-C001: CA5xxx rules enforced at build | Pending |
-| E01-09 | US-C002: AppHost boots API + LocalStack + Kafka | Pending |
-| E01-10 | US-C002: LocalStack init creates DynamoDB tables + SES identity | Pending |
-| E01-11 | US-C002: Init script is idempotent | Pending |
+| E01-01 | US-C001: Solution layers present and compiling | Done |
+| E01-02 | US-C001: Zero build warnings (TreatWarningsAsErrors) | Done |
+| E01-03 | US-C001: /health returns 200 | Done |
+| E01-04 | US-C001: Serilog structured JSON logging | Done |
+| E01-05 | US-C001: GlobalExceptionHandler returns ProblemDetails, no stack traces | Done |
+| E01-06 | US-C001: Scalar UI at /scalar in Development | Done |
+| E01-07 | US-C001: CorrelationId middleware on all requests | Done |
+| E01-08 | US-C001: CA5xxx rules enforced at build | Done |
+| E01-09 | US-C002: AppHost boots API + Kafka; API connects to real AWS dev account | Pending — reworked per AD-012 |
+| E01-10 | US-C002: Dev-account DynamoDB tables + SES identity exist (manual provisioning) | Pending — reworked per AD-012 |
+| E01-11 | US-C002: *(retired — was LocalStack init idempotency; no init script exists post-AD-012)* | N/A |
 | E01-12 | US-C002: Kafka reachable from API host | Pending |
 | E01-13 | US-C003: Consumer starts and subscribes to notification-requested topic | Pending |
 | E01-14 | US-C003: StopAsync drains in-flight before exit | Pending |
@@ -165,11 +165,11 @@ Before any domain or application code can be written, the project needs a workin
 | E01-23 | US-C005: ISecretsProvider typed abstraction | Pending |
 | E01-24 | US-C005: 5-minute secret cache | Pending |
 | E01-25 | US-C005: Missing secret = Critical log + fail fast | Pending |
-| E01-26 | US-C005: ISecretsProvider works against LocalStack (no separate code path) | Pending |
+| E01-26 | US-C005: ISecretsProvider works against real AWS Secrets Manager, same code path local/prod | Pending |
 | E01-27 | US-C005: git-secrets hook blocks secret patterns in staged files | Pending |
 | E01-28 | US-C005: Zero secrets in committed config files | Pending |
 
-**Coverage:** 28 requirements, 28 mapped to tasks ✅ — see `tasks.md` for full traceability
+**Coverage:** 28 requirements defined; E01-11 retired 2026-07-11 (AD-012 — no LocalStack init script exists to be idempotent) — 27 active, 8 done (E01-01–E01-08), 19 pending — see `tasks.md` for full traceability
 
 ---
 
