@@ -1,11 +1,34 @@
 # State
 
-**Last Updated:** 2026-07-03T00:00:00Z
-**Current Work:** Project Initialization
+**Last Updated:** 2026-07-11T00:00:00Z
+**Current Work:** Executing E-01 foundation task-by-task (`.specs/features/e01-foundation/tasks.md`). T01–T06 done (scaffold verified, Aspire AppHost+ServiceDefaults wired, Serilog JSON logging, JSON health checks, ErrorOr in Domain, GlobalExceptionHandler production-safe). T07/T08 reworked per AD-012 (LocalStack dropped — real AWS dev/sandbox account instead); next up is the reworked T07. Scope also includes marketing campaigns (E-07) and identity-api integration contract (E-08), both spec'd (E-07 also has design+tasks) but Execute not started — both depend on E-02–E-04 domain work landing after E-01.
 
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-010: Marketing email added to v1 scope as E-07, sequenced last (2026-07-11)
+
+**Decision:** Marketing campaign email (fan-out, unsubscribe, throughput isolation, bounce/complaint feedback) is in v1 scope, not deferred to a separate future feature — but implemented as E-07/E-08 after the transactional core (E-01–E-06) ships, so campaign work never risks the transactional SLOs already hardened in the original plan.
+**Reason:** User wants this service usable for marketing from the start rather than re-scoping later, but campaign fan-out is structurally different (one-to-many, different consent channel, public unsubscribe, reputation risk) and must not be bolted onto the single-recipient dispatch path that E-04 hardened.
+**Trade-off:** v1 timeline extends beyond the original 14–16 day estimate; exact new estimate pending Design/Tasks phase for E-07.
+**Impact:** New feature specs `.specs/features/e07-marketing-campaigns/spec.md`; `Channel` enum gains a `Marketing` value with its own consent semantics (opt-out only, default-deny — see MKT edge cases); separate Kafka topic/consumer group/rate-limit budget from transactional.
+
+### AD-011: identity-api integration is contract-only this cycle, migration deferred (2026-07-11)
+
+**Decision:** Design and document the `NotificationRequested` contract against identity-api's auth-critical use cases (verification, password reset) now (E-08), but do not touch `rentifyx-identity-api` code in this cycle. Migration off its own direct-SES sender happens after communications-api's v1.0.0 has stabilized in production.
+**Reason:** identity-api's own SES sending is already working in production; migrating it now would couple two repos' release timelines together before communications-api has proven itself. Locking the contract now avoids a breaking schema change later.
+**Trade-off:** Duplicated SES-sending logic between the two services persists until the migration actually happens — must not be forgotten (tracked explicitly, not just implied).
+**Impact:** New feature spec `.specs/features/e08-identity-integration/spec.md`; `docs/contracts/notification-requested.md` becomes the canonical schema both services reference; DLQ records for auth-critical templates get a `severity=auth-critical` tag so failures page instead of queueing passively.
+
+### AD-012: Drop LocalStack — local dev targets a real AWS dev/sandbox account (2026-07-11)
+
+**Decision:** Local development and integration testing do NOT use LocalStack. Instead, the AppHost and API connect to a real AWS dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via a named AWS credentials profile. Kafka remains a local container in Aspire (unaffected — Kafka has no LocalStack dependency).
+**Reason:** User rejected LocalStack outright as providing no value for this workflow. Using the real AWS dev account also removes an entire class of emulation-parity bugs (LocalStack behavior diverging from real AWS) and removes the need for an init script to fabricate tables/identities that would otherwise need to exist for real in staging/prod anyway.
+**Trade-off:** Every developer needs real AWS credentials (a named profile) configured locally, and dev-account AWS resources (DynamoDB tables, SES sender identity, Secrets Manager entries) must be provisioned before the app can run — this is currently a manual/deferred step, not automated by any init script. CI integration tests' AWS access strategy (same dev account vs. a dedicated CI IAM identity) is still an open decision (see Todos).
+**Impact:** Supersedes the LocalStack container/init-script portions of E-01 F-01 (T07/T08 reworked — see `.specs/features/e01-foundation/tasks.md`). `.specs/features/e01-foundation/spec.md` US-C002 rewritten. E-07's SNS/SQS-on-LocalStack plan (F-14) also needs rework when E-07 execution starts — flagged, not yet rewritten task-by-task. README/PROJECT.md/ROADMAP.md updated to remove LocalStack from the tech stack and running-locally instructions.
+
+---
 
 ### AD-001: ADR-C01 — Kafka-driven event intake, not synchronous HTTP (2026-07-03)
 
@@ -100,8 +123,10 @@
 ## Deferred Ideas
 
 - [ ] Event contract versioning ADR — needs to be written before leasing-api integration begins. Captured during: project initialization.
-- [ ] SES bounce/complaint webhook processing (v1.1 backlog) — needed for long-term sender reputation health. Captured during: project initialization.
-- [ ] Token-bucket resizing strategy when both identity-api and communications-api are under heavy concurrent load. Captured during: project initialization.
+- [ ] Token-bucket resizing strategy across transactional + campaign + identity-api load once all three are live. Captured during: project initialization; updated 2026-07-11 to include campaign traffic.
+- [ ] identity-api code migration off its own `SesEmailSender` (publish `NotificationRequested` instead) — trigger: communications-api v1.0.0 stable in production for an agreed window. Owner: write the migration ADR in `rentifyx-identity-api`'s own `.specs/`, not here — this repo only owns the contract side (E-08). Captured during: 2026-07-11 scope discussion.
+- [ ] Campaign creation/management UI or admin API — only if manually publishing `CampaignRequested` events proves insufficient in practice. Captured during: E-07 scoping, 2026-07-11.
+- [x] SES bounce/complaint webhook processing — was v1.1 backlog, promoted into v1 scope as E-07 F-14 (MKT-04) since marketing volume makes reputation risk real. Captured during: project initialization; resolved into roadmap 2026-07-11.
 
 ---
 

@@ -33,7 +33,7 @@
 **Supporting:**
 
 - AWS Secrets Manager + KMS — secrets at rest
-- LocalStack — local AWS emulation (DynamoDB, SES, SecretsManager, KMS)
+- Real AWS dev/sandbox account — local dev and integration testing target real DynamoDB/SES/SecretsManager/KMS via a named credentials profile (no LocalStack — AD-012, 2026-07-11)
 - Testcontainers — integration tests
 - GitHub Actions — CI/CD with OWASP + Trivy gates
 
@@ -55,12 +55,19 @@
 - SLOs: send success >99%, p99 latency <5s, DLQ rate <0.5%, consumer lag <30s
 - Load test validating idempotency + zero throttling under 1,000-event burst
 
+**v1 also includes (added as E-07/E-08, see ROADMAP.md):**
+
+- Marketing campaign email: `CampaignRequested` fan-out to a producer-resolved recipient list, isolated from transactional throughput, with public token-based unsubscribe and SES bounce/complaint auto opt-out (closes the v1.1 backlog item below)
+- identity-api integration contract: `NotificationRequested` schema explicitly validated against identity-api's auth-critical use cases (email verification, password reset). Contract-only in this cycle — identity-api's code migration off its own SES sender is deferred until after this service is stable in production (see Deferred Ideas in STATE.md)
+
 **Explicitly out of scope (v1):**
 
 - SMS channel implementation
 - Push notification channel
-- SES bounce/complaint feedback loop (webhook processing) — backlog v1.1
 - Synchronous HTTP-based notification intake from producer services
+- Campaign creation/management UI or admin API (producers publish `CampaignRequested` directly; no admin tool in v1)
+- Segmentation logic (producers resolve recipient lists; this service never computes "who belongs in a campaign")
+- Actually removing identity-api's existing `SesEmailSender` code (E-08 ships the contract only)
 
 ## Constraints
 

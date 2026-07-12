@@ -49,13 +49,15 @@ Phase 4 — Integration (after deps):
 
 ## Task Breakdown
 
-### T01: Create solution + project files
+### T01: Create solution + project files — ✅ DONE (2026-07-11, via existing scaffold)
 
 **What**: Scaffold the solution with `dotnet new` + project structure: API, Application, Domain, Infrastructure, Tests.Unit, Tests.Integration
 **Where**: `/` (repo root), `01-aspire/`, `02-src/`, `03-tests/`
 **Depends on**: None
 **Reuses**: Existing `RentifyxCommunications.slnx` (check if already created by template; adapt rather than overwrite)
 **Requirement**: E01-01
+
+**Resolution note**: Repo already had a full Clean Architecture scaffold from a template. Verified rather than recreated. Naming differs from spec (`RentifyxCommunications.Api` vs `RentifyX.Communications.API`) and tests are split into 5 projects (`Tests.Common/Validators/Handlers/Repositories/Integration`) instead of `Tests.Unit`/`Tests.Integration` — functionally equivalent, treated as satisfying this task. `dotnet build --no-incremental` → 0 errors.
 
 **Tools**:
 - MCP: none
@@ -80,7 +82,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T02: Configure Directory.Build.props + Directory.Packages.props
+### T02: Configure Directory.Build.props + Directory.Packages.props — ✅ DONE (2026-07-11, already satisfied)
+
+**Resolution note**: All 4 MSBuild props + centralized package management already present and correct in the existing files. Build produces 1 pre-existing warning (`ASPIRE004`, AppHost→ServiceDefaults project-resource wiring) — that's an Aspire AppHost concern, out of scope for this task's files (Directory.Build.props/Directory.Packages.props only); deferred to T04 where AppHost.csproj is actually touched.
 
 **What**: Centralized MSBuild config — treat warnings as errors, nullable enable, implicit usings, LangVersion; centralized NuGet package versions
 **Where**: `Directory.Build.props`, `Directory.Packages.props` (repo root)
@@ -109,7 +113,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T03: Add .editorconfig with CA5xxx security analyzer rules
+### T03: Add .editorconfig with CA5xxx security analyzer rules — ✅ DONE (2026-07-11, already satisfied)
+
+**Resolution note**: All 5 required rules (CA5350, CA5351, CA5359, CA5360, CA5394) already present as `error` in the existing `.editorconfig`, plus a much broader CA53xx security ruleset already in place. No changes needed.
 
 **What**: Copy `.editorconfig` from repo root (already present) and ensure CA5xxx (insecure crypto) rules are set to `error` severity
 **Where**: `.editorconfig` (repo root — already exists per git status)
@@ -138,7 +144,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T04: Configure Aspire AppHost + ServiceDefaults
+### T04: Configure Aspire AppHost + ServiceDefaults — ✅ DONE (2026-07-11)
+
+**Resolution note**: AddServiceDefaults()/health checks/resilience were already wired in ServiceDefaults+Program.cs. Added: `IsAspireProjectResource="false"` on the AppHost→ServiceDefaults reference (fixes ASPIRE004 warning deferred from T02); `Aspire.Hosting.Testing` package; an aliased (`AppHostRef`) ProjectReference from Tests.Integration to AppHost (avoids `Program` type clash with the Api project); `AppHostTests.cs` using `DistributedApplicationTestingBuilder` to boot the AppHost and assert `/health` responds successfully. Full gate passed (build 0 errors, integration test green in ~45s).
 
 **What**: Wire Aspire AppHost project with ServiceDefaults — OpenTelemetry, health checks, service discovery defaults applied to the API project
 **Where**: `01-aspire/RentifyX.Communications.AppHost/`, `01-aspire/RentifyX.Communications.ServiceDefaults/`
@@ -166,7 +174,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T05: Configure API host baseline (Serilog, CorrelationId, health endpoint, Scalar UI, ErrorOr)
+### T05: Configure API host baseline (Serilog, CorrelationId, health endpoint, Scalar UI, ErrorOr) — ✅ DONE (2026-07-11)
+
+**Resolution note**: CorrelationIdMiddleware, Scalar UI, and ErrorOr-in-Application already existed. Changed: Serilog console sink switched from a human-readable outputTemplate to `JsonFormatter` (unconditionally, per explicit user decision — structured JSON in all environments, not just production); added ErrorOr to Domain.csproj; added a JSON `ResponseWriter` to ServiceDefaults' `/health` and `/alive` mappings so they return `{"status":"Healthy"}` instead of plain text; created a new `RentifyxCommunications.Tests.Api` project (`03-tests/06-Api/`) since no existing test project referenced the API layer for middleware unit tests, with 2 tests for `CorrelationIdMiddleware` (new ID generation, existing ID propagation). Both new tests pass; AppHost integration test re-verified green with the new health writer.
 
 **What**: Program.cs baseline — Serilog structured JSON, CorrelationId middleware, `/health` endpoint, Scalar UI at `/scalar`, ErrorOr<T> NuGet reference
 **Where**: `02-src/RentifyX.Communications.API/Program.cs`, `appsettings.json`
@@ -196,7 +206,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T06: Implement GlobalExceptionHandler (ProblemDetails, no stack trace in prod)
+### T06: Implement GlobalExceptionHandler (ProblemDetails, no stack trace in prod) — ✅ DONE (2026-07-11)
+
+**Resolution note**: The existing handler unconditionally leaked `exception.Message`/`exception.GetType().FullName` in `Extensions` regardless of environment — a real security gap (exception details exposed to clients in Production). Fixed by injecting `IHostEnvironment` and setting `ProblemDetails.Detail` conditionally (exception message in Development, a generic message in Production), removing the always-on `exceptionType`/`exceptionMessage` extensions. Also found and fixed a real bug during RED-phase testing: `WriteAsJsonAsync` was silently overwriting the `application/problem+json` Content-Type with `application/json` — fixed by passing `contentType` explicitly to `WriteAsJsonAsync`. Added `InternalsVisibleTo` for `RentifyxCommunications.Tests.Api` (handler is `internal`). 5/5 tests pass (2 pre-existing CorrelationId + 3 new for this handler).
 
 **What**: `GlobalExceptionHandler` implementing `IExceptionHandler` — maps unhandled exceptions to RFC 7807 `ProblemDetails`; suppresses stack traces outside Development
 **Where**: `02-src/RentifyX.Communications.API/Middleware/GlobalExceptionHandler.cs`
@@ -227,59 +239,61 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T07: Add LocalStack container to Aspire AppHost
+### T07: Configure AWS SDK against real dev/sandbox account (REWORKED per AD-012, 2026-07-11)
 
-**What**: Register LocalStack container in AppHost with DynamoDB, SES, SecretsManager, KMS services enabled; expose connection to API project
-**Where**: `01-aspire/RentifyX.Communications.AppHost/Program.cs`
+**What**: Wire `AWSSDKConfig` (region + named credentials profile) in the AppHost so the API and any AWS SDK clients (DynamoDB, SES, SecretsManager, KMS) resolve against a real AWS dev/sandbox account — no LocalStack container. The profile name is read from configuration (e.g. `AWS:Profile`), never hardcoded.
+**Where**: `01-aspire/RentifyxCommunications.AppHost/AppHost.cs`; `02-src/01-Api/RentifyxCommunications.Api/appsettings.Development.json` (profile name + region only — no secrets)
 **Depends on**: T04
-**Reuses**: LocalStack container pattern (check Aspire.Hosting.LocalStack or Docker container resource)
-**Requirement**: E01-09, E01-10
+**Reuses**: `AWSSDK.Extensions.NETCore.Setup` (`AddDefaultAWSOptions`) for standard SDK credential resolution via named profile
+**Requirement**: E01-09
+
+**Original LocalStack plan superseded**: See `.specs/project/STATE.md` AD-012. LocalStack was rejected outright — real AWS dev/sandbox account used instead for both local dev and integration tests.
 
 **Tools**:
-- MCP: context7 (Aspire LocalStack or Docker container resource)
+- MCP: context7 (AWSSDK.Extensions.NETCore.Setup — AddDefaultAWSOptions / AWSOptions patterns)
 - Skill: none
 
 **Done when**:
-- [ ] LocalStack container defined in AppHost with `SERVICES=dynamodb,ses,secretsmanager,kms` env var
-- [ ] LocalStack endpoint injected into API project as an environment variable (`AWS__ServiceURL` or equivalent)
-- [ ] AppHost starts with LocalStack container running (`docker ps` shows localstack container)
-- [ ] Integration test: AppHost boots and LocalStack health endpoint returns `{"status": "running"}`
+- [ ] `AWS:Profile` and `AWS:Region` configuration keys documented in `appsettings.Development.json` (values are placeholders — actual profile name is developer-specific, set via `dotnet user-secrets` or local env, never committed)
+- [ ] API startup registers `AWSOptions` from the named profile via `AddDefaultAWSOptions`
+- [ ] Missing/invalid AWS credentials at startup produce a clear, fail-fast error (not a hang or silent no-op) — ties into E01-25's fail-fast pattern
+- [ ] `dotnet run --project AppHost` starts the API without errors when a valid profile is configured locally
 
-**Tests**: integration
-**Gate**: full — `dotnet test`
+**Tests**: none (credential resolution is exercised by T12's integration tests against the real Secrets Manager)
+**Gate**: build — `dotnet build --no-incremental`
 
-**Verify**: `dotnet run --project AppHost` → Aspire dashboard shows LocalStack resource as Running; `curl http://localhost:4566/_localstack/health` returns `{"status":"running"}`
+**Verify**: With a valid local AWS profile configured, `dotnet run --project AppHost` starts cleanly; with an invalid/missing profile, startup fails with a clear error naming the missing credential source (not a raw SDK stack trace).
 
-**Commit**: `feat(aspire): add LocalStack container (DynamoDB, SES, SecretsManager, KMS)`
+**Commit**: `feat(aspire): configure AWS SDK against real dev/sandbox account via named profile`
 
 ---
 
-### T08: Create LocalStack init script (DynamoDB tables + SES identity)
+### T08: Document dev-account AWS resource requirements (REWORKED per AD-012, 2026-07-11 — docs only, no provisioning)
 
-**What**: Shell/Python init script that creates `notifications` DynamoDB table, `delivery-log` DynamoDB table, and a verified SES sender identity — runs on LocalStack startup, idempotent
-**Where**: `01-aspire/localstack-init/init.sh` (or `.py`); wired into AppHost as a startup hook or volume mount
+**What**: Document the AWS resources this service expects to already exist in the dev/sandbox account (DynamoDB tables, SES sender identity, Secrets Manager entries) — provisioning itself is manual and out of scope for this task (per user decision, 2026-07-11). This replaces the original LocalStack init script.
+**Where**: `docs/architecture/overview.md` (new "AWS Dev Account Requirements" section) — no code, no init script
 **Depends on**: T07
-**Reuses**: LocalStack init pattern (volume mount `docker-entrypoint-initaws.d/`)
-**Requirement**: E01-10, E01-11
+**Reuses**: Naming already defined elsewhere in specs — `notifications`/`delivery-log` tables (E-04 design), SES sender identity, `rentifyx/comms/*` secret keys (README Secrets section)
+**Requirement**: E01-10
+
+**Original LocalStack plan superseded**: No init script exists or is planned — real AWS resources must be provisioned once (manually, or later via the E-06 Terraform module) before the app can run end-to-end.
 
 **Tools**:
 - MCP: none
 - Skill: none
 
 **Done when**:
-- [ ] `notifications` table created: PK=`NOTIF#{id}` (S), billing mode PAY_PER_REQUEST
-- [ ] `delivery-log` table created: PK=`LOG#{id}` (S), billing mode PAY_PER_REQUEST
-- [ ] SES sender identity created for `no-reply@rentifyx.local`
-- [ ] Script is idempotent: running twice does not error (uses `--no-fail-on-existing` or equivalent)
-- [ ] Integration test: after AppHost boot, `aws dynamodb list-tables --endpoint-url http://localhost:4566` returns both table names
-- [ ] Integration test: running init script twice produces no errors
+- [ ] Doc lists required DynamoDB tables (`notifications`: PK=`NOTIF#{id}`; `delivery-log`: PK=`LOG#{id}`) with billing mode and key schema
+- [ ] Doc lists the required SES sender identity (domain/email) and notes it must be verified in the dev account before sends succeed
+- [ ] Doc lists required Secrets Manager entries (`rentifyx/comms/ses-arn`, `rentifyx/comms/kafka-sasl-username`, `rentifyx/comms/kafka-sasl-password`)
+- [ ] Doc explicitly states these are NOT auto-provisioned by this service — a manual step (or the future E-06 Terraform apply) is required first
 
-**Tests**: integration
-**Gate**: full — `dotnet test`
+**Tests**: none
+**Gate**: build — n/a (docs only, no build impact)
 
-**Verify**: After `dotnet run --project AppHost`: `aws --endpoint-url=http://localhost:4566 dynamodb list-tables` shows `notifications` and `delivery-log`
+**Verify**: Manual review — a new developer reading the doc knows exactly what to create in the dev account before running the app.
 
-**Commit**: `feat(aspire): add LocalStack init script for DynamoDB tables and SES identity`
+**Commit**: `docs(infra): document required AWS dev-account resources (DynamoDB, SES, Secrets Manager)`
 
 ---
 
@@ -373,7 +387,7 @@ Phase 4 — Integration (after deps):
 
 ### T12: Implement SecretsManagerProvider + wire into API startup
 
-**What**: `SecretsManagerProvider` implementing `ISecretsProvider` — loads from AWS Secrets Manager (LocalStack in dev), 5-min in-memory cache, fail-fast on missing secrets at startup
+**What**: `SecretsManagerProvider` implementing `ISecretsProvider` — loads from the real AWS Secrets Manager in the dev/sandbox account (AD-012 — no LocalStack), 5-min in-memory cache, fail-fast on missing secrets at startup
 **Where**: `02-src/RentifyX.Communications.Infrastructure/Secrets/SecretsManagerProvider.cs`; registered in `Program.cs`
 **Depends on**: T05, T11
 **Reuses**: `AWSSDK.SecretsManager` NuGet; `IMemoryCache` for TTL caching
@@ -384,19 +398,21 @@ Phase 4 — Integration (after deps):
 - Skill: none
 
 **Done when**:
-- [ ] `SecretsManagerProvider` implements `ISecretsProvider`; points to LocalStack endpoint when `AWS__ServiceURL` env var is set
+- [ ] `SecretsManagerProvider` implements `ISecretsProvider`; resolves against the real AWS Secrets Manager using the dev/sandbox account's named credentials profile (T07)
 - [ ] `GetSecretAsync`: retrieves secret, caches value in `IMemoryCache` with 5-minute absolute expiry
 - [ ] Startup validation: on host start, resolves `SecretsProviderOptions` keys (`SesArn`, `KafkaSaslUsername`, `KafkaSaslPassword`) — if any secret is missing, logs `Critical` and throws (fail fast)
 - [ ] `ISecretsProvider` registered in DI with `SecretsManagerProvider` implementation
-- [ ] Integration test: LocalStack SecretsManager has required secrets → startup succeeds, `GetSecretAsync` returns correct values
-- [ ] Integration test: LocalStack SecretsManager missing a required secret → startup throws with `Critical` log entry
+- [ ] Integration test: dev-account Secrets Manager has required secrets → startup succeeds, `GetSecretAsync` returns correct values
+- [ ] Integration test: dev-account Secrets Manager missing a required secret → startup throws with `Critical` log entry
 - [ ] Integration test: second call within 5 min uses cache (Secrets Manager called only once)
 - [ ] Full gate passes
 
 **Tests**: integration
 **Gate**: full — `dotnet test`
 
-**Verify**: Start AppHost, remove a secret from LocalStack → API logs `[Critical] Required secret 'SesArn' not found. Startup aborted.` and exits non-zero
+**Note**: These integration tests hit the real AWS dev/sandbox account (AD-012). CI's credential strategy for running them (same dev account vs. a dedicated CI IAM identity) is still an open decision — see STATE.md Todos.
+
+**Verify**: Start AppHost, remove a secret from the dev account's Secrets Manager → API logs `[Critical] Required secret 'SesArn' not found. Startup aborted.` and exits non-zero
 
 **Commit**: `feat(infra): implement SecretsManagerProvider with 5-min cache and fail-fast startup validation`
 
@@ -560,7 +576,7 @@ Phase 2 — Parallel Tracks (all start after T03 completes):
 Phase 3 — Build on Phase 2 (each track continues):
   T04 done:
     ├── T05 (API baseline — sequential, touches Program.cs heavily)
-    ├── T07 (LocalStack container — sequential, Aspire AppHost)
+    ├── T07 (AWS SDK dev-account config — sequential, Aspire AppHost)
     └── T09 [P with T07] (Kafka container — parallel with T07, different AppHost additions)
 
   T13 done:
@@ -572,7 +588,7 @@ Phase 4 — Integration (all after their respective deps):
     └── T06 (GlobalExceptionHandler — depends only on T05)
 
   T07 done:
-    └── T08 (LocalStack init script)
+    └── T08 (dev-account resource docs)
 
   T05 + T09 done:
     └── T10 (Kafka consumer skeleton)
@@ -598,8 +614,8 @@ Phase 4 — Integration (all after their respective deps):
 | T04: Aspire AppHost + ServiceDefaults | 1 concern (Aspire wiring) across 2 files | ✅ Granular |
 | T05: API host baseline (Serilog + CorrelationId + health + Scalar + ErrorOr) | Multiple middleware, but all in Program.cs baseline registration | ⚠️ Borderline — kept together because they're all baseline Program.cs setup with no logic branches; splitting would create merge conflicts across Program.cs |
 | T06: GlobalExceptionHandler | 1 class + 1 registration | ✅ Granular |
-| T07: LocalStack container in AppHost | 1 AppHost addition | ✅ Granular |
-| T08: LocalStack init script | 1 script, 1 concern | ✅ Granular |
+| T07: AWS SDK dev-account config | 1 AppHost addition | ✅ Granular |
+| T08: dev-account resource docs | 1 doc section, 1 concern | ✅ Granular |
 | T09: Kafka container in AppHost | 1 AppHost addition | ✅ Granular |
 | T10: NotificationRequestedConsumer skeleton | 1 class (IHostedService) | ✅ Granular |
 | T11: ISecretsProvider interface | 1 interface + 1 options record | ✅ Granular |
@@ -672,15 +688,15 @@ All ✅ — no test co-location violations.
 
 | Requirement ID | Mapped to Task | Status |
 |---|---|---|
-| E01-01 | T01 | Pending |
-| E01-02 | T02 | Pending |
-| E01-03 | T05 | Pending |
-| E01-04 | T05 | Pending |
-| E01-05 | T06 | Pending |
-| E01-06 | T05 | Pending |
-| E01-07 | T05 | Pending |
-| E01-08 | T03 | Pending |
-| E01-09 | T04, T07, T09 | Pending |
+| E01-01 | T01 | Done — verified via existing scaffold reuse (`dotnet build` 0 errors); naming/test-split divergences noted in session log |
+| E01-02 | T02 | Done — props already correct; ASPIRE004 warning deferred to T04 |
+| E01-03 | T05 | Done |
+| E01-04 | T05 | Done |
+| E01-05 | T06 | Done |
+| E01-06 | T05 | Done |
+| E01-07 | T05 | Done |
+| E01-08 | T03 | Done — CA5xxx rules already enforced |
+| E01-09 | T04, T07, T09 | T04 done; T07/T09 pending |
 | E01-10 | T07, T08 | Pending |
 | E01-11 | T08 | Pending |
 | E01-12 | T09 | Pending |

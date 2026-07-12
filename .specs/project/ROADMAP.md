@@ -7,18 +7,20 @@
 
 ## E-01 · Project Foundation & DevSecOps Pipeline
 
-**Goal:** Repo scaffold, local dev environment (Aspire + LocalStack + Kafka), CI/CD pipeline with security gates, secrets loading from Secrets Manager — all wired before domain work begins.
+**Goal:** Repo scaffold, local dev environment (Aspire + real AWS dev/sandbox account + Kafka), CI/CD pipeline with security gates, secrets loading from Secrets Manager — all wired before domain work begins.
 **Target:** Day 1
+
+**2026-07-11 update (AD-012):** LocalStack dropped from local dev — the AppHost/API connect to a real AWS dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via a named credentials profile instead. Kafka is unaffected (still a local Aspire container). See `.specs/project/STATE.md` AD-012.
 
 ### Features
 
 **F-01 · Repo & Solution Structure** — IN PROGRESS
 
-- Clean solution scaffold via `dotnet new clean-arch` (API, Application, Domain, Infrastructure, Tests layers)
-- Aspire AppHost + ServiceDefaults, Serilog, CorrelationId, GlobalExceptionHandler, Scalar UI, ErrorOr\<T\>
-- LocalStack containers (DynamoDB, SES, SecretsManager, KMS) + Kafka container in AppHost
-- LocalStack init script: DynamoDB tables (notifications, delivery-log), SES verified sender identity
-- `NotificationRequestedConsumer` registered as `IHostedService` with graceful stop/drain
+- Clean solution scaffold via `dotnet new clean-arch` (API, Application, Domain, Infrastructure, Tests layers) — ✅ done
+- Aspire AppHost + ServiceDefaults, Serilog, CorrelationId, GlobalExceptionHandler, Scalar UI, ErrorOr\<T\> — ✅ done
+- AWS SDK configured against a real dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via named credentials profile + Kafka container in AppHost — reworked per AD-012, in progress
+- Dev-account resource provisioning (DynamoDB tables `notifications`/`delivery-log`, SES verified sender identity, Secrets Manager entries) — manual for now, not automated; tracked as a todo
+- `NotificationRequestedConsumer` registered as `IHostedService` with graceful stop/drain — pending
 
 **F-02 · CI/CD Pipeline & DevSecOps Baseline** — IN PROGRESS
 
@@ -85,7 +87,7 @@
 - `DynamoDbNotificationRepository`: SaveIfNotExists, GetById, GetByRecipient, UpdateStatus
 - Single-table design: PK=`NOTIF#{id}`, GSI1=`RECIPIENT#{recipientId}`, GSI2=`CORRELATION#{correlationId}`
 - DynamoDB TTL: 90-day auto-expiry on notification records (LGPD Art. 46 data minimization)
-- Testcontainers.LocalStack integration tests for SES + DynamoDB including conditional-write race
+- Integration tests for SES + DynamoDB (including conditional-write race) run against the real AWS dev/sandbox account — no LocalStack (AD-012); CI credential strategy still to be decided (see STATE.md Todos)
 
 **F-08 · Throttling & Circuit Breaking** — PLANNED
 
@@ -141,10 +143,52 @@
 
 ---
 
+## E-07 · Marketing Email Campaigns
+
+**Goal:** Add campaign fan-out (`CampaignRequested` → per-recipient notifications) as an additive flow that reuses SES/template/consent/idempotency building blocks without disturbing transactional SLOs. Public token-based unsubscribe, isolated throughput budget, bounce/complaint auto opt-out.
+**Target:** Planned after E-06 (v1 core) stabilizes — added to v1 scope per 2026-07-11 decision, but sequenced last so it doesn't block the transactional ship gate.
+**Spec:** `.specs/features/e07-marketing-campaigns/spec.md`
+
+### Features
+
+**F-13 · Campaign Fan-Out & Unsubscribe** — PLANNED
+
+- `CampaignRequested` Kafka contract: `campaignId`, `templateId`, `recipientIds[]`, `payload`
+- Per-recipient idempotency key (`campaignId + recipientId`), reuses `IConsentRepository`/`Marketing` channel, reuses outbox lifecycle
+- `GET /v1/api/campaigns/{campaignId}` aggregate status endpoint
+- Public `GET /v1/api/unsubscribe?token=...` — signed, single-purpose, no auth — reuses consent audit log
+
+**F-14 · Campaign Throughput Isolation & Reputation** — PLANNED
+
+- Separate Kafka topic/consumer group (`campaign-requested`) and separate token-bucket budget from transactional
+- SES SNS bounce/complaint feedback consumer → auto opt-out per channel (hard bounce/complaint only, not soft bounce)
+- Load test: campaign burst concurrent with steady transactional traffic, transactional SLO must hold
+- **2026-07-11 note (AD-012):** F-14's SNS/SQS-for-SES-feedback plan assumed a LocalStack-hosted SNS/SQS stack; now needs rework against the real AWS dev/sandbox account when E-07 execution starts (not yet rewritten task-by-task — see `.specs/features/e07-marketing-campaigns/`)
+
+---
+
+## E-08 · Identity-API Integration Contract
+
+**Goal:** Lock the `NotificationRequested` contract against identity-api's auth-critical use cases (email verification, password reset) now, so identity-api's future migration off its own direct-SES sender is a swap, not a redesign. Contract/ADR only — no code changes to `rentifyx-identity-api` in this cycle (decision: 2026-07-11, migrate after E-06 ships to production).
+**Target:** Alongside E-07 spec work; no implementation dependency on E-01–E-06 completing first (this is a documentation/contract deliverable).
+**Spec:** `.specs/features/e08-identity-integration/spec.md`
+
+### Features
+
+**F-15 · Auth-Critical Contract & Migration Plan** — PLANNED
+
+- `docs/contracts/notification-requested.md` — canonical schema doc, validated against `EmailVerification`/`PasswordReset` example payloads
+- `auth-critical` severity tag on DLQ records for templates flagged as auth-critical (pages instead of passive queue)
+- Migration decommission plan: trigger condition (v1.0.0 + stabilization window) and rollback path (feature flag / no dual-active sending) documented for a future identity-api-side ADR
+
+---
+
 ## Future Considerations (Post v1)
 
 - SMS channel implementation (likely triggered by leasing-api requirement)
 - Push notification channel
-- SES bounce/complaint feedback loop processing (v1.1 backlog)
 - Event contract versioning ADR before leasing-api integration begins
-- Token-bucket resizing once shared SES quota with identity-api is confirmed under joint load
+- Token-bucket resizing once shared SES quota with identity-api (and now marketing campaigns) is confirmed under joint load
+- identity-api code migration off its own `SesEmailSender` — tracked by E-08 F-15's decommission plan, executes after E-06 stabilizes in production
+- Campaign creation/management UI or admin API, if manual `CampaignRequested` publishing proves insufficient
+- Segmentation-as-a-service inside communications-api, if producers can't reasonably resolve their own recipient lists

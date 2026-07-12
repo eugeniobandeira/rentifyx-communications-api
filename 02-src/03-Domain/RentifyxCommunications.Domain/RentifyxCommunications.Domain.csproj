@@ -3,6 +3,9 @@
     <NoWarn>$(NoWarn);CA1824</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="ErrorOr" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Update="MessageResource\ValidationMessageResource.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
