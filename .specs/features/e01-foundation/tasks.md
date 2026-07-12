@@ -206,7 +206,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T06: Implement GlobalExceptionHandler (ProblemDetails, no stack trace in prod)
+### T06: Implement GlobalExceptionHandler (ProblemDetails, no stack trace in prod) — ✅ DONE (2026-07-11)
+
+**Resolution note**: The existing handler unconditionally leaked `exception.Message`/`exception.GetType().FullName` in `Extensions` regardless of environment — a real security gap (exception details exposed to clients in Production). Fixed by injecting `IHostEnvironment` and setting `ProblemDetails.Detail` conditionally (exception message in Development, a generic message in Production), removing the always-on `exceptionType`/`exceptionMessage` extensions. Also found and fixed a real bug during RED-phase testing: `WriteAsJsonAsync` was silently overwriting the `application/problem+json` Content-Type with `application/json` — fixed by passing `contentType` explicitly to `WriteAsJsonAsync`. Added `InternalsVisibleTo` for `RentifyxCommunications.Tests.Api` (handler is `internal`). 5/5 tests pass (2 pre-existing CorrelationId + 3 new for this handler).
 
 **What**: `GlobalExceptionHandler` implementing `IExceptionHandler` — maps unhandled exceptions to RFC 7807 `ProblemDetails`; suppresses stack traces outside Development
 **Where**: `02-src/RentifyX.Communications.API/Middleware/GlobalExceptionHandler.cs`
@@ -686,7 +688,7 @@ All ✅ — no test co-location violations.
 | E01-02 | T02 | Done — props already correct; ASPIRE004 warning deferred to T04 |
 | E01-03 | T05 | Done |
 | E01-04 | T05 | Done |
-| E01-05 | T06 | Pending |
+| E01-05 | T06 | Done |
 | E01-06 | T05 | Done |
 | E01-07 | T05 | Done |
 | E01-08 | T03 | Done — CA5xxx rules already enforced |

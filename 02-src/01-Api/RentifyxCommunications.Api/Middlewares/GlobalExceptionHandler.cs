@@ -6,7 +6,8 @@ using System.Diagnostics;
 namespace RentifyxCommunications.Api.Middlewares;
 
 internal sealed class GlobalExceptionHandler(
-    ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
+    ILogger<GlobalExceptionHandler> logger,
+    IHostEnvironment environment) : IExceptionHandler
 {
     private const int StatusClientClosedRequest = 499;
     private const string ProblemDetailsContentType = "application/problem+json";
@@ -38,6 +39,9 @@ internal sealed class GlobalExceptionHandler(
         {
             Status = StatusCodes.Status500InternalServerError,
             Title = "An unexpected error occurred.",
+            Detail = environment.IsDevelopment()
+                ? exception.Message
+                : "An unexpected error occurred. Please try again later.",
             Instance = httpContext.Request.Path,
             Extensions =
             {
@@ -46,12 +50,12 @@ internal sealed class GlobalExceptionHandler(
             }
         };
 
-        problem.Extensions["exceptionType"] = exception.GetType().FullName;
-        problem.Extensions["exceptionMessage"] = exception.Message;
-
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        httpContext.Response.ContentType = ProblemDetailsContentType;
-        await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(
+            problem,
+            options: null,
+            contentType: ProblemDetailsContentType,
+            cancellationToken: cancellationToken);
 
         return true;
     }

@@ -4,6 +4,9 @@
     <NoWarn>$(NoWarn);CA1812</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="RentifyxCommunications.Tests.Api" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\04-IoC\RentifyxCommunications.IoC\RentifyxCommunications.IoC.csproj" />
     <ProjectReference Include="..\..\..\01-aspire\02-ServiceDefaults\RentifyxCommunications.ServiceDefaults\RentifyxCommunications.ServiceDefaults.csproj" />
   </ItemGroup>
