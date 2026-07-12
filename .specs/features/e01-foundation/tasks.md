@@ -174,7 +174,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T05: Configure API host baseline (Serilog, CorrelationId, health endpoint, Scalar UI, ErrorOr)
+### T05: Configure API host baseline (Serilog, CorrelationId, health endpoint, Scalar UI, ErrorOr) — ✅ DONE (2026-07-11)
+
+**Resolution note**: CorrelationIdMiddleware, Scalar UI, and ErrorOr-in-Application already existed. Changed: Serilog console sink switched from a human-readable outputTemplate to `JsonFormatter` (unconditionally, per explicit user decision — structured JSON in all environments, not just production); added ErrorOr to Domain.csproj; added a JSON `ResponseWriter` to ServiceDefaults' `/health` and `/alive` mappings so they return `{"status":"Healthy"}` instead of plain text; created a new `RentifyxCommunications.Tests.Api` project (`03-tests/06-Api/`) since no existing test project referenced the API layer for middleware unit tests, with 2 tests for `CorrelationIdMiddleware` (new ID generation, existing ID propagation). Both new tests pass; AppHost integration test re-verified green with the new health writer.
 
 **What**: Program.cs baseline — Serilog structured JSON, CorrelationId middleware, `/health` endpoint, Scalar UI at `/scalar`, ErrorOr<T> NuGet reference
 **Where**: `02-src/RentifyX.Communications.API/Program.cs`, `appsettings.json`
@@ -682,11 +684,11 @@ All ✅ — no test co-location violations.
 |---|---|---|
 | E01-01 | T01 | Done — verified via existing scaffold reuse (`dotnet build` 0 errors); naming/test-split divergences noted in session log |
 | E01-02 | T02 | Done — props already correct; ASPIRE004 warning deferred to T04 |
-| E01-03 | T05 | Pending |
-| E01-04 | T05 | Pending |
+| E01-03 | T05 | Done |
+| E01-04 | T05 | Done |
 | E01-05 | T06 | Pending |
-| E01-06 | T05 | Pending |
-| E01-07 | T05 | Pending |
+| E01-06 | T05 | Done |
+| E01-07 | T05 | Done |
 | E01-08 | T03 | Done — CA5xxx rules already enforced |
 | E01-09 | T04, T07, T09 | T04 done; T07/T09 pending |
 | E01-10 | T07, T08 | Pending |

@@ -3,10 +3,10 @@ using RentifyxCommunications.Api.Middlewares;
 using RentifyxCommunications.IoC;
 using RentifyxCommunications.ServiceDefaults;
 using Serilog;
-using System.Globalization;
+using Serilog.Formatting.Json;
 
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
+    .WriteTo.Console(new JsonFormatter())
     .CreateBootstrapLogger();
 
 try
@@ -22,9 +22,7 @@ try
         .Enrich.WithMachineName()
         .Enrich.WithEnvironmentName()
         .Enrich.WithThreadId()
-        .WriteTo.Console(
-            formatProvider: CultureInfo.InvariantCulture,
-            outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] {Message:lj}{NewLine}{Exception}"));
+        .WriteTo.Console(new JsonFormatter()));
 
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);

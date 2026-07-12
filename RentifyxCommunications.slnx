@@ -43,4 +43,7 @@
   <Folder Name="/03-tests/05-Integration/">
     <Project Path="03-tests/05-Integration/RentifyxCommunications.Tests.Integration/RentifyxCommunications.Tests.Integration.csproj" />
   </Folder>
+  <Folder Name="/03-tests/06-Api/">
+    <Project Path="03-tests/06-Api/RentifyxCommunications.Tests.Api/RentifyxCommunications.Tests.Api.csproj" />
+  </Folder>
 </Solution>
