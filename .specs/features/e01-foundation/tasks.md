@@ -49,13 +49,15 @@ Phase 4 — Integration (after deps):
 
 ## Task Breakdown
 
-### T01: Create solution + project files
+### T01: Create solution + project files — ✅ DONE (2026-07-11, via existing scaffold)
 
 **What**: Scaffold the solution with `dotnet new` + project structure: API, Application, Domain, Infrastructure, Tests.Unit, Tests.Integration
 **Where**: `/` (repo root), `01-aspire/`, `02-src/`, `03-tests/`
 **Depends on**: None
 **Reuses**: Existing `RentifyxCommunications.slnx` (check if already created by template; adapt rather than overwrite)
 **Requirement**: E01-01
+
+**Resolution note**: Repo already had a full Clean Architecture scaffold from a template. Verified rather than recreated. Naming differs from spec (`RentifyxCommunications.Api` vs `RentifyX.Communications.API`) and tests are split into 5 projects (`Tests.Common/Validators/Handlers/Repositories/Integration`) instead of `Tests.Unit`/`Tests.Integration` — functionally equivalent, treated as satisfying this task. `dotnet build --no-incremental` → 0 errors.
 
 **Tools**:
 - MCP: none
@@ -80,7 +82,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T02: Configure Directory.Build.props + Directory.Packages.props
+### T02: Configure Directory.Build.props + Directory.Packages.props — ✅ DONE (2026-07-11, already satisfied)
+
+**Resolution note**: All 4 MSBuild props + centralized package management already present and correct in the existing files. Build produces 1 pre-existing warning (`ASPIRE004`, AppHost→ServiceDefaults project-resource wiring) — that's an Aspire AppHost concern, out of scope for this task's files (Directory.Build.props/Directory.Packages.props only); deferred to T04 where AppHost.csproj is actually touched.
 
 **What**: Centralized MSBuild config — treat warnings as errors, nullable enable, implicit usings, LangVersion; centralized NuGet package versions
 **Where**: `Directory.Build.props`, `Directory.Packages.props` (repo root)
@@ -109,7 +113,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T03: Add .editorconfig with CA5xxx security analyzer rules
+### T03: Add .editorconfig with CA5xxx security analyzer rules — ✅ DONE (2026-07-11, already satisfied)
+
+**Resolution note**: All 5 required rules (CA5350, CA5351, CA5359, CA5360, CA5394) already present as `error` in the existing `.editorconfig`, plus a much broader CA53xx security ruleset already in place. No changes needed.
 
 **What**: Copy `.editorconfig` from repo root (already present) and ensure CA5xxx (insecure crypto) rules are set to `error` severity
 **Where**: `.editorconfig` (repo root — already exists per git status)
@@ -672,14 +678,14 @@ All ✅ — no test co-location violations.
 
 | Requirement ID | Mapped to Task | Status |
 |---|---|---|
-| E01-01 | T01 | Pending |
-| E01-02 | T02 | Pending |
+| E01-01 | T01 | Done — verified via existing scaffold reuse (`dotnet build` 0 errors); naming/test-split divergences noted in session log |
+| E01-02 | T02 | Done — props already correct; ASPIRE004 warning deferred to T04 |
 | E01-03 | T05 | Pending |
 | E01-04 | T05 | Pending |
 | E01-05 | T06 | Pending |
 | E01-06 | T05 | Pending |
 | E01-07 | T05 | Pending |
-| E01-08 | T03 | Pending |
+| E01-08 | T03 | Done — CA5xxx rules already enforced |
 | E01-09 | T04, T07, T09 | Pending |
 | E01-10 | T07, T08 | Pending |
 | E01-11 | T08 | Pending |

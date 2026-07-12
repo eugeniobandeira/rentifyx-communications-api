@@ -1,7 +1,7 @@
 #!/bin/sh
 # Pre-commit hook: blocks commit if the solution does not compile.
 
-SOLUTION=$(git rev-parse --show-toplevel)/templates/clean-arch/RentifyxCommunications.slnx
+SOLUTION=$(git rev-parse --show-toplevel)/RentifyxCommunications.slnx
 
 echo "Running dotnet build before commit..."
 dotnet build "$SOLUTION" --no-incremental -v quiet 2>&1
