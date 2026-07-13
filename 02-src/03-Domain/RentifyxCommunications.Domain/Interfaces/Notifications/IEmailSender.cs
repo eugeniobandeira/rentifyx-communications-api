@@ -1,7 +1,7 @@
 using ErrorOr;
 using RentifyxCommunications.Domain.ValueObjects;
 
-namespace RentifyxCommunications.Domain.Interfaces;
+namespace RentifyxCommunications.Domain.Interfaces.Notifications;
 
 public interface IEmailSender
 {

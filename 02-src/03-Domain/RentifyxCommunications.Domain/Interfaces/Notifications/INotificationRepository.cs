@@ -1,15 +1,15 @@
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Enums;
 
-namespace RentifyxCommunications.Domain.Interfaces;
+namespace RentifyxCommunications.Domain.Interfaces.Notifications;
 
 public interface INotificationRepository
 {
-    Task<bool> SaveIfNotExistsAsync(Notification notification, CancellationToken cancellationToken = default);
+    Task<bool> SaveIfNotExistsAsync(NotificationEntity notification, CancellationToken cancellationToken = default);
 
-    Task<Notification?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<NotificationEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<Notification>> GetByRecipientAsync(Guid recipientId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<NotificationEntity>> GetByRecipientAsync(Guid recipientId, CancellationToken cancellationToken = default);
 
     Task UpdateStatusAsync(Guid id, NotificationStatus status, CancellationToken cancellationToken = default);
 }
