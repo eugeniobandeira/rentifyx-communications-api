@@ -1,4 +1,5 @@
-﻿using RentifyxCommunications.Api.Extensions;
+﻿using RentifyxCommunications.Api.Consumers;
+using RentifyxCommunications.Api.Extensions;
 using RentifyxCommunications.Api.Middlewares;
 using RentifyxCommunications.IoC;
 using RentifyxCommunications.ServiceDefaults;
@@ -34,6 +35,8 @@ try
     builder.Services.AddEndpoints();
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
+    builder.Services.AddSingleton<IKafkaConsumerFactory, KafkaConsumerFactory>();
+    builder.Services.AddHostedService<NotificationRequestedConsumer>();
 
     WebApplication app = builder.Build();
 

@@ -331,7 +331,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T10: Implement NotificationRequestedConsumer as IHostedService skeleton
+### T10: Implement NotificationRequestedConsumer as IHostedService skeleton — ✅ DONE (2026-07-13)
+
+**Resolution note**: `NotificationRequestedConsumer` added under `02-src/01-Api/RentifyxCommunications.Api/Consumers/`, along with `IKafkaConsumerFactory`/`KafkaConsumerFactory` (reads `ConnectionStrings:kafka`, the same key `AppHostTests` already resolves via `GetConnectionStringAsync("kafka")`) — introduced as a seam so unit tests can mock consumer creation without a live broker. `StartAsync` retries up to 3 times with exponential backoff (2s/4s in production; overridable via an internal constructor parameter so tests run near-instantly) and never throws even if all attempts fail — it just logs `Error` and leaves the consumer unstarted, matching "skeleton, no crash" intent. Consume loop polls with a 1s timeout, commits offsets manually (`EnableAutoCommit=false`), does no message processing (explicit comment marks the E-03 injection point). `StopAsync` cancels the loop, waits up to 30s, then closes the consumer. Registered in `Program.cs` alongside the other `builder.Services.Add*` calls. 3 unit tests added in `Tests.Api/Consumers/` (added `Moq` package reference to that test project, matching the pattern already used in `Tests.Common`/`Tests.Handlers`/`Tests.Repositories`) — mocked `IKafkaConsumerFactory`/`IConsumer<Ignore,string>`, no real broker needed. Verified end-to-end too: re-ran `AppHostTests` (real Docker + Kafka container) — both still pass, confirming the consumer doesn't crash or hang real host startup.
 
 **What**: `NotificationRequestedConsumer` — IHostedService that subscribes to `notification-requested` Kafka topic, logs startup/shutdown, retries on connection failure with backoff; no message processing logic yet
 **Where**: `02-src/RentifyX.Communications.API/Consumers/NotificationRequestedConsumer.cs`

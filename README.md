@@ -353,7 +353,7 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | T07 AWS SDK config for dev/sandbox account | ✅ Done (reworked per AD-012 — was LocalStack) |
 | T08 Document dev-account resource requirements | ✅ Done |
 | T09 Kafka container in AppHost | ✅ Done |
-| T10 NotificationRequestedConsumer skeleton | Pending |
+| T10 NotificationRequestedConsumer skeleton | ✅ Done |
 | T11 ISecretsProvider interface | ✅ Done |
 | T12 SecretsManagerProvider | Pending |
 | T13 CI workflow (build + test + 80% coverage gate) | ✅ Done (coverage gate is real, currently red — repo coverage ~5.6%) |
