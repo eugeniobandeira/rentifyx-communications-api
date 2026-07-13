@@ -3,14 +3,20 @@ using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Interfaces;
 using RentifyxCommunications.Domain.Interfaces.Common;
 using RentifyxCommunications.Domain.Interfaces.Examples;
+using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Infrastructure.Context;
+using RentifyxCommunications.Infrastructure.Email;
 using RentifyxCommunications.Infrastructure.Repositories;
 using RentifyxCommunications.Infrastructure.Secrets;
+using RentifyxCommunications.Infrastructure.Templates;
+using Amazon.DynamoDBv2;
 using Amazon.Runtime.CredentialManagement;
 using Amazon.SecretsManager;
+using Amazon.SimpleEmail;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace RentifyxCommunications.IoC;
 
@@ -24,6 +30,7 @@ internal static class InfrastructureDependencyInjection
         services.AddRepositories();
         services.AddAwsOptions(configuration);
         services.AddSecretsManager();
+        services.AddNotificationInfrastructure();
 
         return services;
     }
@@ -82,6 +89,30 @@ internal static class InfrastructureDependencyInjection
         services.AddSingleton(new SecretsProviderOptions());
         services.AddSingleton<ISecretsProvider, SecretsManagerProvider>();
         services.AddSingleton<SecretsStartupValidator>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddNotificationInfrastructure(this IServiceCollection services)
+    {
+        services.AddAWSService<IAmazonDynamoDB>();
+        services.AddAWSService<IAmazonSimpleEmailService>();
+
+        services.AddScoped<INotificationRepository, DynamoDbNotificationRepository>();
+        services.AddScoped<IConsentRepository, DynamoDbConsentRepository>();
+        services.AddSingleton<ITemplateRenderer, ScribanTemplateRenderer>();
+
+        services.AddScoped<IEmailSender>(sp =>
+        {
+            IHostEnvironment environment = sp.GetRequiredService<IHostEnvironment>();
+            if (!environment.IsProduction())
+                return new MockEmailSender();
+
+            return new SesEmailSender(
+                sp.GetRequiredService<IAmazonSimpleEmailService>(),
+                sp.GetRequiredService<ISecretsProvider>(),
+                sp.GetRequiredService<SecretsProviderOptions>());
+        });
 
         return services;
     }
