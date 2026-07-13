@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** E-02 — Domain Model & Consent
-**Status:** E-01 complete; E-02 not started (needs Specify)
+**Current Milestone:** E-03 — Application Layer (Use Cases)
+**Status:** E-01 and E-02 complete; E-03 not started (needs Specify)
 
 ---
 
@@ -34,22 +34,25 @@
 
 **Goal:** Pure domain layer with zero framework or AWS references — Notification aggregate, status lifecycle, consent rules, channel-agnostic contracts, 100% unit tested.
 **Target:** Day 2–3
+**Status:** DONE (2026-07-13) — spec/design/tasks in `.specs/features/e02-domain-model/`, 29 unit tests passing on branch `feat/e02-domain-model`
+
+**2026-07-13 decision:** Default consent for transactional channels (Email in v1) is opt-in absent a record — `ConsentDecision.NoRecordFound()` never suppresses. A `ConsentPreference` record only suppresses when it explicitly says `OptedIn = false`. Marketing (E-07) will use the opposite default (opt-out, default-deny) — different epic, different rule, not a contradiction.
 
 ### Features
 
-**F-03 · Notification Aggregate & Value Objects** — PLANNED
+**F-03 · Notification Aggregate & Value Objects** — DONE
 
-- `Notification` aggregate root with full status enum: Pending → Rendering → Dispatching → Sent | Failed | Suppressed
-- `Channel` enum (Email implemented; Sms/Push reserved), `NotificationStatus`, `EmailAddress` VO, `TemplateId` VO
-- Domain events: `NotificationDispatched`, `NotificationDelivered`, `NotificationFailed`, `NotificationSuppressed`
+- `Notification` aggregate root with full status enum: Pending → Rendering → Dispatching → Sent | Failed | Suppressed — ✅ done
+- `Channel` enum (Email implemented; Sms/Push reserved), `NotificationStatus`, `EmailAddress` VO, `TemplateId` VO — ✅ done
+- Domain events: `NotificationDispatched`, `NotificationDelivered`, `NotificationFailed`, `NotificationSuppressed` — ✅ done
 
-**F-04 · Consent & Domain Contracts** — PLANNED
+**F-04 · Consent & Domain Contracts** — DONE
 
-- `ConsentPreference` VO (Channel, OptedIn, UpdatedAt) + `IConsentRepository`
-- `INotificationRepository` (SaveIfNotExists atomic, GetById, GetByRecipient, UpdateStatus)
-- `ITemplateRenderer` + `IEmailSender` contracts
-- Domain rule: `Notification.Dispatch()` returns error if recipient opted out
-- ADRs: C02 (channel-agnostic contract), C04 (consent inside domain), C07 (outbox lifecycle)
+- `ConsentPreference` VO (Channel, OptedIn, UpdatedAt) + `IConsentRepository` — ✅ done
+- `INotificationRepository` (SaveIfNotExists atomic, GetById, GetByRecipient, UpdateStatus) — ✅ done (contract only, DynamoDB implementation is E-04)
+- `ITemplateRenderer` + `IEmailSender` contracts — ✅ done
+- Domain rule: `Notification.Dispatch()` returns error/suppresses if recipient opted out — ✅ done
+- ADRs: C02 (channel-agnostic contract), C04 (consent inside domain), C07 (outbox lifecycle) — reflected in design.md Tech Decisions
 
 ---
 
