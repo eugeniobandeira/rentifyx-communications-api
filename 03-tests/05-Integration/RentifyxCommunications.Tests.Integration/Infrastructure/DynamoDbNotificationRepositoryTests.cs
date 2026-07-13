@@ -77,4 +77,44 @@ public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationIn
 
         result.Should().BeNull();
     }
+
+    [Fact]
+    public async Task GetByRecipientAsync_WithMultipleNotifications_ShouldReturnAllForThatRecipient()
+    {
+        Guid recipientId = Guid.NewGuid();
+        NotificationEntity first = NotificationEntity.Create(
+            Guid.NewGuid(), recipientId, EmailAddress.Create("user@example.com").Value,
+            Channel.Email, TemplateId.Create("welcome-email").Value,
+            new Dictionary<string, string> { ["name"] = "Alice" }).Value;
+        NotificationEntity second = NotificationEntity.Create(
+            Guid.NewGuid(), recipientId, EmailAddress.Create("user@example.com").Value,
+            Channel.Email, TemplateId.Create("welcome-email").Value,
+            new Dictionary<string, string> { ["name"] = "Alice" }).Value;
+        NotificationEntity otherRecipient = CreateNotification();
+
+        await _sut.SaveIfNotExistsAsync(first);
+        await _sut.SaveIfNotExistsAsync(second);
+        await _sut.SaveIfNotExistsAsync(otherRecipient);
+
+        IReadOnlyList<NotificationEntity> results = await _sut.GetByRecipientAsync(recipientId);
+
+        results.Should().HaveCount(2);
+        results.Select(n => n.Id).Should().BeEquivalentTo([first.Id, second.Id]);
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_ShouldUpdateOnlyStatusAndUpdatedAt()
+    {
+        NotificationEntity notification = CreateNotification();
+        await _sut.SaveIfNotExistsAsync(notification);
+
+        await _sut.UpdateStatusAsync(notification.Id, NotificationStatus.Sent);
+
+        NotificationEntity? result = await _sut.GetByIdAsync(notification.Id);
+        result.Should().NotBeNull();
+        result!.Status.Should().Be(NotificationStatus.Sent);
+        result.UpdatedAt.Should().NotBeNull();
+        result.Recipient.Value.Should().Be("user@example.com");
+        result.Payload.Should().ContainKey("name").WhoseValue.Should().Be("Alice");
+    }
 }
