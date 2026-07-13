@@ -1,4 +1,4 @@
-using ErrorOr;
+﻿using ErrorOr;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Enums;
 
@@ -11,7 +11,11 @@ public sealed class ConsentPreference
     public bool OptedIn { get; }
     public DateTime UpdatedAt { get; }
 
-    private ConsentPreference(Guid recipientId, Channel channel, bool optedIn, DateTime updatedAt)
+    private ConsentPreference(
+        Guid recipientId,
+        Channel channel,
+        bool optedIn,
+        DateTime updatedAt)
     {
         RecipientId = recipientId;
         Channel = channel;
@@ -19,7 +23,11 @@ public sealed class ConsentPreference
         UpdatedAt = updatedAt;
     }
 
-    public static ErrorOr<ConsentPreference> Create(Guid recipientId, Channel channel, bool optedIn, DateTime updatedAt)
+    public static ErrorOr<ConsentPreference> Create(
+        Guid recipientId,
+        Channel channel,
+        bool optedIn,
+        DateTime updatedAt)
     {
         if (recipientId == Guid.Empty)
             return Error.Validation(NotificationErrorCodes.InvalidRecipientId, "Recipient id must not be empty.");
