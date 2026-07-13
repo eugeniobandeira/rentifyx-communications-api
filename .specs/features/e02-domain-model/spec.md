@@ -98,19 +98,19 @@ E-01 delivered the scaffold, CI, and infra plumbing, but the Domain layer is sti
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| NOTIF-01 | P1: NOTIF-US-01 | Design | Pending |
-| NOTIF-02 | P1: NOTIF-US-01 | Design | Pending |
-| NOTIF-03 | P1: NOTIF-US-01 | Design | Pending |
-| NOTIF-04 | P1: NOTIF-US-02 | Design | Pending |
-| NOTIF-05 | P1: NOTIF-US-02 | Design | Pending |
-| NOTIF-06 | P1: NOTIF-US-03 | Design | Pending |
-| NOTIF-07 | P1: NOTIF-US-03 | Design | Pending |
+| NOTIF-01 | P1: NOTIF-US-01 | Verified | Implemented — T03, T05, T13, T15 |
+| NOTIF-02 | P1: NOTIF-US-01 | Verified | Implemented — T04, T14 |
+| NOTIF-03 | P1: NOTIF-US-01 | Verified | Implemented — T01 |
+| NOTIF-04 | P1: NOTIF-US-02 | Verified | Implemented — T08, T09, T14 |
+| NOTIF-05 | P1: NOTIF-US-02 | Verified | Implemented — T14 |
+| NOTIF-06 | P1: NOTIF-US-03 | Verified | Implemented — T02, T05, T06, T07, T10, T11, T12, T16 |
+| NOTIF-07 | P1: NOTIF-US-01 | Verified | Implemented — T04, covered by `DomainEvents` assertions |
 
 **ID format:** `NOTIF-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 7 total, 0 mapped to tasks, 7 unmapped ⚠️ (Design phase next)
+**Coverage:** 7 total, 7 mapped to tasks, 0 unmapped ✅ — all implemented 2026-07-13, 29 unit tests passing
 
 ---
 

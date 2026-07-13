@@ -1,7 +1,9 @@
 # E-02 · Domain Model — Notification & Consent Tasks
 
 **Design**: `.specs/features/e02-domain-model/design.md`
-**Status**: In Progress
+**Status**: Done
+
+**Execution note (2026-07-13):** All 16 tasks implemented directly (not via sub-agent delegation — code was small/mechanical enough that direct implementation was faster than spawning 16 sub-agents). One deviation from plan: T05 (`NotificationErrorCodes`) didn't anticipate `InvalidRecipientId`, needed by T08 (`ConsentPreference`) — added as a same-commit amendment, not a separate task. Final state: 29 unit tests passing (`dotnet test 03-tests/00-Domain/... --filter "Category!=Integration"`), repo-wide line coverage rose from ~5.6% to 17.4% (still below the 80% CI gate, but real progress — see STATE.md).
 
 ---
 

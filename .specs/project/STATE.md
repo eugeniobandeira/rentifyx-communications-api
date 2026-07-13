@@ -1,13 +1,20 @@
 # State
 
-**Last Updated:** 2026-07-13T20:30:00Z
-**Current Work:** E-01 foundation (`.specs/features/e01-foundation/tasks.md`) — **all tasks complete, T01–T17, milestone closed.** T01–T15, T17 merged to `main` via PR #2 (2026-07-13T20:03:40Z, branch `feat/aws-dev-account-config`). T16 (branch protection on `main`) applied 2026-07-13T20:30:00Z via `gh api --method PUT .../branches/main/protection`: required status checks (`build-test-coverage`, `trivy-scan`, `owasp-check`, strict), 1 required PR approval, `enforce_admins: true`, force-push/deletion disabled. **E-01 milestone is fully done.** Next up: **E-02 (Domain Model — Notification & Consent)** per `.specs/project/ROADMAP.md` — needs Specify phase. Per AD-013, LocalStack scope was narrowed back to automated tests only (T12 rework) — manual dev run keeps using real AWS. Scope also includes marketing campaigns (E-07) and identity-api integration contract (E-08), both spec'd (E-07 also has design+tasks) but Execute not started — both depend on E-02–E-04 domain work landing.
+**Last Updated:** 2026-07-13T21:15:00Z
+**Current Work:** **E-02 (Domain Model — Notification & Consent) is DONE** (2026-07-13, branch `feat/e02-domain-model`, not yet merged/PR'd) — spec/design/tasks fully written and all 16 tasks implemented: `Notification` aggregate (Create/Dispatch/MarkSent/MarkFailed), `Channel`/`NotificationStatus` enums, `EmailAddress`/`TemplateId`/`ConsentPreference`/`ConsentDecision` value objects, 4 domain events, `INotificationRepository`/`IConsentRepository`/`ITemplateRenderer`/`IEmailSender` contracts, new `RentifyxCommunications.Tests.Domain` project with 29 passing unit tests. Repo-wide line coverage rose from ~5.6% to 17.4% (still below the 80% CI gate, but a real step). Next up: **E-03 (Application Layer — Kafka consumer, use cases)** per `.specs/project/ROADMAP.md` — needs Specify phase. E-01 foundation (`.specs/features/e01-foundation/tasks.md`) is fully closed (T01–T17 merged via PR #2; T16 branch protection applied, then `enforce_admins` disabled after it blocked docs-only PR #3 — see Todos). Per AD-013, LocalStack scope was narrowed back to automated tests only (T12 rework) — manual dev run keeps using real AWS. Scope also includes marketing campaigns (E-07) and identity-api integration contract (E-08), both spec'd (E-07 also has design+tasks) but Execute not started — both depend on E-02–E-04 domain work landing.
 
 **⚠️ Uncommitted, not-mine work found in the working tree (2026-07-13):** while verifying T17, discovered ~26 modified-but-uncommitted files unrelated to this session's tasks — mostly `using` reordering + BOM insertion (looks like an IDE code-cleanup pass), but at least one is a real functional change: `AppHost.cs` has `.WithKafkaUI()` added to the Kafka resource, which this session did not write. Left entirely untouched; every commit this session staged only its own intended files by explicit path. Flagged to the user directly — needs their review/decision, not a Claude action.
 
 ---
 
 ## Recent Decisions (Last 60 days)
+
+### AD-014: Transactional Email defaults to opt-in (consent record represents opt-out) (2026-07-13)
+
+**Decision:** When `IConsentRepository` has no `ConsentPreference` record for (recipient, Email channel), `Notification.Dispatch()` proceeds — absence of a record is NOT suppression. A record only blocks dispatch when it explicitly says `OptedIn = false`. Implemented as `ConsentDecision.NoRecordFound()` (`IsSuppressed = false`) vs. `ConsentDecision.FromPreference(pref)` (`IsSuppressed = !pref.OptedIn`).
+**Reason:** Transactional email (verification, password reset, billing) has its own legal basis under LGPD Art. 7 and must not silently fail just because a producer service (e.g. identity-api) hasn't yet synced a consent record for a brand-new recipient. Blocking-by-default would risk breaking auth-critical flows (see E-08).
+**Trade-off:** This is the opposite default from Marketing (E-07/AD-010), which is opt-out/default-deny. Two different defaults for two different channels is intentional, not an inconsistency — document this clearly wherever consent logic is touched so a future reader doesn't "fix" one to match the other.
+**Impact:** `.specs/features/e02-domain-model/spec.md` NOTIF-04; `ConsentDecision` value object encodes the rule in exactly one place so callers (E-03's future handler) never have to re-derive it.
 
 ### AD-010: Marketing email added to v1 scope as E-07, sequenced last (2026-07-11)
 
