@@ -100,6 +100,10 @@ public sealed class SecretsManagerProvider(IAmazonSecretsManager client, IMemory
 
 Single-parameter records/constructors can stay on one line.
 
+## Async Naming
+
+**Every async method gets an `Async` suffix** — `RenderAsync`, `SendAsync`, `FindAsync`, `SaveIfNotExistsAsync`. No exceptions for interface members either: if a method returns `Task`/`Task<T>` (or `ValueTask`/`ValueTask<T>`), its name ends in `Async`, whether declared on an interface or its implementation.
+
 ## Error Handling
 
 - Application/Domain methods that can fail on **expected, runtime business outcomes** (validation, business rules, external call failures) return `ErrorOr<T>` — never throw for these cases.
