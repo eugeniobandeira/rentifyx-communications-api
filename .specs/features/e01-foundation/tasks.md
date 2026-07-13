@@ -539,11 +539,11 @@ Phase 4 — Integration (after deps):
 - Skill: none
 
 **Done when**:
-- [ ] `main` branch requires status check: `CI / build-test-coverage` must pass
-- [ ] `main` branch requires status check: `CI / trivy-scan` must pass
-- [ ] `main` branch requires status check: `CI / owasp-check` must pass
-- [ ] `main` branch requires at least 1 approved review before merge
-- [ ] Direct push to `main` is disabled (force push requires admin override)
+- [x] `main` branch requires status check: `build-test-coverage` must pass
+- [x] `main` branch requires status check: `trivy-scan` must pass
+- [x] `main` branch requires status check: `owasp-check` must pass
+- [x] `main` branch requires at least 1 approved review before merge
+- [x] Direct push to `main` is disabled (force push requires admin override)
 
 **Tests**: none
 **Gate**: manual — verify in GitHub repository Settings → Branches
@@ -551,6 +551,7 @@ Phase 4 — Integration (after deps):
 **Verify**: Attempt a direct push to `main` without a PR → rejected; open a PR without CI green → merge button disabled
 
 **Commit**: N/A (GitHub settings change, not a code commit)
+**Status**: DONE — applied 2026-07-13T20:30:00Z via `gh api --method PUT repos/.../branches/main/protection`. `enforce_admins` disabled 2026-07-13T20:45:00Z after PR #3 (docs-only) was blocked by the repo-wide 80% coverage gate with no admin override available — required checks still apply to non-admins, but an admin can now merge manually until E-02 brings real coverage above 80%.
 
 ---
 

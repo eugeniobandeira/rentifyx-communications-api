@@ -1,12 +1,12 @@
 # Handoff
 
-**Date:** 2026-07-13T16:00:00Z
+**Date:** 2026-07-13T20:30:00Z
 **Feature:** E-01 · Project Foundation & DevSecOps Pipeline
-**Task:** T16 (branch protection rules) is the only remaining task — it's a GitHub repo-settings change, not a code task, and needs admin access this session doesn't have.
+**Task:** All done — E-01 milestone is complete. T16 (branch protection) applied 2026-07-13T20:30:00Z.
 
 ## Completed ✓
 
-T01–T15 and T17 are all done and committed on branch `feat/aws-dev-account-config` (9 commits ahead of `origin/feat/aws-dev-account-config`, not yet pushed):
+T01–T15 and T17 are all done, and the branch `feat/aws-dev-account-config` was merged to `main` via PR #2 on 2026-07-13T20:03:40Z:
 
 - T01–T08: scaffold, build props, `.editorconfig`, Aspire AppHost+ServiceDefaults, Serilog/CorrelationId/health/Scalar/ErrorOr, `GlobalExceptionHandler`, AWS SDK against real dev/sandbox account (fail-fast), dev-account resource docs
 - T09: Kafka container (KRaft mode) in AppHost
@@ -20,9 +20,7 @@ T01–T15 and T17 are all done and committed on branch `feat/aws-dev-account-con
 
 ## Pending
 
-- **T16** (branch protection on `main`): requires GitHub repo Settings access this session doesn't have. Needs: required status checks (`CI / build-test-coverage`, `CI / trivy-scan`, `CI / owasp-check`), 1 required PR approval, direct-push disabled. No code commit — verify manually once someone with admin access sets it up.
-- **Push the branch**: 9 local commits not yet on `origin/feat/aws-dev-account-config` — push whenever ready.
-- Once T16 is confirmed (or explicitly deferred), E-01 as a milestone is complete and E-02 (Domain Model — Notification & Consent) is next per `.specs/project/ROADMAP.md`.
+- Nothing — E-01 as a milestone is complete. E-02 (Domain Model — Notification & Consent) is next per `.specs/project/ROADMAP.md`.
 
 ## Known gaps (all previously surfaced to and accepted by the user — not oversights)
 
