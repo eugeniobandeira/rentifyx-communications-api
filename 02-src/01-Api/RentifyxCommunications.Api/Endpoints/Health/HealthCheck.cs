@@ -13,8 +13,5 @@ internal sealed class HealthCheck : IEndpoint
            .AllowAnonymous();
     }
 
-    private static IResult HandleAsync()
-    {
-        return Results.Ok(new { status = "healthy" });
-    }
+    private static IResult HandleAsync() => Results.Ok(new { status = "healthy" });
 }

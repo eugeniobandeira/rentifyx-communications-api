@@ -9,13 +9,7 @@ public sealed class ConsentDecision
         IsSuppressed = isSuppressed;
     }
 
-    public static ConsentDecision NoRecordFound()
-    {
-        return new ConsentDecision(isSuppressed: false);
-    }
+    public static ConsentDecision NoRecordFound() => new(isSuppressed: false);
 
-    public static ConsentDecision FromPreference(ConsentPreference preference)
-    {
-        return new ConsentDecision(isSuppressed: !preference.OptedIn);
-    }
+    public static ConsentDecision FromPreference(ConsentPreference preference) => new(isSuppressed: !preference.OptedIn);
 }

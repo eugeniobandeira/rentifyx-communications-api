@@ -56,24 +56,21 @@ public sealed class SecretsManagerProvider : ISecretsProvider
 
 ## Method Bodies
 
-**Use block bodies (`{ }`), not expression-bodied members (`=>`), for methods and constructors** — even one-liners. Applies to regular methods, constructors, and factory methods; does not apply to property getters/auto-properties or primary constructor parameter lists (see Constructors above).
+**Constructors only: use a block body (`{ }`), not an expression body (`=>`)** — even a one-line assignment. This applies specifically to explicit (non-primary) constructors; it does not apply to regular methods, factory methods, property getters, or primary constructor parameter lists, all of which may freely use expression bodies where that reads well.
 
 ```csharp
-// Preferred
-public void Deactivate()
-{
-    IsActive = false;
-}
-
+// Preferred (constructor)
 private EmailAddress(string value)
 {
     Value = value;
 }
 
-// Avoid
-public void Deactivate() => IsActive = false;
-
+// Avoid (constructor)
 private EmailAddress(string value) => Value = value;
+
+// Fine either way (regular/factory method, not a constructor)
+public void Deactivate() => IsActive = false;
+public static ConsentDecision NoRecordFound() => new(isSuppressed: false);
 ```
 
 ## Code Style

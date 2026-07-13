@@ -18,10 +18,8 @@ internal static class ValidationExtensions
             : [.. result.Errors.Select(ToError)];
     }
 
-    private static Error ToError(ValidationFailure failure)
-    {
-        return failure.ErrorCode.EndsWith(".NotFound", StringComparison.Ordinal)
+    private static Error ToError(ValidationFailure failure) =>
+        failure.ErrorCode.EndsWith(".NotFound", StringComparison.Ordinal)
             ? Error.NotFound(failure.ErrorCode, failure.ErrorMessage)
             : Error.Validation(failure.PropertyName, failure.ErrorMessage);
-    }
 }

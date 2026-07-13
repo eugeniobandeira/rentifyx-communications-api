@@ -33,8 +33,5 @@ public sealed class ExampleEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Deactivate()
-    {
-        IsActive = false;
-    }
+    public void Deactivate() => IsActive = false;
 }
