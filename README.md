@@ -132,6 +132,16 @@ dotnet test --filter "Category!=Integration"
 dotnet test
 ```
 
+## Continuous Integration
+
+`.github/workflows/ci.yml` runs on every push/PR to `main`: build + unit tests + 80% line coverage gate, a Trivy scan of the built Docker image (fails on HIGH/CRITICAL), and an OWASP Dependency-Check scan of the full NuGet dependency graph (fails on CVSS ≥ 7).
+
+Requires one repository secret:
+
+| Secret | Purpose |
+|---|---|
+| `NVD_API_KEY` | Passed to OWASP Dependency-Check so it can query the NVD API without hitting anonymous rate limits. Request one at [nvd.nist.gov/developers/request-an-api-key](https://nvd.nist.gov/developers/request-an-api-key), then add it under repo **Settings → Secrets and variables → Actions**. |
+
 ## Project Structure
 
 ```
@@ -358,7 +368,7 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | T12 SecretsManagerProvider | ✅ Done (fail-fast requires 3 secrets to exist in the dev-account Secrets Manager — not provisioned yet, see STATE.md Todos) |
 | T13 CI workflow (build + test + 80% coverage gate) | ✅ Done (coverage gate is real, currently red — repo coverage ~5.6%) |
 | T14 Dockerfile + Trivy scan in CI | ✅ Done (found and fixed a real HIGH CVE in a transitive dependency along the way) |
-| T15 OWASP dependency-check in CI | Pending |
+| T15 OWASP dependency-check in CI | ✅ Done (needs the `NVD_API_KEY` repo secret added before it actually runs in CI) |
 | T16 Branch protection rules | Pending |
 | T17 git-secrets pre-commit hook | ✅ Done |
 

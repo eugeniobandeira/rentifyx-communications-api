@@ -106,3 +106,56 @@ jobs:
         with:
           name: trivy-report
           path: trivy-results.sarif
+
+  owasp-check:
+    runs-on: ubuntu-latest
+    needs: build-test-coverage
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      # Restore resolves the full transitive dependency graph (project.assets.json
+      # per project) so dependency-check's .NET analyzers see transitive NuGet
+      # packages, not just the direct PackageReferences in each csproj.
+      - name: Restore
+        run: dotnet restore RentifyxCommunications.slnx
+
+      - name: Cache OWASP Dependency-Check NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.dependency-check-data
+          key: dependency-check-nvd-${{ github.run_id }}
+          restore-keys: dependency-check-nvd-
+
+      # The dependency-check/Dependency-Check_Action wrapper hasn't been tagged
+      # since 2021 and its docs recommend an unpinned `@main` reference - both
+      # are reasons to skip it and run the actively-maintained owasp/dependency-check
+      # CLI image directly instead, pinned to a specific digest (12.2.2, current
+      # as of 2026-05-03) rather than `:latest`.
+      - name: OWASP Dependency-Check scan
+        run: |
+          mkdir -p ~/.dependency-check-data
+          docker run --rm \
+            -v "${{ github.workspace }}:/src" \
+            -v "$HOME/.dependency-check-data:/usr/share/dependency-check/data" \
+            owasp/dependency-check@sha256:ad169904106250816059f113d374d63a49a7cb0fd2c5e476d05c4fb814cc77b9 \
+            --scan /src \
+            --format HTML \
+            --format JSON \
+            --project "RentifyX Communications API" \
+            --out /src/dependency-check-report \
+            --nvdApiKey "${{ secrets.NVD_API_KEY }}" \
+            --failOnCVSS 7
+
+      - name: Upload OWASP dependency-check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-dependency-check-report
+          path: dependency-check-report

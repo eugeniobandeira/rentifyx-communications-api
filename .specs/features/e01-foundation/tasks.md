@@ -496,7 +496,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T15: Add OWASP dependency-check step to CI [P]
+### T15: Add OWASP dependency-check step to CI [P] — ✅ DONE (2026-07-13)
+
+**Resolution note**: Did not use `dependency-check/Dependency-Check_Action` (the wrapper action named in this task) — checked its GitHub repo and it has exactly 2 tags, both from 2021 (`1.0.0`, `1.1.0`), and its own README recommends an unpinned `@main` reference. Given T14 just SHA-pinned `trivy-action` specifically because of the risk of relying on a GitHub Action's tags, using a 5-year-stale wrapper with a floating-ref default would be the same mistake. Instead the `owasp-check` job runs the actively-maintained `owasp/dependency-check` CLI Docker image directly (12.2.2, current as of 2026-05-03), pinned to its image digest. `dotnet restore` runs first so `project.assets.json` exists per project — that's what lets dependency-check's analyzers see the full transitive graph, not just each csproj's direct `PackageReference`s. NVD DB cached via `actions/cache` (keyed by run id with a `restore-keys` fallback) since Docker named volumes don't persist across ephemeral GH-hosted runners. `--nvdApiKey` passed from a new `NVD_API_KEY` repo secret — not set up here (that's a manual step in GitHub repo settings, out of reach from this session) — documented in README under a new "Continuous Integration" section. Verified the pinned image runs (`--version` → `12.2.2`) and that all CLI flags used (`--nvdApiKey`, `--failOnCVSS`, `--format`, `--project`, `--scan`, `--out`) are recognized by `--help`; did **not** run a full scan locally (no NVD API key available in this session, and an unkeyed run risks slow/403 rate-limiting rather than a meaningful signal) — first real CI run, once the secret is added, is the actual verification per the task's own "Verify" line.
 
 **What**: Add `dependency-check` step to CI workflow using `jeremylong/DependencyCheck` action; fails on HIGH/CRITICAL CVEs in direct and transitive NuGet dependencies
 **Where**: `.github/workflows/ci.yml`
