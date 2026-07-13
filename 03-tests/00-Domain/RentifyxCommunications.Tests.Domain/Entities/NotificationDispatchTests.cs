@@ -11,8 +11,8 @@ namespace RentifyxCommunications.Tests.Domain.Entities;
 
 public sealed class NotificationDispatchTests
 {
-    private static Notification CreatePending(Channel channel = Channel.Email) =>
-        Notification.Create(
+    private static NotificationEntity CreatePending(Channel channel = Channel.Email) =>
+        NotificationEntity.Create(
             Guid.NewGuid(),
             Guid.NewGuid(),
             EmailAddress.Create("user@example.com").Value,
@@ -23,7 +23,7 @@ public sealed class NotificationDispatchTests
     [Fact]
     public void Dispatch_WithNoConsentRecordAndValidPayload_ShouldMoveToDispatching()
     {
-        Notification notification = CreatePending();
+        NotificationEntity notification = CreatePending();
 
         ErrorOr<Success> result = notification.Dispatch(ConsentDecision.NoRecordFound(), isPayloadValid: true);
 
@@ -35,7 +35,7 @@ public sealed class NotificationDispatchTests
     [Fact]
     public void Dispatch_WhenSuppressed_ShouldMoveToSuppressedAndNotError()
     {
-        Notification notification = CreatePending();
+        NotificationEntity notification = CreatePending();
         ConsentPreference optedOut = ConsentPreference.Create(Guid.NewGuid(), Channel.Email, optedIn: false, DateTime.UtcNow).Value;
 
         ErrorOr<Success> result = notification.Dispatch(ConsentDecision.FromPreference(optedOut), isPayloadValid: true);
@@ -48,7 +48,7 @@ public sealed class NotificationDispatchTests
     [Fact]
     public void Dispatch_WithInvalidPayload_ShouldReturnErrorAndStayPending()
     {
-        Notification notification = CreatePending();
+        NotificationEntity notification = CreatePending();
 
         ErrorOr<Success> result = notification.Dispatch(ConsentDecision.NoRecordFound(), isPayloadValid: false);
 
@@ -62,7 +62,7 @@ public sealed class NotificationDispatchTests
     [InlineData(Channel.Push)]
     public void Dispatch_WithUnimplementedChannel_ShouldReturnErrorAndStayPending(Channel channel)
     {
-        Notification notification = CreatePending(channel);
+        NotificationEntity notification = CreatePending(channel);
 
         ErrorOr<Success> result = notification.Dispatch(ConsentDecision.NoRecordFound(), isPayloadValid: true);
 
@@ -74,7 +74,7 @@ public sealed class NotificationDispatchTests
     [Fact]
     public void Dispatch_CalledTwice_ShouldReturnErrorOnSecondCall()
     {
-        Notification notification = CreatePending();
+        NotificationEntity notification = CreatePending();
         notification.Dispatch(ConsentDecision.NoRecordFound(), isPayloadValid: true);
 
         ErrorOr<Success> secondCall = notification.Dispatch(ConsentDecision.NoRecordFound(), isPayloadValid: true);

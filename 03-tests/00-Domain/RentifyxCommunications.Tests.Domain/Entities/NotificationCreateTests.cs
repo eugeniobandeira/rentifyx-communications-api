@@ -17,7 +17,7 @@ public sealed class NotificationCreateTests
     [Fact]
     public void Create_WithValidInputs_ShouldStartAsPending()
     {
-        ErrorOr<Notification> result = Notification.Create(
+        ErrorOr<NotificationEntity> result = NotificationEntity.Create(
             Guid.NewGuid(), Guid.NewGuid(), ValidEmail(), Channel.Email, ValidTemplateId(), ValidPayload());
 
         result.IsError.Should().BeFalse();
@@ -29,7 +29,7 @@ public sealed class NotificationCreateTests
     [Fact]
     public void Create_WithEmptyPayload_ShouldReturnValidationError()
     {
-        ErrorOr<Notification> result = Notification.Create(
+        ErrorOr<NotificationEntity> result = NotificationEntity.Create(
             Guid.NewGuid(), Guid.NewGuid(), ValidEmail(), Channel.Email, ValidTemplateId(), new Dictionary<string, string>());
 
         result.IsError.Should().BeTrue();
@@ -39,7 +39,7 @@ public sealed class NotificationCreateTests
     [Fact]
     public void Create_ShouldNotRaiseAnyDomainEvents()
     {
-        ErrorOr<Notification> result = Notification.Create(
+        ErrorOr<NotificationEntity> result = NotificationEntity.Create(
             Guid.NewGuid(), Guid.NewGuid(), ValidEmail(), Channel.Email, ValidTemplateId(), ValidPayload());
 
         result.Value.DomainEvents.Should().BeEmpty();

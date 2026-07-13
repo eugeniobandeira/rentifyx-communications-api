@@ -6,7 +6,7 @@ using RentifyxCommunications.Domain.ValueObjects;
 
 namespace RentifyxCommunications.Domain.Entities;
 
-public sealed class Notification
+public sealed class NotificationEntity
 {
     private readonly List<IDomainEvent> _domainEvents = [];
 
@@ -24,9 +24,9 @@ public sealed class Notification
 
     public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
-    private Notification() { }
+    private NotificationEntity() { }
 
-    public static ErrorOr<Notification> Create(
+    public static ErrorOr<NotificationEntity> Create(
         Guid correlationId,
         Guid recipientId,
         EmailAddress recipient,
@@ -37,7 +37,7 @@ public sealed class Notification
         if (payload is null || payload.Count == 0)
             return Error.Validation(NotificationErrorCodes.InvalidPayload, "Payload must not be empty.");
 
-        return new Notification
+        return new NotificationEntity
         {
             Id = Guid.NewGuid(),
             CorrelationId = correlationId,
