@@ -104,5 +104,59 @@ namespace RentifyxCommunications.Domain.MessageResource {
                 return ResourceManager.GetString("EXAMPLE_NOT_FOUND", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Correlation id is required..
+        /// </summary>
+        public static string CORRELATION_ID_REQUIRED {
+            get {
+                return ResourceManager.GetString("CORRELATION_ID_REQUIRED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Recipient id is required..
+        /// </summary>
+        public static string RECIPIENT_ID_REQUIRED {
+            get {
+                return ResourceManager.GetString("RECIPIENT_ID_REQUIRED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Recipient email is required..
+        /// </summary>
+        public static string RECIPIENT_EMAIL_REQUIRED {
+            get {
+                return ResourceManager.GetString("RECIPIENT_EMAIL_REQUIRED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Template id is required..
+        /// </summary>
+        public static string TEMPLATE_ID_REQUIRED {
+            get {
+                return ResourceManager.GetString("TEMPLATE_ID_REQUIRED", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Channel &apos;{Channel}&apos; is not recognized..
+        /// </summary>
+        public static string CHANNEL_INVALID {
+            get {
+                return ResourceManager.GetString("CHANNEL_INVALID", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Payload is required..
+        /// </summary>
+        public static string PAYLOAD_REQUIRED {
+            get {
+                return ResourceManager.GetString("PAYLOAD_REQUIRED", resourceCulture);
+            }
+        }
     }
 }

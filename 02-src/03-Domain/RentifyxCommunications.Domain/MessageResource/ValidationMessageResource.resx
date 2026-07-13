@@ -53,4 +53,22 @@
   <data name="DESCRIPTION_MAX_LENGTH" xml:space="preserve">
     <value>Description must not exceed {MaxLength} characters.</value>
   </data>
+  <data name="CORRELATION_ID_REQUIRED" xml:space="preserve">
+    <value>Correlation id is required.</value>
+  </data>
+  <data name="RECIPIENT_ID_REQUIRED" xml:space="preserve">
+    <value>Recipient id is required.</value>
+  </data>
+  <data name="RECIPIENT_EMAIL_REQUIRED" xml:space="preserve">
+    <value>Recipient email is required.</value>
+  </data>
+  <data name="TEMPLATE_ID_REQUIRED" xml:space="preserve">
+    <value>Template id is required.</value>
+  </data>
+  <data name="CHANNEL_INVALID" xml:space="preserve">
+    <value>Channel '{Channel}' is not recognized.</value>
+  </data>
+  <data name="PAYLOAD_REQUIRED" xml:space="preserve">
+    <value>Payload is required.</value>
+  </data>
 </root>
