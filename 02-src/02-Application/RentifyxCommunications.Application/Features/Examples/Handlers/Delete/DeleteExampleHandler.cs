@@ -14,7 +14,7 @@ public sealed class DeleteExampleHandler(
     IUnitOfWork unitOfWork,
     ILogger<DeleteExampleHandler> logger) : IHandler<Guid, Deleted>
 {
-    public async Task<ErrorOr<Deleted>> Handle(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ErrorOr<Deleted>> HandleAsync(Guid id, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Deleting example. Id={Id}", id);
 

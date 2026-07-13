@@ -18,7 +18,7 @@ public sealed class UpdateExampleHandler(
     IValidator<UpdateExampleRequest> validator,
     ILogger<UpdateExampleHandler> logger) : IHandler<UpdateExampleRequest, ExampleEntity>
 {
-    public async Task<ErrorOr<ExampleEntity>> Handle(
+    public async Task<ErrorOr<ExampleEntity>> HandleAsync(
         UpdateExampleRequest request,
         CancellationToken cancellationToken = default)
     {

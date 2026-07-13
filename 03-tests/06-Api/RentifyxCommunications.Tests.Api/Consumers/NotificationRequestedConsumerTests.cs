@@ -77,7 +77,7 @@ public sealed class NotificationRequestedConsumerTests
     {
         Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler = new();
         handler
-            .Setup(h => h.Handle(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DispatchOutcome(NotificationStatus.Sent, WasDuplicate: false));
 
         Mock<IConsumer<Ignore, string>> consumer = new();
@@ -95,7 +95,7 @@ public sealed class NotificationRequestedConsumerTests
         await WaitForAsync(() => logger.Entries.Any(e => e.Level == LogLevel.Information && e.Message.Contains("Notification processed", StringComparison.Ordinal)));
         await sut.StopAsync(CancellationToken.None);
 
-        handler.Verify(h => h.Handle(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+        handler.Verify(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()), Times.Once);
         consumer.Verify(c => c.Commit(It.IsAny<ConsumeResult<Ignore, string>>()), Times.AtLeastOnce);
     }
 
@@ -119,7 +119,7 @@ public sealed class NotificationRequestedConsumerTests
         await WaitForAsync(() => logger.Entries.Any(e => e.Level == LogLevel.Error && e.Message.Contains("Malformed", StringComparison.Ordinal)));
         await sut.StopAsync(CancellationToken.None);
 
-        handler.Verify(h => h.Handle(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        handler.Verify(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()), Times.Never);
         consumer.Verify(c => c.Commit(It.IsAny<ConsumeResult<Ignore, string>>()), Times.AtLeastOnce);
     }
 
@@ -128,7 +128,7 @@ public sealed class NotificationRequestedConsumerTests
     {
         Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler = new();
         handler
-            .Setup(h => h.Handle(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("simulated infra failure"));
 
         Mock<IConsumer<Ignore, string>> consumer = new();
@@ -154,7 +154,7 @@ public sealed class NotificationRequestedConsumerTests
     {
         Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler = new();
         handler
-            .Setup(h => h.Handle(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DispatchOutcome(NotificationStatus.Sent, WasDuplicate: false));
 
         Mock<IConsumer<Ignore, string>> consumer = new();
@@ -173,7 +173,7 @@ public sealed class NotificationRequestedConsumerTests
         await WaitForAsync(() => handler.Invocations.Count > 0);
         await sut.StopAsync(CancellationToken.None);
 
-        handler.Verify(h => h.Handle(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+        handler.Verify(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private static ConsumeResult<Ignore, string> ValidMessageResult()

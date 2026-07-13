@@ -48,7 +48,7 @@ public sealed class DispatchNotificationHandlerTests
         DispatchNotificationHandler sut = CreateSut();
         DispatchNotificationRequest request = ValidRequest() with { CorrelationId = Guid.Empty };
 
-        ErrorOr<DispatchOutcome> result = await sut.Handle(request);
+        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(request);
 
         result.IsError.Should().BeTrue();
         _notificationRepository.Verify(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -63,7 +63,7 @@ public sealed class DispatchNotificationHandlerTests
         DispatchNotificationHandler sut = CreateSut();
         DispatchNotificationRequest request = ValidRequest() with { RecipientEmail = "not-an-email" };
 
-        ErrorOr<DispatchOutcome> result = await sut.Handle(request);
+        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(request);
 
         result.IsError.Should().BeTrue();
         _notificationRepository.Verify(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -78,7 +78,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.Handle(ValidRequest());
+        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.WasDuplicate.Should().BeTrue();
@@ -103,7 +103,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        await sut.Handle(ValidRequest());
+        await sut.HandleAsync(ValidRequest());
 
         _consentRepository.Verify(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -121,7 +121,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.Handle(ValidRequest());
+        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Suppressed);
@@ -146,7 +146,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        await sut.Handle(ValidRequest());
+        await sut.HandleAsync(ValidRequest());
 
         _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -166,7 +166,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        await sut.Handle(ValidRequest());
+        await sut.HandleAsync(ValidRequest());
 
         _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -191,7 +191,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.Handle(ValidRequest());
+        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Failed);
@@ -222,7 +222,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.Handle(ValidRequest());
+        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Sent);
@@ -243,7 +243,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.Handle(ValidRequest());
+        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Failed);
@@ -281,7 +281,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        await sut.Handle(ValidRequest());
+        await sut.HandleAsync(ValidRequest());
 
         callOrder.Should().Equal(
             "SaveIfNotExists",

@@ -19,7 +19,7 @@ public sealed class DispatchNotificationHandler(
     IEmailSender emailSender,
     ILogger<DispatchNotificationHandler> logger) : IHandler<DispatchNotificationRequest, DispatchOutcome>
 {
-    public async Task<ErrorOr<DispatchOutcome>> Handle(
+    public async Task<ErrorOr<DispatchOutcome>> HandleAsync(
         DispatchNotificationRequest request,
         CancellationToken cancellationToken = default)
     {

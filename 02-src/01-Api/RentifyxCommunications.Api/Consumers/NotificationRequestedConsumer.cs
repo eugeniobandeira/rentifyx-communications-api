@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Confluent.Kafka;
 using ErrorOr;
 using Microsoft.Extensions.Configuration;
@@ -11,7 +11,12 @@ using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatc
 
 namespace RentifyxCommunications.Api.Consumers;
 
-public sealed class NotificationRequestedConsumer : IHostedService, IDisposable
+public sealed class NotificationRequestedConsumer(
+    ILogger<NotificationRequestedConsumer> logger,
+    IKafkaConsumerFactory consumerFactory,
+    IServiceScopeFactory scopeFactory,
+    IConfiguration configuration,
+    TimeSpan? startupRetryDelayOverride = null) : IHostedService, IDisposable
 {
     internal const string Topic = "notification-requested";
     internal const int MaxStartupAttempts = 3;
@@ -21,29 +26,15 @@ public sealed class NotificationRequestedConsumer : IHostedService, IDisposable
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly ILogger<NotificationRequestedConsumer> _logger;
-    private readonly IKafkaConsumerFactory _consumerFactory;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly string _groupId;
-    private readonly TimeSpan? _startupRetryDelayOverride;
+    private readonly ILogger<NotificationRequestedConsumer> _logger = logger;
+    private readonly IKafkaConsumerFactory _consumerFactory = consumerFactory;
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
+    private readonly string _groupId = configuration["Kafka:ConsumerGroupId"] ?? "rentifyx-communications-api";
+    private readonly TimeSpan? _startupRetryDelayOverride = startupRetryDelayOverride;
 
     private IConsumer<Ignore, string>? _consumer;
     private CancellationTokenSource? _consumeLoopCts;
     private Task? _consumeLoopTask;
-
-    public NotificationRequestedConsumer(
-        ILogger<NotificationRequestedConsumer> logger,
-        IKafkaConsumerFactory consumerFactory,
-        IServiceScopeFactory scopeFactory,
-        IConfiguration configuration,
-        TimeSpan? startupRetryDelayOverride = null)
-    {
-        _logger = logger;
-        _consumerFactory = consumerFactory;
-        _scopeFactory = scopeFactory;
-        _groupId = configuration["Kafka:ConsumerGroupId"] ?? "rentifyx-communications-api";
-        _startupRetryDelayOverride = startupRetryDelayOverride;
-    }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -61,7 +52,7 @@ public sealed class NotificationRequestedConsumer : IHostedService, IDisposable
                     _groupId);
 
                 _consumeLoopCts = new CancellationTokenSource();
-                _consumeLoopTask = Task.Run(() => ConsumeLoop(consumer, _consumeLoopCts.Token), CancellationToken.None);
+                _consumeLoopTask = Task.Run(() => ConsumeLoopAsync(consumer, _consumeLoopCts.Token), CancellationToken.None);
                 return;
             }
             catch (Exception ex)
@@ -108,7 +99,7 @@ public sealed class NotificationRequestedConsumer : IHostedService, IDisposable
         _logger.LogInformation("NotificationRequestedConsumer stopped");
     }
 
-    private async Task ConsumeLoop(IConsumer<Ignore, string> consumer, CancellationToken token)
+    private async Task ConsumeLoopAsync(IConsumer<Ignore, string> consumer, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -136,7 +127,7 @@ public sealed class NotificationRequestedConsumer : IHostedService, IDisposable
             IHandler<DispatchNotificationRequest, DispatchOutcome> handler =
                 scope.ServiceProvider.GetRequiredService<IHandler<DispatchNotificationRequest, DispatchOutcome>>();
 
-            ErrorOr<DispatchOutcome> outcome = await handler.Handle(request, token);
+            ErrorOr<DispatchOutcome> outcome = await handler.HandleAsync(request, token);
 
             if (outcome.IsError)
             {
