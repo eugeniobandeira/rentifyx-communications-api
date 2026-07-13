@@ -2,6 +2,7 @@
   <PropertyGroup>
     <RootNamespace>RentifyxCommunications.Api</RootNamespace>
     <NoWarn>$(NoWarn);CA1812</NoWarn>
+    <UserSecretsId>29cc486f-2254-45f1-99a0-bc763782dfaf</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="RentifyxCommunications.Tests.Api" />
@@ -12,7 +13,9 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Http" />
+    <PackageReference Include="Confluent.Kafka" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.OpenApi" />
     <PackageReference Include="Scalar.AspNetCore" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.Console" />

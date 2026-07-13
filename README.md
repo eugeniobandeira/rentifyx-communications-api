@@ -74,21 +74,30 @@ The Kafka consumer runs as an `IHostedService` inside the same API host — one 
 dotnet workload install aspire
 ```
 
-- **AWS credentials for a dev/sandbox account** — a named profile with access to DynamoDB, SES, SecretsManager, and KMS in that account. No LocalStack is used (AD-012); see [`docs/architecture/overview.md`](docs/architecture/overview.md#aws-dev-account-requirements) for the resources that must already exist in that account (tables, SES identity, secrets).
-- git-secrets (for pre-commit hook):
+- **AWS credentials for a dev/sandbox account** — a named profile with access to DynamoDB, SES, SecretsManager, and KMS in that account. No LocalStack is used (AD-012); see [`docs/architecture/overview.md`](docs/architecture/overview.md#aws-dev-account-requirements) for the resources that must already exist in that account (tables, SES identity, secrets). Point the API at your profile via user-secrets (never commit it to `appsettings.*.json`):
+
+```bash
+dotnet user-secrets set "AWS:Profile" "<your-profile-name>" --project 02-src/01-Api/RentifyxCommunications.Api
+```
+
+  Required not just for `dotnet run --project AppHost`, but also for `AppHostTests` (`03-tests/05-Integration`) — that suite boots the real API process, which fails fast at startup if `AWS:Profile` is missing (T07's fail-fast check).
+- git-secrets (for pre-commit hook — blocks commits containing AWS credential patterns):
 
 ```bash
 # macOS
 brew install git-secrets
 
-# Windows
-choco install git-secrets
+# Windows (no Chocolatey package exists — install the script directly)
+curl -fsSL https://raw.githubusercontent.com/awslabs/git-secrets/master/git-secrets -o /usr/local/bin/git-secrets
+chmod +x /usr/local/bin/git-secrets
+# (use any directory already on PATH, e.g. ~/bin, if /usr/local/bin isn't writable)
 ```
 
-After cloning, activate the pre-commit hook:
+After cloning, activate the pre-commit hook and register the AWS secret patterns (one-time, per machine):
 
 ```bash
 git config core.hooksPath .hooks
+git secrets --register-aws
 ```
 
 ## Running Locally
@@ -122,6 +131,16 @@ dotnet test --filter "Category!=Integration"
 # All tests including integration (requires Docker)
 dotnet test
 ```
+
+## Continuous Integration
+
+`.github/workflows/ci.yml` runs on every push/PR to `main`: build + unit tests + 80% line coverage gate, a Trivy scan of the built Docker image (fails on HIGH/CRITICAL), and an OWASP Dependency-Check scan of the full NuGet dependency graph (fails on CVSS ≥ 7).
+
+Requires one repository secret:
+
+| Secret | Purpose |
+|---|---|
+| `NVD_API_KEY` | Passed to OWASP Dependency-Check so it can query the NVD API without hitting anonymous rate limits. Request one at [nvd.nist.gov/developers/request-an-api-key](https://nvd.nist.gov/developers/request-an-api-key), then add it under repo **Settings → Secrets and variables → Actions**. |
 
 ## Project Structure
 
@@ -341,10 +360,17 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | T04 Aspire AppHost + ServiceDefaults | ✅ Done |
 | T05 Serilog JSON, health checks, Scalar, ErrorOr | ✅ Done |
 | T06 GlobalExceptionHandler (RFC 7807, prod-safe) | ✅ Done |
-| T07 AWS SDK config for dev/sandbox account | 🔜 Next (reworked per AD-012 — was LocalStack) |
-| T08 Document dev-account resource requirements | Pending |
-| T09 Kafka container in AppHost | Pending |
-| T10–T17 | Pending (consumer skeleton, secrets provider, CI pipeline, Dockerfile/Trivy, OWASP check, branch protection, git-secrets hook) |
+| T07 AWS SDK config for dev/sandbox account | ✅ Done (reworked per AD-012 — was LocalStack) |
+| T08 Document dev-account resource requirements | ✅ Done |
+| T09 Kafka container in AppHost | ✅ Done |
+| T10 NotificationRequestedConsumer skeleton | ✅ Done |
+| T11 ISecretsProvider interface | ✅ Done |
+| T12 SecretsManagerProvider | ✅ Done (fail-fast requires 3 secrets to exist in the dev-account Secrets Manager — not provisioned yet, see STATE.md Todos) |
+| T13 CI workflow (build + test + 80% coverage gate) | ✅ Done (coverage gate is real, currently red — repo coverage ~5.6%) |
+| T14 Dockerfile + Trivy scan in CI | ✅ Done (found and fixed a real HIGH CVE in a transitive dependency along the way) |
+| T15 OWASP dependency-check in CI | ✅ Done (needs the `NVD_API_KEY` repo secret added before it actually runs in CI) |
+| T16 Branch protection rules | Pending |
+| T17 git-secrets pre-commit hook | ✅ Done |
 
 **Not started:** E-02 through E-06 (domain model through IaC/ship gate), E-07 (marketing campaigns — spec/design/tasks written), E-08 (identity-api contract — spec written).
 

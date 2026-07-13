@@ -41,8 +41,8 @@ appsettings.*.local.json
 *.p12
 *.key
 *.pem
-secrets/
-.secrets/
+/secrets/
+/.secrets/
 
 # ─── Terraform ──────────────────────────────────────────────────────────────
 iac/.terraform/
@@ -69,3 +69,6 @@ desktop.ini
 # ─── Logs ───────────────────────────────────────────────────────────────────
 *.log
 logs/
+
+# ─── Personal scratch/study files (never committed) ──────────────────────────
+kafka-dotnet-versao-final.html

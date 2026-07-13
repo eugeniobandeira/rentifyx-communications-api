@@ -11,5 +11,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" />
+    <PackageReference Include="AWSSDK.SecretsManager" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
   </ItemGroup>
 </Project>

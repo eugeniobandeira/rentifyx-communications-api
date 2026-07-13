@@ -1,6 +1,6 @@
+﻿using Microsoft.EntityFrameworkCore;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Infrastructure.Context.Configurations;
-using Microsoft.EntityFrameworkCore;
 
 namespace RentifyxCommunications.Infrastructure.Context;
 

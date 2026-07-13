@@ -14,19 +14,19 @@
 
 ### Features
 
-**F-01 · Repo & Solution Structure** — IN PROGRESS
+**F-01 · Repo & Solution Structure** — DONE (except one permanent manual step)
 
 - Clean solution scaffold via `dotnet new clean-arch` (API, Application, Domain, Infrastructure, Tests layers) — ✅ done
 - Aspire AppHost + ServiceDefaults, Serilog, CorrelationId, GlobalExceptionHandler, Scalar UI, ErrorOr\<T\> — ✅ done
-- AWS SDK configured against a real dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via named credentials profile + Kafka container in AppHost — reworked per AD-012, in progress
-- Dev-account resource provisioning (DynamoDB tables `notifications`/`delivery-log`, SES verified sender identity, Secrets Manager entries) — manual for now, not automated; tracked as a todo
-- `NotificationRequestedConsumer` registered as `IHostedService` with graceful stop/drain — pending
+- AWS SDK configured against a real dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via named credentials profile + Kafka container in AppHost — ✅ done, reworked per AD-012
+- Dev-account resource provisioning (DynamoDB tables `notifications`/`delivery-log`, SES verified sender identity, Secrets Manager entries) — manual for now, not automated; tracked as a todo (this one stays "pending" by design, not an oversight)
+- `NotificationRequestedConsumer` registered as `IHostedService` with graceful stop/drain — ✅ done (skeleton only, no message processing — that's E-03)
 
-**F-02 · CI/CD Pipeline & DevSecOps Baseline** — IN PROGRESS
+**F-02 · CI/CD Pipeline & DevSecOps Baseline** — IN PROGRESS (branch protection is the only piece left)
 
-- GitHub Actions: build → test → coverage gate ≥80% → OWASP dependency-check → Trivy scan
-- Branch protection: CI green + 1 PR review required
-- git-secrets pre-commit hook + `ISecretsProvider` abstraction loading SES ARN + Kafka credentials from Secrets Manager
+- GitHub Actions: build → test → coverage gate ≥80% → OWASP dependency-check → Trivy scan — ✅ done (coverage gate is real but currently red at ~5.6% repo coverage; OWASP check needs an `NVD_API_KEY` repo secret added before it actually runs — see STATE.md Todos)
+- Branch protection: CI green + 1 PR review required — pending (GitHub repo-settings change, not a code task)
+- git-secrets pre-commit hook + `ISecretsProvider` abstraction loading SES ARN + Kafka credentials from Secrets Manager — ✅ done
 
 ---
 
@@ -98,9 +98,21 @@
 **F-09 · Reliability — Retry, DLQ, Poison Messages & Reconciliation** — PLANNED
 
 - Retry: 3 attempts with exponential backoff, transient errors only; non-retryable → DLQ immediately
-- DLQ Kafka topic consumer with original payload + failure reason + retry count
+- Failure classification (determines routing, not just "retry vs. not"):
+  - **Poison pill** (malformed JSON, missing required field, deserialization error) → straight to DLQ, retry will never resolve it
+  - **Transient** (DB unreachable, network timeout, SES throttling) → retry with backoff, most resolve on their own
+  - **Business rule** (e.g. recipient opted out, template not found) → not an error at all — handle as a normal domain outcome (`Suppressed`/`Failed` status), never route to DLQ
+- Retry topic chain, one topic per delay stage, each with its own consumer that only processes once the delay has elapsed (checked via `x-next-retry-at`): `notification-requested` → `notification-requested-retry-5s` → `-retry-1m` → `-retry-10m` → `notification-requested-dlq`
+- DLQ Kafka topic consumer with original payload + failure reason + retry count; required headers on every retry/DLQ message for traceability without needing to reproduce the failure:
+  - `x-original-topic` — where the message originally came from
+  - `x-retry-count` — attempts so far
+  - `x-first-failure-timestamp` — when it first failed
+  - `x-exception-type` / `x-exception-message` — for triage without reprocessing
+  - `x-next-retry-at` — computed timestamp the retry-topic consumer checks before processing
 - Reconciliation `IHostedService`: resolve notifications stuck in `Dispatching` > 2 min
 - OTEL metrics: `kafka_consumer_lag_notification_requested`, `notification_dispatch_duration_seconds` histogram
+
+*Header schema and retry-topic-chain convention above sourced from a Kafka/.NET reference guide reviewed 2026-07-13 (`kafka-dotnet-versao-final.html`, a personal study doc, not part of the repo's tracked source) — captured here so the pattern isn't lost before F-09 design starts.*
 
 ---
 

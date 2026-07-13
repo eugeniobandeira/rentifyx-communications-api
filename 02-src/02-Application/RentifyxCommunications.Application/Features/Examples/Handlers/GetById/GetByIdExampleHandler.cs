@@ -1,9 +1,9 @@
+﻿using ErrorOr;
+using Microsoft.Extensions.Logging;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Interfaces.Common;
-using ErrorOr;
-using Microsoft.Extensions.Logging;
 
 namespace RentifyxCommunications.Application.Features.Examples.Handlers.GetById;
 

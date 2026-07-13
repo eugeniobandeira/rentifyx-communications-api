@@ -239,7 +239,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T07: Configure AWS SDK against real dev/sandbox account (REWORKED per AD-012, 2026-07-11)
+### T07: Configure AWS SDK against real dev/sandbox account — ✅ DONE (2026-07-12, REWORKED per AD-012)
+
+**Resolution note**: Wired in `InfrastructureDependencyInjection.AddAwsOptions` (not `AppHost.cs` — Aspire's orchestration file has no need to touch AWS credentials; the API process resolves them at DI-registration time, which is where the fail-fast check also lives). Added `AWSSDK.Extensions.NETCore.Setup` package. Fail-fast implemented as two checks before `AddDefaultAWSOptions`: (1) `AWS:Profile` config key missing/blank → throws with a clear message; (2) `CredentialProfileStoreChain.TryGetAWSCredentials` fails to resolve the named profile → throws naming the profile and the `aws configure` fix. Verified manually: running the API with no profile configured fails fast with the clear message (not a raw SDK stack trace) — see terminal output at 2026-07-12T12:32 in session log. `AWS:Profile`/`AWS:Region` placeholders added to `appsettings.Development.json` (`Profile` left empty — developer sets the real value via `dotnet user-secrets`, per the "never committed" requirement). `dotnet build --no-incremental` → 0 errors, 0 warnings.
 
 **What**: Wire `AWSSDKConfig` (region + named credentials profile) in the AppHost so the API and any AWS SDK clients (DynamoDB, SES, SecretsManager, KMS) resolve against a real AWS dev/sandbox account — no LocalStack container. The profile name is read from configuration (e.g. `AWS:Profile`), never hardcoded.
 **Where**: `01-aspire/RentifyxCommunications.AppHost/AppHost.cs`; `02-src/01-Api/RentifyxCommunications.Api/appsettings.Development.json` (profile name + region only — no secrets)
@@ -247,7 +249,7 @@ Phase 4 — Integration (after deps):
 **Reuses**: `AWSSDK.Extensions.NETCore.Setup` (`AddDefaultAWSOptions`) for standard SDK credential resolution via named profile
 **Requirement**: E01-09
 
-**Original LocalStack plan superseded**: See `.specs/project/STATE.md` AD-012. LocalStack was rejected outright — real AWS dev/sandbox account used instead for both local dev and integration tests.
+**Original LocalStack plan superseded**: See `.specs/project/STATE.md` AD-012 and AD-013. Manual dev run always uses the real AWS dev/sandbox account (this task). Per AD-013, automated integration tests use LocalStack instead (see T12) — LocalStack is not used for manual dev/AppHost runs.
 
 **Tools**:
 - MCP: context7 (AWSSDK.Extensions.NETCore.Setup — AddDefaultAWSOptions / AWSOptions patterns)
@@ -259,7 +261,7 @@ Phase 4 — Integration (after deps):
 - [ ] Missing/invalid AWS credentials at startup produce a clear, fail-fast error (not a hang or silent no-op) — ties into E01-25's fail-fast pattern
 - [ ] `dotnet run --project AppHost` starts the API without errors when a valid profile is configured locally
 
-**Tests**: none (credential resolution is exercised by T12's integration tests against the real Secrets Manager)
+**Tests**: none (credential resolution is exercised by T12's integration tests against a LocalStack Secrets Manager container, per AD-013)
 **Gate**: build — `dotnet build --no-incremental`
 
 **Verify**: With a valid local AWS profile configured, `dotnet run --project AppHost` starts cleanly; with an invalid/missing profile, startup fails with a clear error naming the missing credential source (not a raw SDK stack trace).
@@ -268,7 +270,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T08: Document dev-account AWS resource requirements (REWORKED per AD-012, 2026-07-11 — docs only, no provisioning)
+### T08: Document dev-account AWS resource requirements — ✅ DONE (2026-07-12, REWORKED per AD-012)
+
+**Resolution note**: The "AWS Dev Account Requirements" section already existed in `docs/architecture/overview.md` (added in an earlier commit alongside AD-012). Updated it for AD-013: the `Environments` table's CI row now states LocalStack resolves the credential question (previously "not yet decided"), and both the environments table and the requirements intro clarify these dev-account resources are for manual `dotnet run --project AppHost` sessions only — automated tests use LocalStack, not this account. All 5 `Done when` items verified against the current doc content.
 
 **What**: Document the AWS resources this service expects to already exist in the dev/sandbox account (DynamoDB tables, SES sender identity, Secrets Manager entries) — provisioning itself is manual and out of scope for this task (per user decision, 2026-07-11). This replaces the original LocalStack init script.
 **Where**: `docs/architecture/overview.md` (new "AWS Dev Account Requirements" section) — no code, no init script
@@ -287,6 +291,7 @@ Phase 4 — Integration (after deps):
 - [ ] Doc lists the required SES sender identity (domain/email) and notes it must be verified in the dev account before sends succeed
 - [ ] Doc lists required Secrets Manager entries (`rentifyx/comms/ses-arn`, `rentifyx/comms/kafka-sasl-username`, `rentifyx/comms/kafka-sasl-password`)
 - [ ] Doc explicitly states these are NOT auto-provisioned by this service — a manual step (or the future E-06 Terraform apply) is required first
+- [ ] Doc notes these dev-account resources are only needed for manual `dotnet run --project AppHost` sessions — automated tests use LocalStack (AD-013) and don't require them
 
 **Tests**: none
 **Gate**: build — n/a (docs only, no build impact)
@@ -297,7 +302,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T09: Add Kafka container to Aspire AppHost [P]
+### T09: Add Kafka container to Aspire AppHost [P] — ✅ DONE (2026-07-12)
+
+**Resolution note**: `builder.AddKafka("kafka")` registered in AppHost (KRaft mode, no ZooKeeper, per current Aspire Kafka hosting docs) and referenced from the API project via `.WithReference(kafka)`. Along the way fixed `AppHostTests.cs`, which still referenced the stale `"clean-arch-api"` resource name from the `a34a23f` rename and was failing as a result. Added `AppHost_StartsKafkaResource_AndBrokerIsReachable` (producer connects and persists a message) per this task's "Done when". `dotnet build --no-incremental` → 0 errors, 0 warnings. Verification of both `AppHostTests` (health-check + Kafka) required Docker Desktop up and `AWS:Profile` set via `dotnet user-secrets` on the Api project — the health-check test was silently broken since T07 introduced its fail-fast AWS credential check (T07 landed after T04, which originally added that test); added `UserSecretsId` to `RentifyxCommunications.Api.csproj` to unblock this locally. Both tests pass. Gap between this local-only fix and CI (which has no real AWS profile) tracked in `.specs/project/STATE.md` Todos.
 
 **What**: Register Kafka container in AppHost (KRaft mode, no ZooKeeper); expose broker address to API project as configuration
 **Where**: `01-aspire/RentifyX.Communications.AppHost/Program.cs`
@@ -324,7 +331,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T10: Implement NotificationRequestedConsumer as IHostedService skeleton
+### T10: Implement NotificationRequestedConsumer as IHostedService skeleton — ✅ DONE (2026-07-13)
+
+**Resolution note**: `NotificationRequestedConsumer` added under `02-src/01-Api/RentifyxCommunications.Api/Consumers/`, along with `IKafkaConsumerFactory`/`KafkaConsumerFactory` (reads `ConnectionStrings:kafka`, the same key `AppHostTests` already resolves via `GetConnectionStringAsync("kafka")`) — introduced as a seam so unit tests can mock consumer creation without a live broker. `StartAsync` retries up to 3 times with exponential backoff (2s/4s in production; overridable via an internal constructor parameter so tests run near-instantly) and never throws even if all attempts fail — it just logs `Error` and leaves the consumer unstarted, matching "skeleton, no crash" intent. Consume loop polls with a 1s timeout, commits offsets manually (`EnableAutoCommit=false`), does no message processing (explicit comment marks the E-03 injection point). `StopAsync` cancels the loop, waits up to 30s, then closes the consumer. Registered in `Program.cs` alongside the other `builder.Services.Add*` calls. 3 unit tests added in `Tests.Api/Consumers/` (added `Moq` package reference to that test project, matching the pattern already used in `Tests.Common`/`Tests.Handlers`/`Tests.Repositories`) — mocked `IKafkaConsumerFactory`/`IConsumer<Ignore,string>`, no real broker needed. Verified end-to-end too: re-ran `AppHostTests` (real Docker + Kafka container) — both still pass, confirming the consumer doesn't crash or hang real host startup.
 
 **What**: `NotificationRequestedConsumer` — IHostedService that subscribes to `notification-requested` Kafka topic, logs startup/shutdown, retries on connection failure with backoff; no message processing logic yet
 **Where**: `02-src/RentifyX.Communications.API/Consumers/NotificationRequestedConsumer.cs`
@@ -357,7 +366,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T11: Define ISecretsProvider interface + Application layer registration [P]
+### T11: Define ISecretsProvider interface + Application layer registration [P] — ✅ DONE (2026-07-12)
+
+**Resolution note**: `ISecretsProvider` and `SecretsProviderOptions` added under `RentifyxCommunications.Application/Abstractions/`. `SecretsProviderOptions` holds the three Secrets Manager *key names* (not values), defaulted to the entries documented in T08 (`rentifyx/comms/ses-arn`, `rentifyx/comms/kafka-sasl-username`, `rentifyx/comms/kafka-sasl-password`). Application project already had zero Infrastructure reference (only Domain), so that constraint was satisfied by construction. 3 new unit tests added in `RentifyxCommunications.Tests.Handlers/Abstractions/SecretsProviderTests.cs` (assembly/namespace placement, method signature via reflection, options defaults). No DI registration added — there's no implementation to register yet (that's T12).
 
 **What**: `ISecretsProvider` interface in Application layer with `GetSecretAsync(key)` method; typed wrapper over Secrets Manager; no implementation yet
 **Where**: `02-src/RentifyX.Communications.Application/Abstractions/ISecretsProvider.cs`
@@ -385,32 +396,37 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T12: Implement SecretsManagerProvider + wire into API startup
+### T12: Implement SecretsManagerProvider + wire into API startup (REWORKED per AD-013, 2026-07-12) — ✅ DONE (2026-07-13)
 
-**What**: `SecretsManagerProvider` implementing `ISecretsProvider` — loads from the real AWS Secrets Manager in the dev/sandbox account (AD-012 — no LocalStack), 5-min in-memory cache, fail-fast on missing secrets at startup
-**Where**: `02-src/RentifyX.Communications.Infrastructure/Secrets/SecretsManagerProvider.cs`; registered in `Program.cs`
+**Resolution note**: `SecretsManagerProvider` (`IMemoryCache`, 5-min absolute expiry) and `SecretsStartupValidator` (resolves all three `SecretsProviderOptions` keys at startup, logs `Critical` + throws on the first missing one — naming the specific key, e.g. `KafkaSaslPassword`, not just "a secret") both added under `Infrastructure/Secrets/`. Wired into `Program.cs` right after `builder.Build()`, inside a `using var scope` — chosen over `IHostedService` ordering (which isn't guaranteed relative to Kestrel accepting connections) so the fail-fast genuinely blocks before `app.RunAsync()`. DI: `AddAWSService<IAmazonSecretsManager>()` reuses the same `AWSOptions`/named-profile credential chain T07 already registers — no separate credential path. Integration tests use a real `Testcontainers.LocalStack` container (not the real AWS account, per AD-013) — 3 tests: secret round-trip, missing-secret fail-fast with `Critical` log assertion, and a cache-hit test (Moq'd `IAmazonSecretsManager`, since asserting "called exactly once" needs a call-count spy, not a real backend). All pass, ~11s total.
+
+**⚠️ Discovered regression, left as a known gap per explicit user decision (2026-07-13)**: `AppHostTests`' health-check test (already a known CI gap since T09/T13) now *also* fails when run locally, because `SecretsStartupValidator` requires the 3 secrets to actually exist in the real AWS dev/sandbox account, and per T08 they were never provisioned there (T08 explicitly scoped provisioning as a manual, deferred step). `AppHost_StartsKafkaResource_AndBrokerIsReachable` still passes (unaffected). Tracked in `STATE.md` Todos — not fixed here.
+
+**What**: `SecretsManagerProvider` implementing `ISecretsProvider` — at runtime resolves against the real AWS Secrets Manager in the dev/sandbox account (via the same named profile as T07), 5-min in-memory cache, fail-fast on missing secrets at startup. Its integration test suite runs against a **LocalStack Secrets Manager container** (Testcontainers), not the real dev account (AD-013) — the client's endpoint is overridden to the LocalStack container URL only in the test host, never in `Program.cs`.
+**Where**: `02-src/RentifyX.Communications.Infrastructure/Secrets/SecretsManagerProvider.cs`; registered in `Program.cs`; test fixture in `03-tests/05-Integration` wires the LocalStack container
 **Depends on**: T05, T11
-**Reuses**: `AWSSDK.SecretsManager` NuGet; `IMemoryCache` for TTL caching
+**Reuses**: `AWSSDK.SecretsManager` NuGet; `IMemoryCache` for TTL caching; `Testcontainers.LocalStack` NuGet for the integration test fixture
 **Requirement**: E01-22, E01-24, E01-25, E01-26, E01-27, E01-28
 
 **Tools**:
-- MCP: context7 (AWSSDK.SecretsManager)
+- MCP: context7 (AWSSDK.SecretsManager; Testcontainers.LocalStack)
 - Skill: none
 
 **Done when**:
-- [ ] `SecretsManagerProvider` implements `ISecretsProvider`; resolves against the real AWS Secrets Manager using the dev/sandbox account's named credentials profile (T07)
+- [ ] `SecretsManagerProvider` implements `ISecretsProvider`; at runtime resolves against the real AWS Secrets Manager using the dev/sandbox account's named credentials profile (T07) — no LocalStack-specific code in `Program.cs` or the provider itself
 - [ ] `GetSecretAsync`: retrieves secret, caches value in `IMemoryCache` with 5-minute absolute expiry
 - [ ] Startup validation: on host start, resolves `SecretsProviderOptions` keys (`SesArn`, `KafkaSaslUsername`, `KafkaSaslPassword`) — if any secret is missing, logs `Critical` and throws (fail fast)
 - [ ] `ISecretsProvider` registered in DI with `SecretsManagerProvider` implementation
-- [ ] Integration test: dev-account Secrets Manager has required secrets → startup succeeds, `GetSecretAsync` returns correct values
-- [ ] Integration test: dev-account Secrets Manager missing a required secret → startup throws with `Critical` log entry
+- [ ] Integration test fixture spins up a LocalStack container (Testcontainers) with Secrets Manager enabled and seeds the required secrets before each test
+- [ ] Integration test: LocalStack Secrets Manager has required secrets → startup succeeds, `GetSecretAsync` returns correct values
+- [ ] Integration test: LocalStack Secrets Manager missing a required secret → startup throws with `Critical` log entry
 - [ ] Integration test: second call within 5 min uses cache (Secrets Manager called only once)
 - [ ] Full gate passes
 
 **Tests**: integration
 **Gate**: full — `dotnet test`
 
-**Note**: These integration tests hit the real AWS dev/sandbox account (AD-012). CI's credential strategy for running them (same dev account vs. a dedicated CI IAM identity) is still an open decision — see STATE.md Todos.
+**Note**: Per AD-013, these integration tests run against LocalStack, not the real AWS dev/sandbox account — this also resolves the previously-open CI credential-strategy question (CI needs no real AWS credentials to run this suite, just a LocalStack container).
 
 **Verify**: Start AppHost, remove a secret from the dev account's Secrets Manager → API logs `[Critical] Required secret 'SesArn' not found. Startup aborted.` and exits non-zero
 
@@ -418,7 +434,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T13: Create GitHub Actions CI workflow (build + test + coverage) [P]
+### T13: Create GitHub Actions CI workflow (build + test + coverage) [P] — ✅ DONE (2026-07-12)
+
+**Resolution note**: A prior `.github/workflows/ci.yml` already existed (build+test, no coverage) but triggered on `master`, not `main` — fixed. Test step scoped to `--filter "Category!=Integration"` rather than the full suite: `AppHostTests` boots the real API via `DistributedApplicationTestingBuilder` and needs Docker + a real AWS profile (see T09/STATE.md Todo), neither available in CI, so running the full suite would make every CI run fail regardless of code correctness — consistent with AD-013 ("CI needs no real AWS credentials"). This surfaced that no test in the repo actually carried a `Category=Integration` trait (the documented "quick" gate filter was a no-op) — added `[Trait("Category", "Integration")]` to `AppHostTests` as a class-level attribute to make the filter real; verified locally that it now excludes those tests. Coverage: `--collect:"XPlat Code Coverage"` (coverlet, already referenced in every test project) → `reportgenerator` (JsonSummary) → a Node one-liner reads `summary.linecoverage` from `Summary.json` and fails the step below 80%. **Current repo coverage is ~5.6%** (E-01 is foundational scaffolding; the `Examples` feature is template boilerplate with placeholder `[Fact(Skip=...)]` tests) — the gate is intentionally on with the real 80% threshold per explicit user decision, so CI will be red until real tests land alongside E-02+ feature work, rather than quietly deferring the debt. `actionlint` isn't installed locally; validated YAML syntax with `npx js-yaml` instead (semantic step/action correctness will be confirmed on first real CI run).
 
 **What**: `.github/workflows/ci.yml` — build → test → coverage gate ≥80%; produces artifacts for test results and coverage report
 **Where**: `.github/workflows/ci.yml`
@@ -447,7 +465,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T14: Add Dockerfile + Trivy image scan step to CI [P]
+### T14: Add Dockerfile + Trivy image scan step to CI [P] — ✅ DONE (2026-07-13)
+
+**Resolution note**: Dockerfile already existed and was already multi-stage (`AS build`/`AS runtime` — functionally the sdk/aspnet split the task asks for, different stage names, not renamed). Added `USER $APP_UID` before the entrypoint for non-root (confirmed via `docker run --entrypoint id` → `uid=1654(app)`). Fixed two pre-existing `.dockerignore` bugs discovered while getting `docker build .` to succeed: `01-aspire/` excluded the whole directory, but `ServiceDefaults` inside it is a real build dependency of the Api project (only `01-aspire/01-AppHost/` should be excluded — AppHost is what never ships in the image); and `secrets/` (unanchored) had the same over-broad-match bug as the `.gitignore` one fixed in T12. CI: added a `trivy-scan` job (`needs: build-test-coverage`) that builds the image and scans it with `aquasecurity/trivy-action`, **pinned to a commit SHA rather than a version tag** — researched this and found trivy-action had 76 of its 77 tags retroactively repointed to a credential-stealing payload in a March 2026 supply-chain attack; tags are immutable again now (post-incident fix), but SHA-pinning a security-scanning action is worth doing regardless of whether the immediate threat is resolved. Pinned to the signed, verified `v0.36.0` tag's commit. Ran a real local scan (via the `aquasec/trivy` Docker image, no CLI installed) before wiring it into CI and it found one real HIGH: `Microsoft.OpenApi` 2.0.0 (CVE-2026-49451, transitive via `Microsoft.AspNetCore.OpenApi` 10.0.8, no newer stable release exists yet) — pinned `Microsoft.OpenApi` directly to 2.10.0 in the Api project to override the transitive version. Re-scanned after the fix: 0 HIGH/CRITICAL findings. Unlike the coverage gate (T13) or the missing-secrets gap (T12), this one was cheap to actually fix rather than leave red, so it's fixed.
 
 **What**: Multi-stage `Dockerfile` for the API; add Trivy scan step to CI workflow that fails on HIGH/CRITICAL vulnerabilities
 **Where**: `Dockerfile` (repo root — already exists per git status, read first); `.github/workflows/ci.yml`
@@ -476,7 +496,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T15: Add OWASP dependency-check step to CI [P]
+### T15: Add OWASP dependency-check step to CI [P] — ✅ DONE (2026-07-13)
+
+**Resolution note**: Did not use `dependency-check/Dependency-Check_Action` (the wrapper action named in this task) — checked its GitHub repo and it has exactly 2 tags, both from 2021 (`1.0.0`, `1.1.0`), and its own README recommends an unpinned `@main` reference. Given T14 just SHA-pinned `trivy-action` specifically because of the risk of relying on a GitHub Action's tags, using a 5-year-stale wrapper with a floating-ref default would be the same mistake. Instead the `owasp-check` job runs the actively-maintained `owasp/dependency-check` CLI Docker image directly (12.2.2, current as of 2026-05-03), pinned to its image digest. `dotnet restore` runs first so `project.assets.json` exists per project — that's what lets dependency-check's analyzers see the full transitive graph, not just each csproj's direct `PackageReference`s. NVD DB cached via `actions/cache` (keyed by run id with a `restore-keys` fallback) since Docker named volumes don't persist across ephemeral GH-hosted runners. `--nvdApiKey` passed from a new `NVD_API_KEY` repo secret — not set up here (that's a manual step in GitHub repo settings, out of reach from this session) — documented in README under a new "Continuous Integration" section. Verified the pinned image runs (`--version` → `12.2.2`) and that all CLI flags used (`--nvdApiKey`, `--failOnCVSS`, `--format`, `--project`, `--scan`, `--out`) are recognized by `--help`; did **not** run a full scan locally (no NVD API key available in this session, and an unkeyed run risks slow/403 rate-limiting rather than a meaningful signal) — first real CI run, once the secret is added, is the actual verification per the task's own "Verify" line.
 
 **What**: Add `dependency-check` step to CI workflow using `jeremylong/DependencyCheck` action; fails on HIGH/CRITICAL CVEs in direct and transitive NuGet dependencies
 **Where**: `.github/workflows/ci.yml`
@@ -532,7 +554,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T17: Configure git-secrets pre-commit hook [P]
+### T17: Configure git-secrets pre-commit hook [P] — ✅ DONE (2026-07-12)
+
+**Resolution note**: The Chocolatey `git-secrets` package no longer exists (`choco search git-secrets` returns nothing) — README's Windows install instructions were stale and have been fixed to fetch the script directly from `awslabs/git-secrets` on GitHub instead. `git secrets --register-aws` run against this repo (registers 6 AWS patterns via local `.git/config`, per-machine, not repo-tracked — expected). Extended the existing `.hooks/pre-commit` (already used for the build-check hook, `core.hooksPath` already `.hooks`) rather than running `git secrets --install`, since that templates into `.git/hooks/` directly and would be silently bypassed by the custom hooksPath — this matches the task's own "(or hook script added to .hooks/pre-commit)" alternative. Hook now fails closed if `git-secrets` isn't installed (clear message pointing to README), then runs `git secrets --scan --cached` before the existing build-check step. **Verified with a genuinely fake key** (`AKIAABCDEFGHIJKLMNOP`) — blocked as expected. The literal test key from this task's own "Verify" line, `AKIAIOSFODNN7EXAMPLE`, is on git-secrets' own built-in allowlist (it's AWS's official documentation placeholder, excluded by `--register-aws` itself to avoid false positives) — confirmed it does **not** block, which deviates from the literal Done-when scenario but is the tool's intended, correct behavior, not a bug.
 
 **What**: Install `git-secrets`, register AWS secret patterns, add pre-commit hook that blocks commits containing secret patterns
 **Where**: `.hooks/` directory (already present in repo per git status); `.git/hooks/pre-commit`

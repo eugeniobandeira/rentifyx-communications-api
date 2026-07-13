@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.Kafka" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\01-aspire\02-ServiceDefaults\RentifyxCommunications.ServiceDefaults\RentifyxCommunications.ServiceDefaults.csproj" IsAspireProjectResource="false" />

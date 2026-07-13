@@ -61,13 +61,14 @@ flowchart TB
 
 | Environment | AWS access | Kafka | Notes |
 |---|---|---|---|
-| Local dev | Real AWS dev/sandbox account via a named credentials profile (`AWS:Profile` config key) | Local container via Aspire AppHost | No LocalStack (AD-012, 2026-07-11) — dev-account resources (tables, SES identity, secrets) must exist before running; see "AWS Dev Account Requirements" below |
-| CI (integration tests) | Same dev/sandbox account, or a dedicated CI IAM identity — **not yet decided**, see `.specs/project/STATE.md` Todos | Testcontainers Kafka | Open decision |
+| Local dev (manual `dotnet run --project AppHost`) | Real AWS dev/sandbox account via a named credentials profile (`AWS:Profile` config key) | Local container via Aspire AppHost | No LocalStack (AD-012, 2026-07-11) — dev-account resources (tables, SES identity, secrets) must exist before running; see "AWS Dev Account Requirements" below |
+| Automated tests (unit + integration, local and CI) | LocalStack container (Testcontainers) — no real AWS credentials needed | Testcontainers Kafka | AD-013, 2026-07-12 — LocalStack is used for automated test runs only, never for manual dev/AppHost sessions; this also means CI needs no real AWS credentials to run the suite |
+| **Exception:** `AppHostTests` (`03-tests/05-Integration`) | Boots the real API process via `DistributedApplicationTestingBuilder` — **not** LocalStack, hits T07's fail-fast `AWS:Profile` check like a manual run | Local container via Aspire AppHost | Discovered 2026-07-12 while verifying T09: requires `dotnet user-secrets set "AWS:Profile" "<profile>" --project 02-src/01-Api/RentifyxCommunications.Api` locally or the suite times out waiting for `/health`. Not yet resolved for CI (no real AWS profile there) — tracked as an open item in `.specs/project/STATE.md` Todos |
 | Staging / Production | IRSA (IAM Roles for Service Accounts) — no static credentials on the pod | Managed Kafka cluster | Provisioned via Terraform (`iac/`), deployed via Helm (`k8s/`) |
 
 ## AWS Dev Account Requirements
 
-These resources are **not** auto-provisioned by this service — they must exist in the dev/sandbox account before the app can run end-to-end (manually today; via the E-06 Terraform module once that lands):
+These resources are **not** auto-provisioned by this service — they must exist in the dev/sandbox account before the app can run end-to-end via `dotnet run --project AppHost` (manually today; via the E-06 Terraform module once that lands). They are **not** needed to run the automated test suite — those tests use a LocalStack container instead (AD-013):
 
 | Resource | Detail |
 |---|---|
