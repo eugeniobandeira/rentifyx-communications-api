@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** E-01 — Project Foundation & DevSecOps Pipeline
-**Status:** In Progress
+**Current Milestone:** E-02 — Domain Model & Consent
+**Status:** E-01 complete; E-02 not started (needs Specify)
 
 ---
 
@@ -14,7 +14,7 @@
 
 ### Features
 
-**F-01 · Repo & Solution Structure** — DONE (except one permanent manual step)
+**F-01 · Repo & Solution Structure** — DONE (except one permanent manual step: dev-account resource provisioning)
 
 - Clean solution scaffold via `dotnet new clean-arch` (API, Application, Domain, Infrastructure, Tests layers) — ✅ done
 - Aspire AppHost + ServiceDefaults, Serilog, CorrelationId, GlobalExceptionHandler, Scalar UI, ErrorOr\<T\> — ✅ done
@@ -22,10 +22,10 @@
 - Dev-account resource provisioning (DynamoDB tables `notifications`/`delivery-log`, SES verified sender identity, Secrets Manager entries) — manual for now, not automated; tracked as a todo (this one stays "pending" by design, not an oversight)
 - `NotificationRequestedConsumer` registered as `IHostedService` with graceful stop/drain — ✅ done (skeleton only, no message processing — that's E-03)
 
-**F-02 · CI/CD Pipeline & DevSecOps Baseline** — IN PROGRESS (branch protection is the only piece left)
+**F-02 · CI/CD Pipeline & DevSecOps Baseline** — DONE
 
 - GitHub Actions: build → test → coverage gate ≥80% → OWASP dependency-check → Trivy scan — ✅ done (coverage gate is real but currently red at ~5.6% repo coverage; OWASP check needs an `NVD_API_KEY` repo secret added before it actually runs — see STATE.md Todos)
-- Branch protection: CI green + 1 PR review required — pending (GitHub repo-settings change, not a code task)
+- Branch protection: CI green (build-test-coverage, trivy-scan, owasp-check) + 1 PR review required, force-push/deletion disabled — ✅ done 2026-07-13
 - git-secrets pre-commit hook + `ISecretsProvider` abstraction loading SES ARN + Kafka credentials from Secrets Manager — ✅ done
 
 ---
