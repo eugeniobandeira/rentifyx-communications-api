@@ -54,6 +54,28 @@ public sealed class SecretsManagerProvider : ISecretsProvider
 
 **Exception:** aggregates/entities with invariants to enforce at construction time (e.g. `NotificationEntity.Create(...)` validating and returning `ErrorOr<T>`) keep a `private` parameterless-or-full constructor plus a `static Create(...)` factory — primary constructors don't fit a type that must validate before allowing construction to succeed.
 
+## Method Bodies
+
+**Use block bodies (`{ }`), not expression-bodied members (`=>`), for methods and constructors** — even one-liners. Applies to regular methods, constructors, and factory methods; does not apply to property getters/auto-properties or primary constructor parameter lists (see Constructors above).
+
+```csharp
+// Preferred
+public void Deactivate()
+{
+    IsActive = false;
+}
+
+private EmailAddress(string value)
+{
+    Value = value;
+}
+
+// Avoid
+public void Deactivate() => IsActive = false;
+
+private EmailAddress(string value) => Value = value;
+```
+
 ## Code Style
 
 **Multi-line parameter lists for records, primary constructors, and factory methods with more than one parameter.** Put each parameter on its own line, rather than a single long line.
