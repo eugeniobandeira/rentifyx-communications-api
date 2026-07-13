@@ -32,8 +32,8 @@ graph TD
 | Component | Location | How to Use |
 | --- | --- | --- |
 | `SecretsManagerProvider` primary-constructor + client-injection pattern | `Infrastructure/Secrets/SecretsManagerProvider.cs` | All four new adapters follow the identical shape: `public sealed class Foo(IAmazonX client, ...) : IContract` |
-| `InfrastructureDependencyInjection.AddAwsOptions` fail-fast credential check | `IoC/InfrastructureDependencyInjection.cs` | Already covers all AWS clients registered via `AddDefaultAWSOptions` — no new credential logic needed, just add `AddAWSService<IAmazonDynamoDB>()` and `AddAWSService<IAmazonSimpleEmailServiceV2>()` alongside the existing `AddAWSService<IAmazonSecretsManager>()` |
-| `LocalStackSecretsManagerFixture` + `[Trait("Category","Integration")]` + `[Collection]` pattern | `Tests.Integration/Secrets/LocalStackSecretsManagerFixture.cs` | New `LocalStackNotificationInfrastructureFixture` follows the identical `IAsyncLifetime` + `LocalStackBuilder` shape, but exposes `IAmazonDynamoDB` and `IAmazonSimpleEmailServiceV2` from one shared container (LocalStack multiplexes services on one endpoint — no need for 3 separate containers) |
+| `InfrastructureDependencyInjection.AddAwsOptions` fail-fast credential check | `IoC/InfrastructureDependencyInjection.cs` | Already covers all AWS clients registered via `AddDefaultAWSOptions` — no new credential logic needed, just add `AddAWSService<IAmazonDynamoDB>()` and `AddAWSService<IAmazonSimpleEmailService>()` alongside the existing `AddAWSService<IAmazonSecretsManager>()` |
+| `LocalStackSecretsManagerFixture` + `[Trait("Category","Integration")]` + `[Collection]` pattern | `Tests.Integration/Secrets/LocalStackSecretsManagerFixture.cs` | New `LocalStackNotificationInfrastructureFixture` follows the identical `IAsyncLifetime` + `LocalStackBuilder` shape, but exposes `IAmazonDynamoDB` and `IAmazonSimpleEmailService` from one shared container (LocalStack multiplexes services on one endpoint — no need for 3 separate containers) |
 | Domain contracts from E-02 | `Domain/Interfaces/Notifications/*` | Implemented as-is, no changes to Domain in this feature |
 | `NotificationEntity`/`ConsentPreference`/`Channel`/`NotificationStatus` | E-02 | Mapped to/from DynamoDB attribute values by each repository |
 
@@ -42,7 +42,7 @@ graph TD
 | System | Integration Method |
 | --- | --- |
 | DynamoDB | New `Infrastructure/Repositories/DynamoDbNotificationRepository.cs` and `DynamoDbConsentRepository.cs`, using `IAmazonDynamoDB`'s low-level `PutItemAsync`/`GetItemAsync`/`QueryAsync`/`UpdateItemAsync` (not the higher-level `DynamoDBContext` object-mapper — see Tech Decisions) |
-| SES | New `Infrastructure/Email/SesEmailSender.cs` using `IAmazonSimpleEmailServiceV2.SendEmailAsync` |
+| SES | New `Infrastructure/Email/SesEmailSender.cs` using `IAmazonSimpleEmailService.SendEmailAsync` |
 | Scriban | New `Infrastructure/Templates/ScribanTemplateRenderer.cs` + embedded `.scriban` files under `Infrastructure/Templates/Files/` |
 | IoC | `InfrastructureDependencyInjection.cs` gains a new `AddNotificationInfrastructure` private method registering all four adapters |
 
@@ -82,8 +82,8 @@ Still no `.specs/codebase/CONCERNS.md` in this repo — nothing flagged. Note fo
 
 - **Purpose**: Implements `IEmailSender` against real AWS SES
 - **Location**: `02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/Email/SesEmailSender.cs`
-- **Interfaces**: Implements `IEmailSender` — primary constructor `SesEmailSender(IAmazonSimpleEmailServiceV2 client, ISecretsProvider secretsProvider)` (the verified sender identity ARN comes from Secrets Manager, already wired in E-01)
-- **Dependencies**: `IAmazonSimpleEmailServiceV2`, `ISecretsProvider`
+- **Interfaces**: Implements `IEmailSender` — primary constructor `SesEmailSender(IAmazonSimpleEmailService client, ISecretsProvider secretsProvider)` (the verified sender identity ARN comes from Secrets Manager, already wired in E-01)
+- **Dependencies**: `IAmazonSimpleEmailService`, `ISecretsProvider`
 - **Reuses**: `ISecretsProvider` (E-01) for the SES sender ARN
 
 ### `MockEmailSender`
@@ -96,9 +96,9 @@ Still no `.specs/codebase/CONCERNS.md` in this repo — nothing flagged. Note fo
 
 ### `LocalStackNotificationInfrastructureFixture` (test-only)
 
-- **Purpose**: Shared LocalStack container exposing `IAmazonDynamoDB` and `IAmazonSimpleEmailServiceV2`, creating the `notifications` table (with both GSIs) on `InitializeAsync`
+- **Purpose**: Shared LocalStack container exposing `IAmazonDynamoDB` and `IAmazonSimpleEmailService`, creating the `notifications` table (with both GSIs) on `InitializeAsync`
 - **Location**: `03-tests/05-Integration/RentifyxCommunications.Tests.Integration/Infrastructure/LocalStackNotificationInfrastructureFixture.cs`
-- **Interfaces**: `IAsyncLifetime`, exposes `IAmazonDynamoDB DynamoDb { get; }` and `IAmazonSimpleEmailServiceV2 Ses { get; }`
+- **Interfaces**: `IAsyncLifetime`, exposes `IAmazonDynamoDB DynamoDb { get; }` and `IAmazonSimpleEmailService Ses { get; }`
 - **Dependencies**: `Testcontainers.LocalStack` (already a package reference in `Tests.Integration`)
 - **Reuses**: `LocalStackSecretsManagerFixture`'s `IAsyncLifetime` + `LocalStackBuilder` shape
 
@@ -106,7 +106,7 @@ Still no `.specs/codebase/CONCERNS.md` in this repo — nothing flagged. Note fo
 
 - **Purpose**: Register all four adapters
 - **Location**: `02-src/04-IoC/RentifyxCommunications.IoC/InfrastructureDependencyInjection.cs` (modify — add `AddNotificationInfrastructure`)
-- **Interfaces**: `services.AddAWSService<IAmazonDynamoDB>()`, `services.AddAWSService<IAmazonSimpleEmailServiceV2>()`, `services.AddScoped<INotificationRepository, DynamoDbNotificationRepository>()`, `services.AddScoped<IConsentRepository, DynamoDbConsentRepository>()`, `services.AddSingleton<ITemplateRenderer, ScribanTemplateRenderer>()`, `services.AddScoped<IEmailSender, SesEmailSender>()`
+- **Interfaces**: `services.AddAWSService<IAmazonDynamoDB>()`, `services.AddAWSService<IAmazonSimpleEmailService>()`, `services.AddScoped<INotificationRepository, DynamoDbNotificationRepository>()`, `services.AddScoped<IConsentRepository, DynamoDbConsentRepository>()`, `services.AddSingleton<ITemplateRenderer, ScribanTemplateRenderer>()`, `services.AddScoped<IEmailSender, SesEmailSender>()`
 - **Dependencies**: none new beyond the AWS SDK packages
 - **Reuses**: `AddAwsOptions`'s existing fail-fast credential check covers the two new AWS clients automatically (it configures `AddDefaultAWSOptions` once, before any `AddAWSService<T>` call)
 
@@ -174,9 +174,10 @@ One example template, enough to exercise `ScribanTemplateRenderer` end-to-end pe
 | One shared LocalStack container/fixture for DynamoDB + SES | `LocalStackNotificationInfrastructureFixture` exposes both clients from one container | LocalStack multiplexes all emulated services behind one endpoint — one container is both faster to start and simpler than three, and mirrors how `LocalStackSecretsManagerFixture` already does this for one service |
 | Scriban templates as embedded resources, not S3/DynamoDB-stored | `.scriban` files under `Infrastructure/Templates/Files/`, marked `EmbeddedResource` in the `.csproj` | AD-005 already committed to server-side rendering where "template changes require a deployment" — embedding keeps that property literally true and needs zero new infrastructure (no S3 bucket, no extra DynamoDB table) |
 | `MockEmailSender` lives in Infrastructure, not Tests.Common | `Infrastructure/Email/MockEmailSender.cs`, registered conditionally (non-production environments) rather than only test-referenced | Spec (SESDB-US-04 AC4) calls it out as usable for "local dev" too, not just automated tests — it needs to be part of the shipped Infrastructure assembly so `dotnet run` in a local/dev environment can select it via configuration, not just something `Tests.*` projects new up directly |
+| `AWSSDK.SimpleEmail` (legacy V1), not `AWSSDK.SimpleEmailV2` | `IAmazonSimpleEmailService.SendEmailAsync` (V1 `Source`/`Destination`/`Message` shape) | Discovered during T07 execution: LocalStack Community edition doesn't implement the `sesv2` API at all ("pro feature" per LocalStack's own error) — using V2 would mean `SesEmailSender` could never be exercised against a real emulator, only mocks, breaking AD-013's automated-tests-use-LocalStack guarantee for this one adapter. V1 is fully supported by LocalStack Community. SES (even LocalStack's V1 emulation) also requires the sender identity to be verified before `SendEmailAsync` succeeds — the test fixture gained a `VerifySenderAsync` helper for this. |
 
 ---
 
 ## Confirm before Tasks
 
-This design is Draft. Once approved, the next phase breaks it into atomic tasks (`.specs/features/e04-f07-ses-dynamodb/tasks.md`) — including adding `AWSSDK.DynamoDBv2`, `AWSSDK.SimpleEmailV2`, and `Scriban` to `Directory.Packages.props`, the table-creation step inside the LocalStack fixture, and each adapter with its own integration test, in dependency order.
+This design is Draft. Once approved, the next phase breaks it into atomic tasks (`.specs/features/e04-f07-ses-dynamodb/tasks.md`) — including adding `AWSSDK.DynamoDBv2`, `AWSSDK.SimpleEmail`, and `Scriban` to `Directory.Packages.props`, the table-creation step inside the LocalStack fixture, and each adapter with its own integration test, in dependency order.
