@@ -11,8 +11,8 @@ namespace RentifyxCommunications.Tests.Domain.Entities;
 
 public sealed class NotificationTerminalTransitionTests
 {
-    private static Notification CreatePending() =>
-        Notification.Create(
+    private static NotificationEntity CreatePending() =>
+        NotificationEntity.Create(
             Guid.NewGuid(),
             Guid.NewGuid(),
             EmailAddress.Create("user@example.com").Value,
@@ -20,9 +20,9 @@ public sealed class NotificationTerminalTransitionTests
             TemplateId.Create("welcome-email").Value,
             new Dictionary<string, string> { ["name"] = "Alice" }).Value;
 
-    private static Notification CreateDispatching()
+    private static NotificationEntity CreateDispatching()
     {
-        Notification notification = CreatePending();
+        NotificationEntity notification = CreatePending();
         notification.Dispatch(ConsentDecision.NoRecordFound(), isPayloadValid: true);
         return notification;
     }
@@ -30,7 +30,7 @@ public sealed class NotificationTerminalTransitionTests
     [Fact]
     public void MarkSent_FromDispatching_ShouldSucceed()
     {
-        Notification notification = CreateDispatching();
+        NotificationEntity notification = CreateDispatching();
 
         ErrorOr<Success> result = notification.MarkSent();
 
@@ -42,7 +42,7 @@ public sealed class NotificationTerminalTransitionTests
     [Fact]
     public void MarkFailed_FromDispatching_ShouldSucceedAndStoreReason()
     {
-        Notification notification = CreateDispatching();
+        NotificationEntity notification = CreateDispatching();
 
         ErrorOr<Success> result = notification.MarkFailed("SES throttled");
 
@@ -55,7 +55,7 @@ public sealed class NotificationTerminalTransitionTests
     [Fact]
     public void MarkSent_FromPending_ShouldReturnInvalidTransitionError()
     {
-        Notification notification = CreatePending();
+        NotificationEntity notification = CreatePending();
 
         ErrorOr<Success> result = notification.MarkSent();
 
@@ -66,7 +66,7 @@ public sealed class NotificationTerminalTransitionTests
     [Fact]
     public void MarkFailed_OnAlreadySent_ShouldReturnAlreadyTerminalError()
     {
-        Notification notification = CreateDispatching();
+        NotificationEntity notification = CreateDispatching();
         notification.MarkSent();
 
         ErrorOr<Success> result = notification.MarkFailed("late failure");
@@ -78,7 +78,7 @@ public sealed class NotificationTerminalTransitionTests
     [Fact]
     public void MarkSent_OnAlreadyFailed_ShouldReturnAlreadyTerminalError()
     {
-        Notification notification = CreateDispatching();
+        NotificationEntity notification = CreateDispatching();
         notification.MarkFailed("initial failure");
 
         ErrorOr<Success> result = notification.MarkSent();
@@ -90,7 +90,7 @@ public sealed class NotificationTerminalTransitionTests
     [Fact]
     public void MarkSent_OnSuppressed_ShouldReturnAlreadyTerminalError()
     {
-        Notification notification = CreatePending();
+        NotificationEntity notification = CreatePending();
         ConsentPreference optedOut = ConsentPreference.Create(Guid.NewGuid(), Channel.Email, optedIn: false, DateTime.UtcNow).Value;
         notification.Dispatch(ConsentDecision.FromPreference(optedOut), isPayloadValid: true);
 
