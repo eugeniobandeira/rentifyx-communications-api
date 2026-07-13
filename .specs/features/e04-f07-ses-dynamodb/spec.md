@@ -107,7 +107,7 @@ E-02/E-03 built a fully orchestrated dispatch pipeline (`DispatchNotificationHan
 
 **Acceptance Criteria**:
 
-1. WHEN the application starts THEN `IAmazonDynamoDB` and `IAmazonSimpleEmailService` SHALL be registered via `services.AddAWSService<T>()`, using the same `AWS:Profile` fail-fast credential check already in place (E-01 T07) — no new credential mechanism
+1. WHEN the application starts THEN `IAmazonDynamoDB` and `IAmazonSimpleEmailServiceV2` SHALL be registered via `services.AddAWSService<T>()`, using the same `AWS:Profile` fail-fast credential check already in place (E-01 T07) — no new credential mechanism
 2. WHEN the application starts in a non-test environment THEN `SesEmailSender` (not `MockEmailSender`) SHALL be the registered `IEmailSender`
 3. WHEN integration tests run THEN the Testcontainers LocalStack fixture SHALL override the AWS client's `ServiceURL`, matching the pattern already used for `SecretsManagerProvider`'s integration tests (E-01 T12/AD-013)
 

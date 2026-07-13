@@ -34,7 +34,7 @@
 
 ```
 Phase 1 — Foundation (Parallel):
-  T01 [P]  Add AWSSDK.DynamoDBv2 / AWSSDK.SimpleEmail / Scriban package versions
+  T01 [P]  Add AWSSDK.DynamoDBv2 / AWSSDK.SimpleEmailV2 / Scriban package versions
   T02 [P]  LocalStackNotificationInfrastructureFixture (creates notifications table + GSI1/GSI2)
   T06 [P]  ScribanTemplateRenderer + welcome-email.scriban + unit tests
   T08 [P]  MockEmailSender + unit tests
@@ -57,7 +57,7 @@ Phase 4 — Wiring (Sequential, after everything else):
 
 ### T01: Add DynamoDB/SES/Scriban package versions [P]
 
-**What**: Add `AWSSDK.DynamoDBv2`, `AWSSDK.SimpleEmail`, and `Scriban` to `Directory.Packages.props`; reference them in `RentifyxCommunications.Infrastructure.csproj`
+**What**: Add `AWSSDK.DynamoDBv2`, `AWSSDK.SimpleEmailV2`, and `Scriban` to `Directory.Packages.props`; reference them in `RentifyxCommunications.Infrastructure.csproj`
 **Where**: `Directory.Packages.props`, `02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/RentifyxCommunications.Infrastructure.csproj`
 **Depends on**: None
 **Reuses**: Existing `AWSSDK.SecretsManager`/`AWSSDK.Extensions.NETCore.Setup` version-pinning pattern
@@ -68,7 +68,7 @@ Phase 4 — Wiring (Sequential, after everything else):
 - Skill: none
 
 **Done when**:
-- [ ] `AWSSDK.DynamoDBv2`, `AWSSDK.SimpleEmail`, `Scriban` versions pinned in `Directory.Packages.props`
+- [ ] `AWSSDK.DynamoDBv2`, `AWSSDK.SimpleEmailV2`, `Scriban` versions pinned in `Directory.Packages.props`
 - [ ] `RentifyxCommunications.Infrastructure.csproj` references all three (no version attribute — centrally managed)
 - [ ] `dotnet build --no-incremental` passes
 
@@ -83,7 +83,7 @@ Phase 4 — Wiring (Sequential, after everything else):
 
 ### T02: `LocalStackNotificationInfrastructureFixture` [P]
 
-**What**: Test-only fixture — one shared LocalStack container exposing `IAmazonDynamoDB` and `IAmazonSimpleEmailService`, creating the `notifications` table (with `GSI1`/`GSI2`) in `InitializeAsync`
+**What**: Test-only fixture — one shared LocalStack container exposing `IAmazonDynamoDB` and `IAmazonSimpleEmailServiceV2`, creating the `notifications` table (with `GSI1`/`GSI2`) in `InitializeAsync`
 **Where**: `03-tests/05-Integration/RentifyxCommunications.Tests.Integration/Infrastructure/LocalStackNotificationInfrastructureFixture.cs`
 **Depends on**: T01
 **Reuses**: `LocalStackSecretsManagerFixture`'s `IAsyncLifetime` + `LocalStackBuilder` shape (`Tests.Integration/Secrets/LocalStackSecretsManagerFixture.cs`)
@@ -95,7 +95,7 @@ Phase 4 — Wiring (Sequential, after everything else):
 
 **Done when**:
 - [ ] `LocalStackContainer` started with both `dynamodb` and `ses` services enabled
-- [ ] `IAmazonDynamoDB DynamoDb { get; }` and `IAmazonSimpleEmailService Ses { get; }` exposed
+- [ ] `IAmazonDynamoDB DynamoDb { get; }` and `IAmazonSimpleEmailServiceV2 Ses { get; }` exposed
 - [ ] `notifications` table created via `CreateTableAsync` with `PK`/`SK` as the primary key, `GSI1` (`GSI1PK`/`GSI1SK`) and `GSI2` (`GSI2PK`/`GSI2SK`) as global secondary indexes, on-demand billing mode
 - [ ] `[CollectionDefinition(nameof(NotificationInfrastructureFixtureGroup))]` + `ICollectionFixture<...>` registered, matching the `LocalStackFixtureGroup` precedent
 - [ ] `dotnet build --no-incremental` passes
@@ -224,19 +224,19 @@ Phase 4 — Wiring (Sequential, after everything else):
 
 ### T07: `SesEmailSender`
 
-**What**: Implements `IEmailSender` via `IAmazonSimpleEmailService.SendEmailAsync`, using the verified sender ARN from `ISecretsProvider`
+**What**: Implements `IEmailSender` via `IAmazonSimpleEmailServiceV2.SendEmailAsync`, using the verified sender ARN from `ISecretsProvider`
 **Where**: `02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/Email/SesEmailSender.cs`
 **Depends on**: T01, T02
 **Reuses**: `ISecretsProvider` (E-01)
 **Requirement**: SESDB-06, SESDB-07
 
 **Tools**:
-- MCP: context7 (AWSSDK.SimpleEmail `SendEmailAsync` request shape — `Destination`, `Message`, `Source`)
+- MCP: context7 (AWSSDK.SimpleEmailV2 `SendEmailAsync` request shape — `Destination`, `Message`, `Source`)
 - Skill: none
 
 **Done when**:
 - [ ] `SendAsync` succeeds against LocalStack SES → `Result.Success`
-- [ ] A simulated SES failure (LocalStack doesn't easily simulate throttling — use a mocked `IAmazonSimpleEmailService` throwing `AmazonSimpleEmailServiceException` for this specific case) → `ErrorOr` failure, not thrown
+- [ ] A simulated SES failure (LocalStack doesn't easily simulate throttling — use a mocked `IAmazonSimpleEmailServiceV2` throwing `AmazonSimpleEmailServiceException` for this specific case) → `ErrorOr` failure, not thrown
 - [ ] Gate check passes: `dotnet test --filter "Category=Integration"` for the LocalStack-backed success case; `dotnet test --filter "Category!=Integration"` for the mocked-failure case (unit test, no LocalStack needed)
 - [ ] Test count: 2+ tests pass (1 integration, 1 unit)
 
@@ -288,7 +288,7 @@ Phase 4 — Wiring (Sequential, after everything else):
 - Skill: none
 
 **Done when**:
-- [ ] `services.AddAWSService<IAmazonDynamoDB>()` and `services.AddAWSService<IAmazonSimpleEmailService>()` added
+- [ ] `services.AddAWSService<IAmazonDynamoDB>()` and `services.AddAWSService<IAmazonSimpleEmailServiceV2>()` added
 - [ ] `services.AddScoped<INotificationRepository, DynamoDbNotificationRepository>()`
 - [ ] `services.AddScoped<IConsentRepository, DynamoDbConsentRepository>()`
 - [ ] `services.AddSingleton<ITemplateRenderer, ScribanTemplateRenderer>()`
