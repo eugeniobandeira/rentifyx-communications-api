@@ -544,7 +544,9 @@ Phase 4 — Integration (after deps):
 
 ---
 
-### T17: Configure git-secrets pre-commit hook [P]
+### T17: Configure git-secrets pre-commit hook [P] — ✅ DONE (2026-07-12)
+
+**Resolution note**: The Chocolatey `git-secrets` package no longer exists (`choco search git-secrets` returns nothing) — README's Windows install instructions were stale and have been fixed to fetch the script directly from `awslabs/git-secrets` on GitHub instead. `git secrets --register-aws` run against this repo (registers 6 AWS patterns via local `.git/config`, per-machine, not repo-tracked — expected). Extended the existing `.hooks/pre-commit` (already used for the build-check hook, `core.hooksPath` already `.hooks`) rather than running `git secrets --install`, since that templates into `.git/hooks/` directly and would be silently bypassed by the custom hooksPath — this matches the task's own "(or hook script added to .hooks/pre-commit)" alternative. Hook now fails closed if `git-secrets` isn't installed (clear message pointing to README), then runs `git secrets --scan --cached` before the existing build-check step. **Verified with a genuinely fake key** (`AKIAABCDEFGHIJKLMNOP`) — blocked as expected. The literal test key from this task's own "Verify" line, `AKIAIOSFODNN7EXAMPLE`, is on git-secrets' own built-in allowlist (it's AWS's official documentation placeholder, excluded by `--register-aws` itself to avoid false positives) — confirmed it does **not** block, which deviates from the literal Done-when scenario but is the tool's intended, correct behavior, not a bug.
 
 **What**: Install `git-secrets`, register AWS secret patterns, add pre-commit hook that blocks commits containing secret patterns
 **Where**: `.hooks/` directory (already present in repo per git status); `.git/hooks/pre-commit`

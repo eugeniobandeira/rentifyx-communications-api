@@ -1,5 +1,19 @@
 #!/bin/sh
-# Pre-commit hook: blocks commit if the solution does not compile.
+# Pre-commit hook: blocks commit if secrets are staged or the solution does not compile.
+
+if ! command -v git-secrets >/dev/null 2>&1; then
+  echo "Commit blocked: git-secrets is not installed. See README.md Prerequisites for install steps."
+  exit 1
+fi
+
+echo "Scanning staged changes for secrets..."
+git secrets --scan --cached
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Commit blocked: staged changes matched a prohibited secret pattern (see above)."
+  exit 1
+fi
 
 SOLUTION=$(git rev-parse --show-toplevel)/RentifyxCommunications.slnx
 

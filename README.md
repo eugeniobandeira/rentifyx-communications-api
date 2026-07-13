@@ -81,20 +81,23 @@ dotnet user-secrets set "AWS:Profile" "<your-profile-name>" --project 02-src/01-
 ```
 
   Required not just for `dotnet run --project AppHost`, but also for `AppHostTests` (`03-tests/05-Integration`) — that suite boots the real API process, which fails fast at startup if `AWS:Profile` is missing (T07's fail-fast check).
-- git-secrets (for pre-commit hook):
+- git-secrets (for pre-commit hook — blocks commits containing AWS credential patterns):
 
 ```bash
 # macOS
 brew install git-secrets
 
-# Windows
-choco install git-secrets
+# Windows (no Chocolatey package exists — install the script directly)
+curl -fsSL https://raw.githubusercontent.com/awslabs/git-secrets/master/git-secrets -o /usr/local/bin/git-secrets
+chmod +x /usr/local/bin/git-secrets
+# (use any directory already on PATH, e.g. ~/bin, if /usr/local/bin isn't writable)
 ```
 
-After cloning, activate the pre-commit hook:
+After cloning, activate the pre-commit hook and register the AWS secret patterns (one-time, per machine):
 
 ```bash
 git config core.hooksPath .hooks
+git secrets --register-aws
 ```
 
 ## Running Locally
@@ -354,7 +357,10 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | T11 ISecretsProvider interface | ✅ Done |
 | T12 SecretsManagerProvider | Pending |
 | T13 CI workflow (build + test + 80% coverage gate) | ✅ Done (coverage gate is real, currently red — repo coverage ~5.6%) |
-| T14–T17 | Pending (Dockerfile/Trivy, OWASP check, branch protection, git-secrets hook) |
+| T14 Dockerfile + Trivy scan in CI | Pending |
+| T15 OWASP dependency-check in CI | Pending |
+| T16 Branch protection rules | Pending |
+| T17 git-secrets pre-commit hook | ✅ Done |
 
 **Not started:** E-02 through E-06 (domain model through IaC/ship gate), E-07 (marketing campaigns — spec/design/tasks written), E-08 (identity-api contract — spec written).
 
