@@ -25,8 +25,9 @@ Thumbs.db
 # ─── Tests (not shipped in the image) ───────────────────────────────────────
 03-tests/
 
-# ─── Aspire (AppHost runs locally, not in the API container) ────────────────
-01-aspire/
+# ─── Aspire (AppHost runs locally, not in the API container — ServiceDefaults
+# is a real build dependency of the Api project and must stay included) ──────
+01-aspire/01-AppHost/
 
 # ─── Docs, IaC, k8s (not needed at build time) ──────────────────────────────
 docs/
@@ -40,7 +41,7 @@ appsettings.*.local.json
 *.p12
 *.key
 *.pem
-secrets/
+/secrets/
 
 # ─── Misc ────────────────────────────────────────────────────────────────────
 *.md
