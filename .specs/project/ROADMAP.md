@@ -90,7 +90,7 @@
 
 - `SesEmailSender` (port from identity-api, generalized) + `MockEmailSender` for local/test
 - `DynamoDbNotificationRepository`: SaveIfNotExists, GetById, GetByRecipient, UpdateStatus
-- Single-table design: PK=`NOTIF#{id}`, GSI1=`RECIPIENT#{recipientId}`, GSI2=`CORRELATION#{correlationId}`
+- Single-table design: PK=`NOTIF#{correlationId}` (corrected 2026-07-13, see STATE.md AD-008 — was originally `NOTIF#{id}`, which didn't actually enforce idempotency), GSI1=`RECIPIENT#{recipientId}`, GSI2=`ID#{id}`
 - DynamoDB TTL: 90-day auto-expiry on notification records (LGPD Art. 46 data minimization)
 - Integration tests for SES + DynamoDB (including conditional-write race) run against the real AWS dev/sandbox account — no LocalStack (AD-012); CI credential strategy still to be decided (see STATE.md Todos)
 
