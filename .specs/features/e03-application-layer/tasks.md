@@ -1,7 +1,9 @@
 # E-03 · Application Layer — Use Cases Tasks
 
 **Design**: `.specs/features/e03-application-layer/design.md`
-**Status**: Draft
+**Status**: Done
+
+**Execution note (2026-07-13):** All 10 tasks implemented directly on branch `feat/e03-application-layer`, one commit per task (T06-T08 share one production-code file per the design, tests split per task as planned). 46 unit tests passing across `Tests.Domain` (29, unchanged), `Tests.Validators` (+7 for `DispatchNotificationValidator`), `Tests.Handlers` (+11 for `DispatchNotificationHandler`), `Tests.Api` (+5 for the wired `NotificationRequestedConsumer`). Two mid-execution corrections folded in: (1) `NotificationErrorCodes`-style constant `InvalidRecipientId`-equivalent `DispatchValidationErrorCodes` added a field not anticipated in the original task body (none needed here — all 6 planned constants sufficed); (2) a `CLAUDE.md` "block body for methods" rule was added then corrected mid-stream to "constructors only" after user clarification — see STATE.md and CLAUDE.md history.
 
 ---
 
