@@ -170,4 +170,125 @@ public sealed class DispatchNotificationHandlerTests
 
         _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    private void SetupHappyPathUpToConsent()
+    {
+        _notificationRepository
+            .Setup(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _consentRepository
+            .Setup(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ConsentPreference?)null);
+    }
+
+    [Fact]
+    public async Task Handle_WhenRenderFails_ShouldMarkFailedWithoutSending()
+    {
+        SetupHappyPathUpToConsent();
+        _templateRenderer
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Error.Failure("Render.TemplateNotFound"));
+
+        DispatchNotificationHandler sut = CreateSut();
+
+        ErrorOr<DispatchOutcome> result = await sut.Handle(ValidRequest());
+
+        result.IsError.Should().BeFalse();
+        result.Value.Status.Should().Be(NotificationStatus.Failed);
+        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Failed, It.IsAny<CancellationToken>()), Times.Once);
+        _emailSender.Verify(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenSendSucceeds_ShouldMarkSentAndPersistDispatchingBeforeSend()
+    {
+        SetupHappyPathUpToConsent();
+        _templateRenderer
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("rendered content");
+        _emailSender
+            .Setup(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success);
+
+        List<string> callOrder = [];
+        _notificationRepository
+            .Setup(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Dispatching, It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("UpdateStatusAsync(Dispatching)"))
+            .Returns(Task.CompletedTask);
+        _emailSender
+            .Setup(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("SendAsync"))
+            .ReturnsAsync(Result.Success);
+
+        DispatchNotificationHandler sut = CreateSut();
+
+        ErrorOr<DispatchOutcome> result = await sut.Handle(ValidRequest());
+
+        result.IsError.Should().BeFalse();
+        result.Value.Status.Should().Be(NotificationStatus.Sent);
+        callOrder.Should().Equal("UpdateStatusAsync(Dispatching)", "SendAsync");
+        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Sent, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenSendFails_ShouldMarkFailed()
+    {
+        SetupHappyPathUpToConsent();
+        _templateRenderer
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("rendered content");
+        _emailSender
+            .Setup(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Error.Failure("Ses.Throttled"));
+
+        DispatchNotificationHandler sut = CreateSut();
+
+        ErrorOr<DispatchOutcome> result = await sut.Handle(ValidRequest());
+
+        result.IsError.Should().BeFalse();
+        result.Value.Status.Should().Be(NotificationStatus.Failed);
+        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Failed, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_HappyPath_ShouldCallCollaboratorsInExpectedOrder()
+    {
+        List<string> callOrder = [];
+        _notificationRepository
+            .Setup(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("SaveIfNotExists"))
+            .ReturnsAsync(true);
+        _consentRepository
+            .Setup(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("FindAsync"))
+            .ReturnsAsync((ConsentPreference?)null);
+        _templateRenderer
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("RenderAsync"))
+            .ReturnsAsync("rendered content");
+        _notificationRepository
+            .Setup(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Dispatching, It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("UpdateStatusAsync(Dispatching)"))
+            .Returns(Task.CompletedTask);
+        _emailSender
+            .Setup(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("SendAsync"))
+            .ReturnsAsync(Result.Success);
+        _notificationRepository
+            .Setup(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Sent, It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("UpdateStatusAsync(Sent)"))
+            .Returns(Task.CompletedTask);
+
+        DispatchNotificationHandler sut = CreateSut();
+
+        await sut.Handle(ValidRequest());
+
+        callOrder.Should().Equal(
+            "SaveIfNotExists",
+            "FindAsync",
+            "RenderAsync",
+            "UpdateStatusAsync(Dispatching)",
+            "SendAsync",
+            "UpdateStatusAsync(Sent)");
+    }
 }
