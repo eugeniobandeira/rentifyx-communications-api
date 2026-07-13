@@ -101,7 +101,10 @@ public sealed class NotificationEntity
         return Result.Success;
     }
 
-    public void ClearDomainEvents() => _domainEvents.Clear();
+    public void ClearDomainEvents()
+    {
+        _domainEvents.Clear();
+    }
 
     private ErrorOr<Success> EnsureDispatching()
     {
