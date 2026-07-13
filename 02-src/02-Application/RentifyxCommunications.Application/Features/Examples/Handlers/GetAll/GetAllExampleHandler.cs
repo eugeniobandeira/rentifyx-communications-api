@@ -1,11 +1,11 @@
+﻿using ErrorOr;
+using Microsoft.Extensions.Logging;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Examples.Handlers.GetAll.Request;
 using RentifyxCommunications.Application.Features.Examples.Mapper;
 using RentifyxCommunications.Domain.Common;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Interfaces.Examples;
-using ErrorOr;
-using Microsoft.Extensions.Logging;
 
 namespace RentifyxCommunications.Application.Features.Examples.Handlers.GetAll;
 

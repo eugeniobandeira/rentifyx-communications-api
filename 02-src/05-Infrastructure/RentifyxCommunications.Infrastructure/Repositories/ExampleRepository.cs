@@ -1,9 +1,9 @@
-﻿using RentifyxCommunications.Domain.Common;
+﻿using Microsoft.EntityFrameworkCore;
+using RentifyxCommunications.Domain.Common;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Filters.Examples;
 using RentifyxCommunications.Domain.Interfaces.Examples;
 using RentifyxCommunications.Infrastructure.Context;
-using Microsoft.EntityFrameworkCore;
 
 namespace RentifyxCommunications.Infrastructure.Repositories;
 

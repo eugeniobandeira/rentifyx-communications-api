@@ -1,13 +1,13 @@
+﻿using ErrorOr;
+using FluentValidation;
+using Microsoft.Extensions.Logging;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Extensions;
 using RentifyxCommunications.Application.Features.Examples.Handlers.Create.Request;
 using RentifyxCommunications.Application.Features.Examples.Mapper;
-using RentifyxCommunications.Domain.Interfaces;
 using RentifyxCommunications.Domain.Entities;
+using RentifyxCommunications.Domain.Interfaces;
 using RentifyxCommunications.Domain.Interfaces.Common;
-using ErrorOr;
-using FluentValidation;
-using Microsoft.Extensions.Logging;
 
 namespace RentifyxCommunications.Application.Features.Examples.Handlers.Create;
 

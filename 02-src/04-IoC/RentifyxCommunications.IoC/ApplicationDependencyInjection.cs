@@ -1,3 +1,6 @@
+﻿using ErrorOr;
+using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Examples.Handlers.Create;
 using RentifyxCommunications.Application.Features.Examples.Handlers.Create.Request;
@@ -11,9 +14,6 @@ using RentifyxCommunications.Application.Features.Examples.Handlers.Update.Reque
 using RentifyxCommunications.Application.Features.Examples.Handlers.Update.Validator;
 using RentifyxCommunications.Domain.Common;
 using RentifyxCommunications.Domain.Entities;
-using ErrorOr;
-using FluentValidation;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace RentifyxCommunications.IoC;
 

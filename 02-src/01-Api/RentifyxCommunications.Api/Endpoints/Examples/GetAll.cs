@@ -1,3 +1,4 @@
+﻿using ErrorOr;
 using RentifyxCommunications.Api.Abstract;
 using RentifyxCommunications.Api.Extensions;
 using RentifyxCommunications.Application.Common.Handler;
@@ -6,7 +7,6 @@ using RentifyxCommunications.Application.Features.Examples.Handlers.GetAll.Reque
 using RentifyxCommunications.Application.Features.Examples.Mapper;
 using RentifyxCommunications.Domain.Common;
 using RentifyxCommunications.Domain.Entities;
-using ErrorOr;
 
 namespace RentifyxCommunications.Api.Endpoints.Examples;
 

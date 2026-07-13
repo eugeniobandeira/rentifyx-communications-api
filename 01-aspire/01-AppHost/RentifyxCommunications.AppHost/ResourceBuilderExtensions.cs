@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace RentifyxCommunications.AppHost;
 
