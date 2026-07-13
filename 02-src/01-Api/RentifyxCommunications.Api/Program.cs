@@ -1,6 +1,7 @@
 ﻿using RentifyxCommunications.Api.Consumers;
 using RentifyxCommunications.Api.Extensions;
 using RentifyxCommunications.Api.Middlewares;
+using RentifyxCommunications.Infrastructure.Secrets;
 using RentifyxCommunications.IoC;
 using RentifyxCommunications.ServiceDefaults;
 using Serilog;
@@ -39,6 +40,13 @@ try
     builder.Services.AddHostedService<NotificationRequestedConsumer>();
 
     WebApplication app = builder.Build();
+
+    using (IServiceScope startupScope = app.Services.CreateScope())
+    {
+        SecretsStartupValidator secretsValidator =
+            startupScope.ServiceProvider.GetRequiredService<SecretsStartupValidator>();
+        await secretsValidator.ValidateAsync();
+    }
 
     app.MapDefaultEndpoints();
 

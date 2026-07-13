@@ -355,7 +355,7 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | T09 Kafka container in AppHost | ✅ Done |
 | T10 NotificationRequestedConsumer skeleton | ✅ Done |
 | T11 ISecretsProvider interface | ✅ Done |
-| T12 SecretsManagerProvider | Pending |
+| T12 SecretsManagerProvider | ✅ Done (fail-fast requires 3 secrets to exist in the dev-account Secrets Manager — not provisioned yet, see STATE.md Todos) |
 | T13 CI workflow (build + test + 80% coverage gate) | ✅ Done (coverage gate is real, currently red — repo coverage ~5.6%) |
 | T14 Dockerfile + Trivy scan in CI | Pending |
 | T15 OWASP dependency-check in CI | Pending |

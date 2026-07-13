@@ -41,8 +41,8 @@ appsettings.*.local.json
 *.p12
 *.key
 *.pem
-secrets/
-.secrets/
+/secrets/
+/.secrets/
 
 # ─── Terraform ──────────────────────────────────────────────────────────────
 iac/.terraform/

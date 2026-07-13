@@ -4,12 +4,17 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\02-src\01-Api\RentifyxCommunications.Api\RentifyxCommunications.Api.csproj" />
+    <ProjectReference Include="..\..\..\02-src\02-Application\RentifyxCommunications.Application\RentifyxCommunications.Application.csproj" />
+    <ProjectReference Include="..\..\..\02-src\05-Infrastructure\RentifyxCommunications.Infrastructure\RentifyxCommunications.Infrastructure.csproj" />
     <ProjectReference Include="..\..\01-Common\RentifyxCommunications.Tests.Common\RentifyxCommunications.Tests.Common.csproj" />
     <ProjectReference Include="..\..\..\01-aspire\01-AppHost\RentifyxCommunications.AppHost\RentifyxCommunications.AppHost.csproj" Aliases="AppHostRef" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Testing" />
     <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="AWSSDK.SecretsManager" />
+    <PackageReference Include="Testcontainers.LocalStack" />
+    <PackageReference Include="Moq" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>

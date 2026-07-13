@@ -1,11 +1,13 @@
+using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Interfaces;
 using RentifyxCommunications.Domain.Interfaces.Common;
 using RentifyxCommunications.Domain.Interfaces.Examples;
 using RentifyxCommunications.Infrastructure.Context;
 using RentifyxCommunications.Infrastructure.Repositories;
-using Amazon.Extensions.NETCore.Setup;
+using RentifyxCommunications.Infrastructure.Secrets;
 using Amazon.Runtime.CredentialManagement;
+using Amazon.SecretsManager;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +23,7 @@ internal static class InfrastructureDependencyInjection
         services.AddDbContext(configuration);
         services.AddRepositories();
         services.AddAwsOptions(configuration);
+        services.AddSecretsManager();
 
         return services;
     }
@@ -68,6 +71,17 @@ internal static class InfrastructureDependencyInjection
                 "to create it before starting the application.");
 
         services.AddDefaultAWSOptions(configuration.GetAWSOptions());
+
+        return services;
+    }
+
+    private static IServiceCollection AddSecretsManager(this IServiceCollection services)
+    {
+        services.AddMemoryCache();
+        services.AddAWSService<IAmazonSecretsManager>();
+        services.AddSingleton(new SecretsProviderOptions());
+        services.AddSingleton<ISecretsProvider, SecretsManagerProvider>();
+        services.AddSingleton<SecretsStartupValidator>();
 
         return services;
     }
