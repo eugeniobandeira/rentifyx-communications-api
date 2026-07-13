@@ -119,9 +119,8 @@ public sealed class NotificationRequestedConsumer(
 
         try
         {
-            request = JsonSerializer.Deserialize<DispatchNotificationRequest>(result.Message.Value, DeserializeOptions);
-            if (request is null)
-                throw new JsonException("Deserialized NotificationRequested message was null.");
+            request = JsonSerializer.Deserialize<DispatchNotificationRequest>(result.Message.Value, DeserializeOptions)
+                ?? throw new JsonException("Deserialized NotificationRequested message was null.");
 
             using IServiceScope scope = _scopeFactory.CreateScope();
             IHandler<DispatchNotificationRequest, DispatchOutcome> handler =

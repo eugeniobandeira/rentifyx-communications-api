@@ -1,7 +1,8 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Runtime;
-using Amazon.SimpleEmailV2;
+using Amazon.SimpleEmail;
+using Amazon.SimpleEmail.Model;
 using RentifyxCommunications.Infrastructure.Repositories;
 using Testcontainers.LocalStack;
 using Xunit;
@@ -13,7 +14,7 @@ public sealed class LocalStackNotificationInfrastructureFixture : IAsyncLifetime
     private LocalStackContainer? _container;
 
     public IAmazonDynamoDB DynamoDb { get; private set; } = null!;
-    public IAmazonSimpleEmailServiceV2 Ses { get; private set; } = null!;
+    public IAmazonSimpleEmailService Ses { get; private set; } = null!;
 
     public async Task InitializeAsync()
     {
@@ -29,9 +30,9 @@ public sealed class LocalStackNotificationInfrastructureFixture : IAsyncLifetime
             credentials,
             new AmazonDynamoDBConfig { ServiceURL = serviceUrl });
 
-        Ses = new AmazonSimpleEmailServiceV2Client(
+        Ses = new AmazonSimpleEmailServiceClient(
             credentials,
-            new AmazonSimpleEmailServiceV2Config { ServiceURL = serviceUrl });
+            new AmazonSimpleEmailServiceConfig { ServiceURL = serviceUrl });
 
         await CreateNotificationsTableAsync();
     }
@@ -44,6 +45,9 @@ public sealed class LocalStackNotificationInfrastructureFixture : IAsyncLifetime
         if (_container is not null)
             await _container.DisposeAsync();
     }
+
+    public Task VerifySenderAsync(string emailAddress, CancellationToken cancellationToken = default) =>
+        Ses.VerifyEmailAddressAsync(new VerifyEmailAddressRequest { EmailAddress = emailAddress }, cancellationToken);
 
     private async Task CreateNotificationsTableAsync()
     {

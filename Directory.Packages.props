@@ -50,7 +50,7 @@
     <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.100.3" />
     <PackageVersion Include="AWSSDK.SecretsManager" Version="4.0.100.3" />
     <PackageVersion Include="AWSSDK.DynamoDBv2" Version="4.0.101" />
-    <PackageVersion Include="AWSSDK.SimpleEmailV2" Version="4.0.100.3" />
+    <PackageVersion Include="AWSSDK.SimpleEmail" Version="4.0.100" />
     <PackageVersion Include="Scriban" Version="7.2.5" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
   </ItemGroup>

@@ -50,7 +50,7 @@ The Kafka consumer runs as an `IHostedService` inside the same API host — one 
 | Framework | ASP.NET Core 10 Minimal APIs |
 | Orchestration | .NET Aspire 9.3.1 |
 | Event intake | Apache Kafka (Confluent.Kafka) — `IHostedService` consumer |
-| Email delivery | AWS SES (`AWSSDK.SimpleEmailV2`) |
+| Email delivery | AWS SES (`AWSSDK.SimpleEmail`) |
 | Persistence | AWS DynamoDB (`AWSSDK.DynamoDBv2`) — single-table design |
 | Secrets | AWS Secrets Manager (`AWSSDK.SecretsManager`) |
 | Template rendering | Scriban |
