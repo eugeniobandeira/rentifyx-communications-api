@@ -8,6 +8,7 @@ using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatc
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
+using RentifyxCommunications.Domain.ValueObjects;
 using Xunit;
 
 namespace RentifyxCommunications.Tests.Handlers.Features.Notifications;
@@ -52,8 +53,8 @@ public sealed class DispatchNotificationHandlerTests
         result.IsError.Should().BeTrue();
         _notificationRepository.Verify(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
         _consentRepository.Verify(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()), Times.Never);
-        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<Domain.ValueObjects.TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
-        _emailSender.Verify(s => s.SendAsync(It.IsAny<Domain.ValueObjects.EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _emailSender.Verify(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -83,8 +84,8 @@ public sealed class DispatchNotificationHandlerTests
         result.Value.WasDuplicate.Should().BeTrue();
         result.Value.Status.Should().Be(NotificationStatus.Pending);
         _consentRepository.Verify(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()), Times.Never);
-        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<Domain.ValueObjects.TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
-        _emailSender.Verify(s => s.SendAsync(It.IsAny<Domain.ValueObjects.EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _emailSender.Verify(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -95,9 +96,9 @@ public sealed class DispatchNotificationHandlerTests
             .ReturnsAsync(true);
         _consentRepository
             .Setup(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Domain.ValueObjects.ConsentPreference?)null);
+            .ReturnsAsync((ConsentPreference?)null);
         _templateRenderer
-            .Setup(r => r.RenderAsync(It.IsAny<Domain.ValueObjects.TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Error.Failure("Render.NotReached"));
 
         DispatchNotificationHandler sut = CreateSut();
@@ -105,5 +106,68 @@ public sealed class DispatchNotificationHandlerTests
         await sut.Handle(ValidRequest());
 
         _consentRepository.Verify(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenConsentRecordOptedOut_ShouldSuppressWithoutRenderOrSend()
+    {
+        _notificationRepository
+            .Setup(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        ConsentPreference optedOut = ConsentPreference.Create(Guid.NewGuid(), Channel.Email, optedIn: false, DateTime.UtcNow).Value;
+        _consentRepository
+            .Setup(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(optedOut);
+
+        DispatchNotificationHandler sut = CreateSut();
+
+        ErrorOr<DispatchOutcome> result = await sut.Handle(ValidRequest());
+
+        result.IsError.Should().BeFalse();
+        result.Value.Status.Should().Be(NotificationStatus.Suppressed);
+        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Suppressed, It.IsAny<CancellationToken>()), Times.Once);
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _emailSender.Verify(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenConsentRecordOptedIn_ShouldProceedToRender()
+    {
+        _notificationRepository
+            .Setup(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        ConsentPreference optedIn = ConsentPreference.Create(Guid.NewGuid(), Channel.Email, optedIn: true, DateTime.UtcNow).Value;
+        _consentRepository
+            .Setup(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(optedIn);
+        _templateRenderer
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Error.Failure("Render.NotReached"));
+
+        DispatchNotificationHandler sut = CreateSut();
+
+        await sut.Handle(ValidRequest());
+
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WithNoConsentRecord_ShouldProceedToRender()
+    {
+        _notificationRepository
+            .Setup(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        _consentRepository
+            .Setup(r => r.FindAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ConsentPreference?)null);
+        _templateRenderer
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Error.Failure("Render.NotReached"));
+
+        DispatchNotificationHandler sut = CreateSut();
+
+        await sut.Handle(ValidRequest());
+
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
