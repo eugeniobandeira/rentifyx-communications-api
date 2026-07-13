@@ -69,3 +69,6 @@ desktop.ini
 # ─── Logs ───────────────────────────────────────────────────────────────────
 *.log
 logs/
+
+# ─── Personal scratch/study files (never committed) ──────────────────────────
+kafka-dotnet-versao-final.html
