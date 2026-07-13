@@ -1,36 +1,39 @@
 # Handoff
 
-**Date:** 2026-07-12T13:35:00Z
+**Date:** 2026-07-13T16:00:00Z
 **Feature:** E-01 · Project Foundation & DevSecOps Pipeline
-**Task:** T09 (Kafka container in AppHost) — code written, build green, integration test NOT yet verified (Docker Desktop wasn't up long enough)
+**Task:** T16 (branch protection rules) is the only remaining task — it's a GitHub repo-settings change, not a code task, and needs admin access this session doesn't have.
 
 ## Completed ✓
 
-- T07, T08 done and committed on branch `feat/aws-dev-account-config` (commits `e9880cf`, `678fab1`): AWS SDK wired against real dev/sandbox account with fail-fast credential check; dev-account resource docs updated; AD-013 recorded (LocalStack narrowed to automated tests only — manual dev run always uses real AWS)
-- T09 code written (uncommitted): `AppHost.cs` now registers `builder.AddKafka("kafka")` (KRaft mode, confirmed against https://aspire.dev/pt-br/integrations/messaging/apache-kafka/apache-kafka-host/) and references it from the API project via `.WithReference(kafka)`; `Aspire.Hosting.Kafka` + `Confluent.Kafka` added to `Directory.Packages.props`
-- Along the way, fixed a pre-existing broken test: `AppHostTests.cs` referenced the stale resource name `"clean-arch-api"` (left over from the `a34a23f` rename commit) — updated to `"rentifyx-communications-api"` in both places
-- Added new test `AppHost_StartsKafkaResource_AndBrokerIsReachable` (producer connects and persists a message) per T09's "Done when" requirement
-- `dotnet build --no-incremental` → 0 errors, 0 warnings
+T01–T15 and T17 are all done and committed on branch `feat/aws-dev-account-config` (9 commits ahead of `origin/feat/aws-dev-account-config`, not yet pushed):
 
-## In Progress
-
-- T09 integration test run: Docker Desktop was not running at session start. Launched it, but the daemon was still initializing (`docker info` succeeded transiently, `docker run hello-world` failed right after — named pipe not yet attached). A readiness monitor was armed and stopped mid-wait when the user asked to pause.
-- Both `AppHostTests` (health-endpoint test and new Kafka test) failed once already on a premature run — failures were Docker/DCP timeouts (`DcpDependencyCheck` timeout, Kafka `WaitForResourceAsync` timeout), not code issues.
+- T01–T08: scaffold, build props, `.editorconfig`, Aspire AppHost+ServiceDefaults, Serilog/CorrelationId/health/Scalar/ErrorOr, `GlobalExceptionHandler`, AWS SDK against real dev/sandbox account (fail-fast), dev-account resource docs
+- T09: Kafka container (KRaft mode) in AppHost
+- T10: `NotificationRequestedConsumer` `IHostedService` skeleton (no message processing yet — that's E-03)
+- T11: `ISecretsProvider`/`SecretsProviderOptions` in Application layer
+- T12: `SecretsManagerProvider` + `SecretsStartupValidator`, fail-fast at startup, verified against LocalStack
+- T13: CI workflow — build, test, 80% coverage gate
+- T14: Dockerfile hardened to non-root + Trivy image scan in CI (found and fixed a real HIGH CVE, `Microsoft.OpenApi` CVE-2026-49451, along the way)
+- T15: OWASP Dependency-Check wired into CI (via the CLI Docker image directly, not the stale `Dependency-Check_Action` wrapper)
+- T17: git-secrets wired into `.hooks/pre-commit`
 
 ## Pending
 
-- **Immediate next step**: confirm Docker Desktop is fully up (`docker run --rm hello-world` succeeds), then re-run: `dotnet test 03-tests/05-Integration/RentifyxCommunications.Tests.Integration --filter "FullyQualifiedName~AppHostTests"` — expect both tests green
-- If green: commit T09 as `feat(aspire): add Kafka container (KRaft mode) to AppHost` (per tasks.md), covering: `AppHost.cs`, `AppHost.csproj`, `Directory.Packages.props`, `Tests.Integration.csproj`, `AppHostTests.cs` (bundles the stale-resource-name fix — call this out in the commit body since it's a distinct bugfix riding along)
-- Update `.specs/features/e01-foundation/tasks.md` (mark T09 done, resolution note) and `.specs/project/STATE.md` (current-work line) after the commit, same pattern as T07/T08
-- After T09: T11 (`ISecretsProvider` interface, `[P]`), T13 (CI workflow, `[P]`) are next in the Execution Plan — both only depend on T01/T04, not on T09
+- **T16** (branch protection on `main`): requires GitHub repo Settings access this session doesn't have. Needs: required status checks (`CI / build-test-coverage`, `CI / trivy-scan`, `CI / owasp-check`), 1 required PR approval, direct-push disabled. No code commit — verify manually once someone with admin access sets it up.
+- **Push the branch**: 9 local commits not yet on `origin/feat/aws-dev-account-config` — push whenever ready.
+- Once T16 is confirmed (or explicitly deferred), E-01 as a milestone is complete and E-02 (Domain Model — Notification & Consent) is next per `.specs/project/ROADMAP.md`.
 
-## Blockers
+## Known gaps (all previously surfaced to and accepted by the user — not oversights)
 
-- None blocking further work — just needs Docker Desktop settled before re-running T09's integration test.
+- `AppHostTests`' health-check test fails locally/would fail in CI for two independent reasons: (1) needs `AWS:Profile` via user-secrets, not set up in CI; (2) needs 3 real secrets provisioned in the AWS dev/sandbox account's Secrets Manager, never done (T08 scoped that as manual). It's tagged `Category=Integration` and excluded from the CI test filter, so it doesn't break CI — it's just not exercised there. `AppHost_StartsKafkaResource_AndBrokerIsReachable` is unaffected by both.
+- CI's 80% coverage gate is real and will be red on the first push — actual repo coverage is ~5.6% (E-01 is foundational scaffolding; the `Examples` feature is template boilerplate with skipped placeholder tests). Intentional, not a bug.
+- T15's `owasp-check` CI job needs an `NVD_API_KEY` repository secret added (README documents how) before it can actually run — not set up.
+- `.github/workflows/ci.yml` pins `aquasecurity/trivy-action` to a commit SHA (post- a March 2026 supply-chain attack on that action's tags) and `owasp/dependency-check` to an image digest — both need manual re-pinning if/when newer releases should be adopted; neither will auto-update.
+
+Full detail on each of these lives in `.specs/project/STATE.md` under Todos.
 
 ## Context
 
-- Branch: `feat/aws-dev-account-config`
-- Uncommitted: `01-aspire/01-AppHost/RentifyxCommunications.AppHost/AppHost.cs`, `.../RentifyxCommunications.AppHost.csproj`, `03-tests/05-Integration/RentifyxCommunications.Tests.Integration/AppHostTests.cs`, `.../RentifyxCommunications.Tests.Integration.csproj`, `Directory.Packages.props`
-- Related decisions: STATE.md AD-013 (LocalStack scope narrowed to tests only, 2026-07-12)
-- User's stated intent this session: occasionally run the full app against real AWS dev-account data to validate integration end-to-end, then tear the resources down manually — this shaped AD-013
+- Branch: `feat/aws-dev-account-config`, clean working tree except ~26 files with unrelated in-progress edits by the user (mostly IDE-driven `using` reordering, plus a real `.WithKafkaUI()` addition to `AppHost.cs`) — confirmed with the user to leave untouched, not part of this session's work.
+- Related decisions: AD-012/AD-013 (real AWS dev account, LocalStack narrowed to automated tests only) still hold throughout T09–T17.

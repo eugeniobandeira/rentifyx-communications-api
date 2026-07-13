@@ -14,19 +14,19 @@
 
 ### Features
 
-**F-01 · Repo & Solution Structure** — IN PROGRESS
+**F-01 · Repo & Solution Structure** — DONE (except one permanent manual step)
 
 - Clean solution scaffold via `dotnet new clean-arch` (API, Application, Domain, Infrastructure, Tests layers) — ✅ done
 - Aspire AppHost + ServiceDefaults, Serilog, CorrelationId, GlobalExceptionHandler, Scalar UI, ErrorOr\<T\> — ✅ done
-- AWS SDK configured against a real dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via named credentials profile + Kafka container in AppHost — reworked per AD-012, in progress
-- Dev-account resource provisioning (DynamoDB tables `notifications`/`delivery-log`, SES verified sender identity, Secrets Manager entries) — manual for now, not automated; tracked as a todo
-- `NotificationRequestedConsumer` registered as `IHostedService` with graceful stop/drain — pending
+- AWS SDK configured against a real dev/sandbox account (DynamoDB, SES, SecretsManager, KMS) via named credentials profile + Kafka container in AppHost — ✅ done, reworked per AD-012
+- Dev-account resource provisioning (DynamoDB tables `notifications`/`delivery-log`, SES verified sender identity, Secrets Manager entries) — manual for now, not automated; tracked as a todo (this one stays "pending" by design, not an oversight)
+- `NotificationRequestedConsumer` registered as `IHostedService` with graceful stop/drain — ✅ done (skeleton only, no message processing — that's E-03)
 
-**F-02 · CI/CD Pipeline & DevSecOps Baseline** — IN PROGRESS
+**F-02 · CI/CD Pipeline & DevSecOps Baseline** — IN PROGRESS (branch protection is the only piece left)
 
-- GitHub Actions: build → test → coverage gate ≥80% → OWASP dependency-check → Trivy scan
-- Branch protection: CI green + 1 PR review required
-- git-secrets pre-commit hook + `ISecretsProvider` abstraction loading SES ARN + Kafka credentials from Secrets Manager
+- GitHub Actions: build → test → coverage gate ≥80% → OWASP dependency-check → Trivy scan — ✅ done (coverage gate is real but currently red at ~5.6% repo coverage; OWASP check needs an `NVD_API_KEY` repo secret added before it actually runs — see STATE.md Todos)
+- Branch protection: CI green + 1 PR review required — pending (GitHub repo-settings change, not a code task)
+- git-secrets pre-commit hook + `ISecretsProvider` abstraction loading SES ARN + Kafka credentials from Secrets Manager — ✅ done
 
 ---
 
