@@ -1,4 +1,4 @@
-namespace RentifyxCommunications.Domain.ValueObjects;
+﻿namespace RentifyxCommunications.Domain.ValueObjects;
 
 public sealed class ConsentDecision
 {
@@ -9,7 +9,9 @@ public sealed class ConsentDecision
         IsSuppressed = isSuppressed;
     }
 
-    public static ConsentDecision NoRecordFound() => new(isSuppressed: false);
+    public static ConsentDecision NoRecordFound()
+        => new(isSuppressed: false);
 
-    public static ConsentDecision FromPreference(ConsentPreference preference) => new(isSuppressed: !preference.OptedIn);
+    public static ConsentDecision FromPreference(ConsentPreference preference)
+        => new(isSuppressed: !preference.OptedIn);
 }
