@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** E-03 — Application Layer (Use Cases)
-**Status:** E-01 and E-02 complete; E-03 not started (needs Specify)
+**Current Milestone:** E-04 — Infrastructure (SES, DynamoDB, Idempotency & Resilience)
+**Status:** E-01, E-02, and E-03 complete; E-04 not started (needs Specify)
 
 ---
 
@@ -60,20 +60,22 @@
 
 **Goal:** Kafka consumer → atomic idempotency → consent check → template render → outbox dispatch sequence, fully handler-driven with unit + integration tests.
 **Target:** Day 4–6
+**Status:** DONE (2026-07-13) — spec/design/tasks in `.specs/features/e03-application-layer/`, 46 unit tests passing (across Tests.Domain/Validators/Handlers/Api) on branch `feat/e03-application-layer`
 
 ### Features
 
-**F-05 · Notification Intake (Kafka Consumer)** — PLANNED
+**F-05 · Notification Intake (Kafka Consumer)** — DONE (orchestration only — real adapters are E-04)
 
-- `NotificationRequested` Kafka message contract → `DispatchNotificationHandler`
-- Atomic idempotency: `SaveIfNotExists` with `attribute_not_exists(correlationId)` — duplicate = ack, not error
-- `ScribanTemplateRenderer` with payload validation against expected template fields
+- `NotificationRequested` Kafka message contract → `DispatchNotificationHandler` — ✅ done (`DispatchNotificationRequest`, deserialized directly from the Kafka message via `System.Text.Json`)
+- Atomic idempotency: `SaveIfNotExistsAsync` called first in the handler; duplicate = ack, not error — ✅ done (contract wired; the actual `attribute_not_exists(correlationId)` DynamoDB condition is E-04)
+- Template rendering: `ITemplateRenderer.RenderAsync` called from the handler — ✅ done (contract only; `ScribanTemplateRenderer` implementation is E-04)
 
-**F-06 · Consent Enforcement & Dispatch Orchestration** — PLANNED
+**F-06 · Consent Enforcement & Dispatch Orchestration** — DONE
 
-- `DispatchNotificationHandler` full outbox sequence: SaveIfNotExists(Pending) → render → UpdateStatus(Dispatching) → Send → UpdateStatus(Sent|Failed)
-- Opted-out path: raise `NotificationSuppressed`, persist Suppressed status, skip SES entirely
-- Reconciliation hook for crash-mid-sequence scenario (feeds into US-C022)
+- `DispatchNotificationHandler` full outbox sequence: SaveIfNotExists(Pending) → consent resolve → Dispatch → render → UpdateStatus(Dispatching) → Send → UpdateStatus(Sent|Failed) — ✅ done
+- Opted-out path: `Notification.Dispatch` returns `Suppressed`, persisted via `UpdateStatusAsync`, SES never called — ✅ done
+- Reconciliation hook for crash-mid-sequence scenario — not this epic; E-03 only guarantees the durable `Dispatching` intermediate state exists (reconciliation job itself is E-04 F-09)
+- Consumer resilience: malformed/failing messages are logged and the offset is always committed (confirmed 2026-07-13 — no DLQ exists until E-04, so blocking the partition on any failure was rejected as strictly worse) — ✅ done
 
 ---
 

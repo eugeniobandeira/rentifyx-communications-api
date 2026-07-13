@@ -4,5 +4,5 @@ namespace RentifyxCommunications.Application.Common.Handler;
 
 public interface IHandler<TRequest, TResponse>
 {
-    Task<ErrorOr<TResponse>> Handle(TRequest request, CancellationToken cancellationToken = default);
+    Task<ErrorOr<TResponse>> HandleAsync(TRequest request, CancellationToken cancellationToken = default);
 }

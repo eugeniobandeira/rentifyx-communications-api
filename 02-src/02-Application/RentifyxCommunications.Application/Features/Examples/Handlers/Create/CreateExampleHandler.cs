@@ -17,7 +17,7 @@ public sealed class CreateExampleHandler(
     IValidator<CreateExampleRequest> validator,
     ILogger<CreateExampleHandler> logger) : IHandler<CreateExampleRequest, ExampleEntity>
 {
-    public async Task<ErrorOr<ExampleEntity>> Handle(
+    public async Task<ErrorOr<ExampleEntity>> HandleAsync(
         CreateExampleRequest request,
         CancellationToken cancellationToken = default)
     {

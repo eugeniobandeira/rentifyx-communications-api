@@ -1,4 +1,4 @@
-using ErrorOr;
+﻿using ErrorOr;
 using RentifyxCommunications.Domain.Constants;
 
 namespace RentifyxCommunications.Domain.ValueObjects;
@@ -7,7 +7,10 @@ public sealed class TemplateId
 {
     public string Value { get; }
 
-    private TemplateId(string value) => Value = value;
+    private TemplateId(string value)
+    {
+        Value = value;
+    }
 
     public static ErrorOr<TemplateId> Create(string value)
     {

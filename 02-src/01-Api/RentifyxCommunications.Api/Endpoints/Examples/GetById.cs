@@ -23,7 +23,7 @@ internal sealed class GetById : IEndpoint
         HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        ErrorOr<ExampleEntity> result = await handler.Handle(id, cancellationToken);
+        ErrorOr<ExampleEntity> result = await handler.HandleAsync(id, cancellationToken);
 
         return result.Match(
             entity => Results.Ok(ExampleMapper.ToResponse(entity)),

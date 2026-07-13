@@ -124,21 +124,21 @@ E-02 delivered a pure `NotificationEntity` aggregate with lifecycle rules and co
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| DISPATCH-01 | P1: DISPATCH-US-01 | Design | Pending |
-| DISPATCH-02 | P1: DISPATCH-US-01 | Design | Pending |
-| DISPATCH-03 | P1: DISPATCH-US-02 | Design | Pending |
-| DISPATCH-04 | P1: DISPATCH-US-02 | Design | Pending |
-| DISPATCH-05 | P1: DISPATCH-US-03 | Design | Pending |
-| DISPATCH-06 | P1: DISPATCH-US-03 | Design | Pending |
-| DISPATCH-07 | P1: DISPATCH-US-04 | Design | Pending |
-| DISPATCH-08 | P1: DISPATCH-US-04 | Design | Pending |
-| DISPATCH-09 | P1: DISPATCH-US-05 | Design | Pending |
+| DISPATCH-01 | P1: DISPATCH-US-01 | Verified | Implemented — T01, T02, T03, T05, T06, T10 |
+| DISPATCH-02 | P1: DISPATCH-US-01 | Verified | Implemented — T01, T02, T05, T06 |
+| DISPATCH-03 | P1: DISPATCH-US-02 | Verified | Implemented — T04, T06 |
+| DISPATCH-04 | P1: DISPATCH-US-02 | Verified | Implemented — T06 |
+| DISPATCH-05 | P1: DISPATCH-US-03 | Verified | Implemented — T07, T08 |
+| DISPATCH-06 | P1: DISPATCH-US-03 | Verified | Implemented — T08 |
+| DISPATCH-07 | P1: DISPATCH-US-04 | Verified | Implemented — T07 |
+| DISPATCH-08 | P1: DISPATCH-US-04 | Verified | Implemented — T07 |
+| DISPATCH-09 | P1: DISPATCH-US-05 | Verified | Implemented — T10 |
 
 **ID format:** `DISPATCH-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 9 total, 0 mapped to tasks, 9 unmapped ⚠️ (Design phase next)
+**Coverage:** 9 total, 9 mapped to tasks, 0 unmapped ✅ — all implemented 2026-07-13, 46 unit tests passing across 4 test projects
 
 ---
 

@@ -8,7 +8,10 @@ public sealed class EmailAddress
 {
     public string Value { get; }
 
-    private EmailAddress(string value) => Value = value;
+    private EmailAddress(string value)
+    {
+        Value = value;
+    }
 
     public static ErrorOr<EmailAddress> Create(string value)
     {

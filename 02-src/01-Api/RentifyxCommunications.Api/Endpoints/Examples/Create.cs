@@ -24,7 +24,7 @@ internal sealed class Create : IEndpoint
         HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        ErrorOr<ExampleEntity> result = await handler.Handle(request, cancellationToken);
+        ErrorOr<ExampleEntity> result = await handler.HandleAsync(request, cancellationToken);
 
         return result.Match(
             entity => Results.Created($"/api/v1/examples/{entity.Id}", ExampleMapper.ToResponse(entity)),

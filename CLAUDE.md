@@ -54,6 +54,25 @@ public sealed class SecretsManagerProvider : ISecretsProvider
 
 **Exception:** aggregates/entities with invariants to enforce at construction time (e.g. `NotificationEntity.Create(...)` validating and returning `ErrorOr<T>`) keep a `private` parameterless-or-full constructor plus a `static Create(...)` factory — primary constructors don't fit a type that must validate before allowing construction to succeed.
 
+## Method Bodies
+
+**Constructors only: use a block body (`{ }`), not an expression body (`=>`)** — even a one-line assignment. This applies specifically to explicit (non-primary) constructors; it does not apply to regular methods, factory methods, property getters, or primary constructor parameter lists, all of which may freely use expression bodies where that reads well.
+
+```csharp
+// Preferred (constructor)
+private EmailAddress(string value)
+{
+    Value = value;
+}
+
+// Avoid (constructor)
+private EmailAddress(string value) => Value = value;
+
+// Fine either way (regular/factory method, not a constructor)
+public void Deactivate() => IsActive = false;
+public static ConsentDecision NoRecordFound() => new(isSuppressed: false);
+```
+
 ## Code Style
 
 **Multi-line parameter lists for records, primary constructors, and factory methods with more than one parameter.** Put each parameter on its own line, rather than a single long line.
@@ -80,6 +99,10 @@ public sealed class SecretsManagerProvider(IAmazonSecretsManager client, IMemory
 ```
 
 Single-parameter records/constructors can stay on one line.
+
+## Async Naming
+
+**Every async method gets an `Async` suffix** — `RenderAsync`, `SendAsync`, `FindAsync`, `SaveIfNotExistsAsync`. No exceptions for interface members either: if a method returns `Task`/`Task<T>` (or `ValueTask`/`ValueTask<T>`), its name ends in `Async`, whether declared on an interface or its implementation.
 
 ## Error Handling
 
