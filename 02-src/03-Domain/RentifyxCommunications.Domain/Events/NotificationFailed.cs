@@ -1,3 +1,7 @@
-namespace RentifyxCommunications.Domain.Events;
+﻿namespace RentifyxCommunications.Domain.Events;
 
-public sealed record NotificationFailed(Guid NotificationId, Guid CorrelationId, string Reason, DateTime OccurredAt) : IDomainEvent;
+public sealed record NotificationFailed(
+    Guid NotificationId,
+    Guid CorrelationId,
+    string Reason,
+    DateTime OccurredAt) : IDomainEvent;
