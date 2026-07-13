@@ -128,20 +128,20 @@ E-02/E-03 built a fully orchestrated dispatch pipeline (`DispatchNotificationHan
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| SESDB-01 | P1: SESDB-US-01 | Design | Pending |
-| SESDB-02 | P1: SESDB-US-01 | Design | Pending |
-| SESDB-03 | P1: SESDB-US-02 | Design | Pending |
-| SESDB-04 | P1: SESDB-US-03 | Design | Pending |
-| SESDB-05 | P1: SESDB-US-03 | Design | Pending |
-| SESDB-06 | P1: SESDB-US-04 | Design | Pending |
-| SESDB-07 | P1: SESDB-US-04 | Design | Pending |
-| SESDB-08 | P2: SESDB-US-05 | Design | Pending |
+| SESDB-01 | P1: SESDB-US-01 | Verified | Implemented — T03, T04 |
+| SESDB-02 | P1: SESDB-US-01 | Verified | Implemented — T03 |
+| SESDB-03 | P1: SESDB-US-02 | Verified | Implemented — T02, T05 |
+| SESDB-04 | P1: SESDB-US-03 | Verified | Implemented — T06 |
+| SESDB-05 | P1: SESDB-US-03 | Verified | Implemented — T06 |
+| SESDB-06 | P1: SESDB-US-04 | Verified | Implemented — T02, T07 |
+| SESDB-07 | P1: SESDB-US-04 | Verified | Implemented — T07, T08 |
+| SESDB-08 | P2: SESDB-US-05 | Verified | Implemented — T09 |
 
 **ID format:** `SESDB-[NUMBER]`
 
 **Status values:** Pending → In Design → In Tasks → Implementing → Verified
 
-**Coverage:** 8 total, 0 mapped to tasks, 8 unmapped ⚠️ (Design phase next)
+**Coverage:** 8 total, 8 mapped to tasks, 0 unmapped ✅ — all implemented 2026-07-13, 25 new tests passing (9 LocalStack integration + 16 unit)
 
 ---
 

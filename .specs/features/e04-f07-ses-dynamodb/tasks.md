@@ -1,7 +1,9 @@
 # E-04 · F-07 — SES & DynamoDB Integration Tasks
 
 **Design**: `.specs/features/e04-f07-ses-dynamodb/design.md`
-**Status**: Draft
+**Status**: Done
+
+**Execution note (2026-07-13):** All 9 tasks implemented on branch `feat/e04-f07-ses-dynamodb`. Two mid-execution corrections: (1) `AWSSDK.SimpleEmailV2` was swapped back to legacy `AWSSDK.SimpleEmail` (V1) after discovering LocalStack Community doesn't implement `sesv2` at all; (2) `NotificationEntity.Rehydrate()` was added to Domain (not originally planned) since `Create()` only supports fresh construction, not reloading persisted state. 25 new tests passing (9 LocalStack integration + 16 unit) across `Tests.Repositories` and `Tests.Integration`.
 
 ---
 
