@@ -12,6 +12,9 @@ using RentifyxCommunications.Application.Features.Examples.Handlers.GetById;
 using RentifyxCommunications.Application.Features.Examples.Handlers.Update;
 using RentifyxCommunications.Application.Features.Examples.Handlers.Update.Request;
 using RentifyxCommunications.Application.Features.Examples.Handlers.Update.Validator;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Validator;
 using RentifyxCommunications.Domain.Common;
 using RentifyxCommunications.Domain.Entities;
 
@@ -29,6 +32,9 @@ internal static class ApplicationDependencyInjection
         services.AddScoped<IHandler<GetAllExampleRequest, PagedResult<ExampleEntity>>, GetAllExampleHandler>();
         services.AddScoped<IHandler<Guid, ExampleEntity>, GetByIdExampleHandler>();
         services.AddScoped<IHandler<UpdateExampleRequest, ExampleEntity>, UpdateExampleHandler>();
+
+        services.AddScoped<IValidator<DispatchNotificationRequest>, DispatchNotificationValidator>();
+        services.AddScoped<IHandler<DispatchNotificationRequest, DispatchOutcome>, DispatchNotificationHandler>();
 
         return services;
     }
