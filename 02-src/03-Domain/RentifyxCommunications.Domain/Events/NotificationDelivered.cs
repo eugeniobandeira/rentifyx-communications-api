@@ -1,3 +1,6 @@
-namespace RentifyxCommunications.Domain.Events;
+﻿namespace RentifyxCommunications.Domain.Events;
 
-public sealed record NotificationDelivered(Guid NotificationId, Guid CorrelationId, DateTime OccurredAt) : IDomainEvent;
+public sealed record NotificationDelivered(
+    Guid NotificationId,
+    Guid CorrelationId,
+    DateTime OccurredAt) : IDomainEvent;
