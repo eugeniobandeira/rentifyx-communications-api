@@ -28,6 +28,9 @@
     <Project Path="02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/RentifyxCommunications.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/03-tests/" />
+  <Folder Name="/03-tests/00-Domain/">
+    <Project Path="03-tests/00-Domain/RentifyxCommunications.Tests.Domain/RentifyxCommunications.Tests.Domain.csproj" />
+  </Folder>
   <Folder Name="/03-tests/01-Common/">
     <Project Path="03-tests/01-Common/RentifyxCommunications.Tests.Common/RentifyxCommunications.Tests.Common.csproj" />
   </Folder>
