@@ -201,8 +201,8 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `RetryContext(string OriginalTopic, int RetryCount = 0, DateTimeOffset? FirstFailureTimestamp = null)` defined
-- [ ] `dotnet build --no-incremental` passes
+- [x] `RetryContext(string OriginalTopic, int RetryCount = 0, DateTimeOffset? FirstFailureTimestamp = null)` defined
+- [x] `dotnet build --no-incremental` passes
 
 **Tests**: none
 **Gate**: build
