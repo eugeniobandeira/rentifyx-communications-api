@@ -148,8 +148,8 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `enum FailureClassification { PoisonPill, Transient }` defined
-- [ ] `dotnet build --no-incremental` passes
+- [x] `enum FailureClassification { PoisonPill, Transient }` defined
+- [x] `dotnet build --no-incremental` passes
 
 **Tests**: none
 **Gate**: build
