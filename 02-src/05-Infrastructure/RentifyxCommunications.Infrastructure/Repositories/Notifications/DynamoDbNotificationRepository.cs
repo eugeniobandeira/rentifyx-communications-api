@@ -68,7 +68,7 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
         if (notification is null)
             return;
 
-        DateTime updatedAt = DateTime.UtcNow;
+        string updatedAt = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
 
         await client.UpdateItemAsync(new UpdateItemRequest
         {
@@ -78,13 +78,33 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
                 ["PK"] = new($"NOTIF#{notification.CorrelationId}"),
                 ["SK"] = new("METADATA")
             },
-            UpdateExpression = "SET #status = :status, UpdatedAt = :updatedAt",
+            UpdateExpression = "SET #status = :status, UpdatedAt = :updatedAt, GSI3PK = :gsi3pk, GSI3SK = :updatedAt",
             ExpressionAttributeNames = new Dictionary<string, string> { ["#status"] = "Status" },
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
                 [":status"] = new(status.ToString()),
-                [":updatedAt"] = new(updatedAt.ToString("O", CultureInfo.InvariantCulture))
+                [":updatedAt"] = new(updatedAt),
+                [":gsi3pk"] = new($"STATUS#{status}")
             }
         }, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<NotificationEntity>> GetStuckDispatchingAsync(TimeSpan olderThan, CancellationToken cancellationToken = default)
+    {
+        string threshold = (DateTime.UtcNow - olderThan).ToString("O", CultureInfo.InvariantCulture);
+
+        QueryResponse response = await client.QueryAsync(new QueryRequest
+        {
+            TableName = TableName,
+            IndexName = "GSI3",
+            KeyConditionExpression = "GSI3PK = :pk AND GSI3SK < :threshold",
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                [":pk"] = new($"STATUS#{NotificationStatus.Dispatching}"),
+                [":threshold"] = new(threshold)
+            }
+        }, cancellationToken);
+
+        return response.Items.Select(NotificationItemMapper.ToEntity).ToList();
     }
 }

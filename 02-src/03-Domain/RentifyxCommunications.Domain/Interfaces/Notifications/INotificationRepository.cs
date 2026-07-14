@@ -12,4 +12,6 @@ public interface INotificationRepository
     Task<IReadOnlyList<NotificationEntity>> GetByRecipientAsync(Guid recipientId, CancellationToken cancellationToken = default);
 
     Task UpdateStatusAsync(Guid id, NotificationStatus status, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<NotificationEntity>> GetStuckDispatchingAsync(TimeSpan olderThan, CancellationToken cancellationToken = default);
 }

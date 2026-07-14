@@ -19,6 +19,8 @@ public static class NotificationItemMapper
     {
         long ttlEpochSeconds = new DateTimeOffset(notification.CreatedAt.AddDays(TtlDays)).ToUnixTimeSeconds();
 
+        string lastUpdated = (notification.UpdatedAt ?? notification.CreatedAt).ToString("O", CultureInfo.InvariantCulture);
+
         Dictionary<string, AttributeValue> item = new()
         {
             ["PK"] = new($"NOTIF#{notification.CorrelationId}"),
@@ -27,6 +29,8 @@ public static class NotificationItemMapper
             ["GSI1SK"] = new($"NOTIF#{notification.CreatedAt:O}#{notification.Id}"),
             ["GSI2PK"] = new($"ID#{notification.Id}"),
             ["GSI2SK"] = new($"ID#{notification.Id}"),
+            ["GSI3PK"] = new($"STATUS#{notification.Status}"),
+            ["GSI3SK"] = new(lastUpdated),
             ["Id"] = new(notification.Id.ToString()),
             ["CorrelationId"] = new(notification.CorrelationId.ToString()),
             ["RecipientId"] = new(notification.RecipientId.ToString()),

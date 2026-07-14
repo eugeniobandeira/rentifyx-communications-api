@@ -439,7 +439,7 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 ### T14: GSI3 + `GetStuckDispatchingAsync` [P]
 
 **What**: Add `GSI3PK`/`GSI3SK` to the `notifications` table schema, `NotificationItemMapper`, `DynamoDbNotificationRepository`, `INotificationRepository`, and the LocalStack test fixture
-**Where**: `02-src/03-Domain/RentifyxCommunications.Domain/Interfaces/Notifications/INotificationRepository.cs` (new method), `02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/Repositories/DynamoDbNotificationRepository.cs`, `02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/Repositories/NotificationItemMapper.cs`-equivalent (this repo's actual F-07 mapping is inline `ToItem`/`FromItem`, not a separate mapper class — confirm current shape before editing, don't assume the extracted-mapper structure from an earlier abandoned redo), `03-tests/05-Integration/RentifyxCommunications.Tests.Integration/Infrastructure/LocalStackNotificationInfrastructureFixture.cs` (add GSI3 to `CreateNotificationsTableAsync`)
+**Where**: `02-src/03-Domain/RentifyxCommunications.Domain/Interfaces/Notifications/INotificationRepository.cs` (new method), `02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/Repositories/Notifications/DynamoDbNotificationRepository.cs`, `02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/Repositories/Notifications/NotificationItemMapper.cs` (confirmed as a real separate class, per the folder-convention refactor already merged to `main` ahead of this branch — the design's caveat about an inline-mapper shape no longer applies), `03-tests/05-Integration/RentifyxCommunications.Tests.Integration/Infrastructure/LocalStackNotificationInfrastructureFixture.cs` (add GSI3 to `CreateNotificationsTableAsync`)
 **Depends on**: None
 **Reuses**: F-07's existing `ToItem`/`FromItem` mapping pattern, `GSI1`/`GSI2` precedent in the same table
 **Requirement**: REL-12, REL-13
@@ -449,12 +449,13 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `ToItem` writes `GSI3PK = "STATUS#{status}"`, `GSI3SK = UpdatedAt` (or `CreatedAt` if `UpdatedAt` is null) on every write
-- [ ] `INotificationRepository` gains `GetStuckDispatchingAsync(TimeSpan olderThan, CancellationToken ct): Task<IReadOnlyList<NotificationEntity>>`
-- [ ] `DynamoDbNotificationRepository` implements it via a `Query` on `GSI3PK = "STATUS#Dispatching"` with a `GSI3SK <` filter for `now - olderThan`
-- [ ] `LocalStackNotificationInfrastructureFixture.CreateNotificationsTableAsync` adds the `GSI3` index and its two attribute definitions
-- [ ] Integration tests: seed a notification with `Status=Dispatching` and an old `UpdatedAt` → `GetStuckDispatchingAsync(2min)` returns it; seed one with a recent `UpdatedAt` → it's excluded; seed one with `Status=Sent` and an old `UpdatedAt` → excluded (status filter, not just staleness)
-- [ ] `dotnet test` (full) passes
+- [x] `ToItem` writes `GSI3PK = "STATUS#{status}"`, `GSI3SK = UpdatedAt` (or `CreatedAt` if `UpdatedAt` is null) on every write
+- [x] `INotificationRepository` gains `GetStuckDispatchingAsync(TimeSpan olderThan, CancellationToken ct): Task<IReadOnlyList<NotificationEntity>>`
+- [x] `DynamoDbNotificationRepository` implements it via a `Query` on `GSI3PK = "STATUS#Dispatching"` with a `GSI3SK <` filter for `now - olderThan`
+- [x] **Correctness fix found during implementation, not in the original task text**: `UpdateStatusAsync`'s `UpdateItemAsync` call only ever touched `Status`/`UpdatedAt` — it never updated `GSI3PK`/`GSI3SK`, so a notification's GSI3 entry would stay frozen at whatever status it had when first written (`Pending`), making the whole index useless for any status change made via `UpdateStatusAsync` (which is every status change after the initial save). Fixed by adding `GSI3PK`/`GSI3SK` to the same `UpdateExpression`.
+- [x] `LocalStackNotificationInfrastructureFixture.CreateNotificationsTableAsync` adds the `GSI3` index and its two attribute definitions
+- [x] Integration tests: seed a notification, transition to `Dispatching` via `UpdateStatusAsync`, backdate `GSI3SK`/`UpdatedAt` directly → `GetStuckDispatchingAsync(2min)` returns it; same but not backdated → excluded (too recent); same but transitioned to `Sent` instead → excluded (status filter, not just staleness)
+- [x] `dotnet test` (full, `Category=Integration`) passes
 
 **Tests**: integration
 **Gate**: full

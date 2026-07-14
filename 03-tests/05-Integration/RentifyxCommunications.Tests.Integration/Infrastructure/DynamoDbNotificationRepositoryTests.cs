@@ -1,3 +1,5 @@
+using System.Globalization;
+using Amazon.DynamoDBv2.Model;
 using FluentAssertions;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Enums;
@@ -116,5 +118,63 @@ public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationIn
         result.UpdatedAt.Should().NotBeNull();
         result.Recipient.Value.Should().Be("user@example.com");
         result.Payload.Should().ContainKey("name").WhoseValue.Should().Be("Alice");
+    }
+
+    [Fact]
+    public async Task GetStuckDispatchingAsync_WithOldDispatchingRecord_ShouldReturnIt()
+    {
+        NotificationEntity notification = CreateNotification();
+        await _sut.SaveIfNotExistsAsync(notification);
+        await _sut.UpdateStatusAsync(notification.Id, NotificationStatus.Dispatching);
+        await BackdateGsi3Async(notification.CorrelationId, TimeSpan.FromMinutes(5));
+
+        IReadOnlyList<NotificationEntity> stuck = await _sut.GetStuckDispatchingAsync(TimeSpan.FromMinutes(2));
+
+        stuck.Select(n => n.Id).Should().Contain(notification.Id);
+    }
+
+    [Fact]
+    public async Task GetStuckDispatchingAsync_WithRecentDispatchingRecord_ShouldExcludeIt()
+    {
+        NotificationEntity notification = CreateNotification();
+        await _sut.SaveIfNotExistsAsync(notification);
+        await _sut.UpdateStatusAsync(notification.Id, NotificationStatus.Dispatching);
+
+        IReadOnlyList<NotificationEntity> stuck = await _sut.GetStuckDispatchingAsync(TimeSpan.FromMinutes(2));
+
+        stuck.Select(n => n.Id).Should().NotContain(notification.Id);
+    }
+
+    [Fact]
+    public async Task GetStuckDispatchingAsync_WithOldSentRecord_ShouldExcludeIt()
+    {
+        NotificationEntity notification = CreateNotification();
+        await _sut.SaveIfNotExistsAsync(notification);
+        await _sut.UpdateStatusAsync(notification.Id, NotificationStatus.Sent);
+        await BackdateGsi3Async(notification.CorrelationId, TimeSpan.FromMinutes(5));
+
+        IReadOnlyList<NotificationEntity> stuck = await _sut.GetStuckDispatchingAsync(TimeSpan.FromMinutes(2));
+
+        stuck.Select(n => n.Id).Should().NotContain(notification.Id);
+    }
+
+    private async Task BackdateGsi3Async(Guid correlationId, TimeSpan age)
+    {
+        string backdated = (DateTime.UtcNow - age).ToString("O", CultureInfo.InvariantCulture);
+
+        await fixture.DynamoDb.UpdateItemAsync(new UpdateItemRequest
+        {
+            TableName = DynamoDbNotificationRepository.TableName,
+            Key = new Dictionary<string, AttributeValue>
+            {
+                ["PK"] = new($"NOTIF#{correlationId}"),
+                ["SK"] = new("METADATA")
+            },
+            UpdateExpression = "SET GSI3SK = :backdated, UpdatedAt = :backdated",
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+            {
+                [":backdated"] = new(backdated)
+            }
+        });
     }
 }
