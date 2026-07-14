@@ -87,7 +87,7 @@ Phase 5 — Evidence & Docs (Parallel, after T06):
 **What**: Options record binding token-bucket and circuit-breaker thresholds from configuration
 **Where**: `02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/Options/ResilienceOptions.cs`
 **Depends on**: None
-**Reuses**: `DynamoDbOptions`'s plain-record-for-config-binding style (F-07)
+**Reuses**: `SecretsProviderOptions`'s plain-record-for-config-binding style (E-01) — corrected from design's `DynamoDbOptions` reference, which doesn't exist in PR #7's actual implementation (it hardcoded `TableName` as a const instead of an options record)
 **Requirement**: THR-07
 
 **Tools**:
@@ -95,8 +95,8 @@ Phase 5 — Evidence & Docs (Parallel, after T06):
 - Skill: none
 
 **Done when**:
-- [ ] `ResilienceOptions(int TokenBucketPermitsPerSecond = 14, int TokenBucketQueueMaxWaitSeconds = 5, int CircuitBreakerMinimumThroughput = 5, int CircuitBreakerSamplingDurationSeconds = 30, int CircuitBreakerBreakDurationSeconds = 30)` record defined, matching the spec's placeholder defaults exactly
-- [ ] `dotnet build --no-incremental` passes
+- [x] `ResilienceOptions(int TokenBucketPermitsPerSecond = 14, int TokenBucketQueueMaxWaitSeconds = 5, int CircuitBreakerMinimumThroughput = 5, int CircuitBreakerSamplingDurationSeconds = 30, int CircuitBreakerBreakDurationSeconds = 30)` record defined, matching the spec's placeholder defaults exactly
+- [x] `dotnet build --no-incremental` passes
 
 **Tests**: none
 **Gate**: build
