@@ -147,12 +147,12 @@ Phase 5 — Evidence & Docs (Parallel, after T06):
 - Skill: none
 
 **Done when**:
-- [ ] `SendAsync(EmailAddress recipient, string renderedContent, CancellationToken ct): Task<ErrorOr<Success>>` implemented: executes `pipeline.ExecuteAsync(async ct => await inner.SendAsync(recipient, renderedContent, ct), ct)`
-- [ ] Catches `RateLimiterRejectedException` and maps to `Error.Failure(...)` (queue-timeout case, spec THR-03)
-- [ ] Catches `BrokenCircuitException` and maps to `Error.Failure(...)` (open-circuit case, spec THR-04/THR-05)
-- [ ] An inner `SendAsync` that returns `IsError = true` (no exception) propagates that same `ErrorOr` error unchanged — F-08 doesn't alter what the caller sees for an ordinary SES failure, it only adds rate-limiter/circuit-breaker accounting around it (per design's Error Handling Strategy)
-- [ ] Unit tests: successful inner send passes through unchanged; a fake inner sender returning errors enough times opens the circuit (via a real `ResiliencePipelineFactory.Create`-built pipeline with test-sized thresholds) and the next call is rejected without invoking the inner sender again; a rate-limiter rejection is mapped to `Error.Failure`, not an unhandled exception
-- [ ] `dotnet test --filter "Category!=Integration"` passes
+- [x] `SendAsync(EmailAddress recipient, string renderedContent, CancellationToken ct): Task<ErrorOr<Success>>` implemented: executes `pipeline.ExecuteAsync(async ct => await inner.SendAsync(recipient, renderedContent, ct), ct)`
+- [x] Catches `RateLimiterRejectedException` and maps to `Error.Failure(ResilienceErrorCodes.RateLimitExceeded, ...)` (queue-timeout case, spec THR-03)
+- [x] Catches `BrokenCircuitException` and maps to `Error.Failure(ResilienceErrorCodes.CircuitOpen, ...)` (open-circuit case, spec THR-04/THR-05) — error codes added to `Domain/Constants/ResilienceErrorCodes.cs` per CLAUDE.md's no-magic-strings rule
+- [x] An inner `SendAsync` that returns `IsError = true` (no exception) propagates that same `ErrorOr` error unchanged — F-08 doesn't alter what the caller sees for an ordinary SES failure, it only adds rate-limiter/circuit-breaker accounting around it (per design's Error Handling Strategy)
+- [x] Unit tests: successful inner send passes through unchanged; a fake inner sender returning errors enough times opens the circuit (via a real `ResiliencePipelineFactory.Create`-built pipeline with test-sized thresholds) and the next call is rejected without invoking the inner sender again (verified via `Moq.Times.Exactly`); a rate-limiter rejection is mapped to `Error.Failure`, not an unhandled exception
+- [x] `dotnet test --filter "Category!=Integration"` passes (3 new tests, 0 regressions)
 
 **Tests**: unit
 **Gate**: quick
