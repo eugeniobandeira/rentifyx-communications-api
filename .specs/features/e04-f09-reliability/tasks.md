@@ -510,12 +510,12 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `IHostedService` using a `PeriodicTimer(TimeSpan.FromSeconds(options.PollIntervalSeconds))` loop
-- [ ] Each tick calls `GetStuckDispatchingAsync(TimeSpan.FromSeconds(options.StalenessThresholdSeconds))`, and for each result publishes to `RetryTopicChain.Retry5sTopic` via `IFailureRouter.RouteAsync` (classification = `Transient`, `RetryContext` with `RetryCount=0`, `OriginalTopic = RetryTopicChain.OriginalTopic`)
-- [ ] A publish failure for one stuck record is logged and does not stop the loop from processing the rest, or from ticking again next interval (per spec Edge Cases — safe to re-run)
-- [ ] `StopAsync` cancels the timer loop gracefully, mirroring `NotificationRequestedConsumer`'s drain pattern
-- [ ] Unit tests: a stuck record triggers a `RouteAsync` call with the correct topic/context; a publish failure for one record doesn't prevent the loop from ticking again; no stuck records → no `RouteAsync` calls
-- [ ] `dotnet test --filter "Category!=Integration"` passes
+- [x] `IHostedService` using a `PeriodicTimer(TimeSpan.FromSeconds(options.PollIntervalSeconds))` loop
+- [x] Each tick calls `GetStuckDispatchingAsync(TimeSpan.FromSeconds(options.StalenessThresholdSeconds))`; for each result, reconstructs a `DispatchNotificationRequest` from the persisted `NotificationEntity` (JSON-serialized — there's no original raw Kafka message to reuse for a crash-recovered record, only the DynamoDB row) and publishes to `RetryTopicChain.Retry5sTopic` via `IFailureRouter.RouteAsync` (classification = `Transient`, `RetryContext` with `RetryCount=0`, `OriginalTopic = RetryTopicChain.OriginalTopic`)
+- [x] A publish failure for one stuck record is logged and does not stop the loop from processing the rest, or from ticking again next interval (per spec Edge Cases — safe to re-run)
+- [x] `StopAsync` cancels the timer loop gracefully, mirroring `NotificationRequestedConsumer`'s drain pattern
+- [x] Unit tests: a stuck record triggers a `RouteAsync` call with the correct topic/context; a publish failure for one record doesn't prevent the loop from ticking again (verified across 2 ticks); no stuck records → no `RouteAsync` calls
+- [x] `dotnet test --filter "Category!=Integration"` passes (0 regressions)
 
 **Tests**: unit
 **Gate**: quick
