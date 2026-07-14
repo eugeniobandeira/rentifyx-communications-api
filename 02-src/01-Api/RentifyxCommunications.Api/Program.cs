@@ -1,6 +1,7 @@
 ﻿using RentifyxCommunications.Api.Consumers;
 using RentifyxCommunications.Api.Extensions;
 using RentifyxCommunications.Api.Middlewares;
+using RentifyxCommunications.Infrastructure.Resilience;
 using RentifyxCommunications.Infrastructure.Secrets;
 using RentifyxCommunications.IoC;
 using RentifyxCommunications.ServiceDefaults;
@@ -46,6 +47,10 @@ try
         SecretsStartupValidator secretsValidator =
             startupScope.ServiceProvider.GetRequiredService<SecretsStartupValidator>();
         await secretsValidator.ValidateAsync();
+
+        ResilienceStartupValidator resilienceValidator =
+            startupScope.ServiceProvider.GetRequiredService<ResilienceStartupValidator>();
+        resilienceValidator.Validate();
     }
 
     app.MapDefaultEndpoints();

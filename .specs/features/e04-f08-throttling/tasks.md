@@ -203,12 +203,12 @@ Phase 5 — Evidence & Docs (Parallel, after T06):
 - Skill: none
 
 **Done when**:
-- [ ] `ResilienceOptions` bound from configuration and registered
-- [ ] `services.AddSingleton(sp => ResiliencePipelineFactory.Create(sp.GetRequiredService<ResilienceOptions>()))` added
-- [ ] `ResilienceStartupValidator` registered using the same mechanism as `SecretsStartupValidator` (per T05)
-- [ ] The existing `IEmailSender` factory lambda's final `return` (Ses or Mock) is wrapped: `return new ResilientEmailSender(innerSender, sp.GetRequiredService<ResiliencePipeline<ErrorOr<Success>>>());`
-- [ ] `dotnet build --no-incremental` passes
-- [ ] Re-running E-03/F-07's existing handler tests (which use their own mocked `IEmailSender`, unaffected by this DI change) still pass — confirms no regression
+- [x] `ResilienceOptions` bound from configuration (`configuration.GetSection("Resilience").Get<ResilienceOptions>() ?? new ResilienceOptions()`) and registered — genuine config binding, not just a hardcoded default, since THR-07's whole point is retuning without a redeploy once B-001 resolves; this is new in the codebase (`SecretsProviderOptions`, the closest precedent, is actually never bound from configuration, just constructed with hardcoded defaults) but matches what the spec requires
+- [x] `services.AddSingleton(sp => ResiliencePipelineFactory.Create(sp.GetRequiredService<ResilienceOptions>()))` added
+- [x] `ResilienceStartupValidator` registered using the same mechanism as `SecretsStartupValidator` (per T05) — `AddSingleton<ResilienceStartupValidator>()`, resolved and `.Validate()` called in `Program.cs`'s startup scope alongside the existing `SecretsStartupValidator` call
+- [x] The existing `IEmailSender` factory lambda's final `return` (Ses or Mock) is wrapped: `return new ResilientEmailSender(innerSender, sp.GetRequiredService<ResiliencePipeline<ErrorOr<Success>>>());`
+- [x] `dotnet build --no-incremental` passes
+- [x] Re-running E-03/F-07's existing handler tests (which use their own mocked `IEmailSender`, unaffected by this DI change) still pass — confirms no regression
 
 **Tests**: none
 **Gate**: build

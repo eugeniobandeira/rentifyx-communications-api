@@ -6,18 +6,22 @@ using RentifyxCommunications.Domain.Interfaces.Examples;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Infrastructure.Context;
 using RentifyxCommunications.Infrastructure.Email;
+using RentifyxCommunications.Infrastructure.Options;
 using RentifyxCommunications.Infrastructure.Repositories;
 using RentifyxCommunications.Infrastructure.Repositories.Notifications;
+using RentifyxCommunications.Infrastructure.Resilience;
 using RentifyxCommunications.Infrastructure.Secrets;
 using RentifyxCommunications.Infrastructure.Templates;
 using Amazon.DynamoDBv2;
 using Amazon.Runtime.CredentialManagement;
 using Amazon.SecretsManager;
 using Amazon.SimpleEmail;
+using ErrorOr;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Polly;
 
 namespace RentifyxCommunications.IoC;
 
@@ -31,7 +35,7 @@ internal static class InfrastructureDependencyInjection
         services.AddRepositories();
         services.AddAwsOptions(configuration);
         services.AddSecretsManager();
-        services.AddNotificationInfrastructure();
+        services.AddNotificationInfrastructure(configuration);
 
         return services;
     }
@@ -94,7 +98,9 @@ internal static class InfrastructureDependencyInjection
         return services;
     }
 
-    private static IServiceCollection AddNotificationInfrastructure(this IServiceCollection services)
+    private static IServiceCollection AddNotificationInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         services.AddAWSService<IAmazonDynamoDB>();
         services.AddAWSService<IAmazonSimpleEmailService>();
@@ -103,16 +109,23 @@ internal static class InfrastructureDependencyInjection
         services.AddScoped<IConsentRepository, DynamoDbConsentRepository>();
         services.AddSingleton<ITemplateRenderer, ScribanTemplateRenderer>();
 
+        ResilienceOptions resilienceOptions = configuration.GetSection("Resilience").Get<ResilienceOptions>()
+            ?? new ResilienceOptions();
+        services.AddSingleton(resilienceOptions);
+        services.AddSingleton<ResilienceStartupValidator>();
+        services.AddSingleton(sp => ResiliencePipelineFactory.Create(sp.GetRequiredService<ResilienceOptions>()));
+
         services.AddScoped<IEmailSender>(sp =>
         {
             IHostEnvironment environment = sp.GetRequiredService<IHostEnvironment>();
-            if (!environment.IsProduction())
-                return new MockEmailSender();
+            IEmailSender innerSender = environment.IsProduction()
+                ? new SesEmailSender(
+                    sp.GetRequiredService<IAmazonSimpleEmailService>(),
+                    sp.GetRequiredService<ISecretsProvider>(),
+                    sp.GetRequiredService<SecretsProviderOptions>())
+                : new MockEmailSender();
 
-            return new SesEmailSender(
-                sp.GetRequiredService<IAmazonSimpleEmailService>(),
-                sp.GetRequiredService<ISecretsProvider>(),
-                sp.GetRequiredService<SecretsProviderOptions>());
+            return new ResilientEmailSender(innerSender, sp.GetRequiredService<ResiliencePipeline<ErrorOr<Success>>>());
         });
 
         return services;
