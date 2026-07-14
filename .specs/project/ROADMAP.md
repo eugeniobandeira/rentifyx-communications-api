@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** E-04 — Infrastructure (SES, DynamoDB, Idempotency & Resilience)
-**Status:** E-01, E-02, E-03 complete; E-04 F-07 (SES/DynamoDB) done; F-08 (throttling/circuit breaker) and F-09 (retry/DLQ/reconciliation) not started
+**Status:** E-01, E-02, E-03 complete; E-04 F-07 (SES/DynamoDB) done; F-08 (throttling/circuit breaker) has spec+design+tasks done 2026-07-14, ready for Execute; F-09 (retry/DLQ/reconciliation) not started
 
 ---
 
@@ -96,11 +96,11 @@
 - DynamoDB TTL: 90-day auto-expiry on notification records (LGPD Art. 46 data minimization) — ✅ done
 - Integration tests for SES + DynamoDB (including conditional-write race) run against **LocalStack via Testcontainers**, per AD-013 — not the real AWS dev/sandbox account as originally planned in this bullet (AD-012 was already refined by AD-013 for automated tests specifically)
 
-**F-08 · Throttling & Circuit Breaking** — PLANNED
+**F-08 · Throttling & Circuit Breaking** — TASKS READY (`.specs/features/e04-f08-throttling/`, spec+design+tasks done 2026-07-14, T01-T08)
 
-- Token-bucket rate limiter in front of `IEmailSender`, sized below actual SES account quota
-- Polly circuit breaker: opens after N consecutive SES failures, failed sends go to DLQ instead of retrying
-- Load test: 1,000 notifications burst → zero SES Throttling errors
+- Token-bucket rate limiter (`ResilientEmailSender` decorator wrapping F-07's `IEmailSender`) sized below actual SES account quota — placeholder default 14/s pending B-001
+- Polly v8 circuit breaker approximating "N consecutive SES failures" via `FailureRatio = 1.0` + `MinimumThroughput` + `SamplingDuration` (Polly v8 dropped v7's pure consecutive-count breaker — confirmed via Context7 during Design 2026-07-14); circuit-broken/rate-limited sends marked `Failed` (existing `NotificationStatus`) — actual DLQ routing is F-09's concern, not F-08's
+- Load test: 1,000 notifications burst → zero SES Throttling errors (T07, on-demand evidence, not a default CI gate)
 
 **F-09 · Reliability — Retry, DLQ, Poison Messages & Reconciliation** — PLANNED
 
