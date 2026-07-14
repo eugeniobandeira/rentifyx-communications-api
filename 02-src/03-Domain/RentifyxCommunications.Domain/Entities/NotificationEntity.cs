@@ -51,6 +51,35 @@ public sealed class NotificationEntity
         };
     }
 
+    public static NotificationEntity Rehydrate(
+        Guid id,
+        Guid correlationId,
+        Guid recipientId,
+        EmailAddress recipient,
+        Channel channel,
+        TemplateId templateId,
+        IReadOnlyDictionary<string, string> payload,
+        NotificationStatus status,
+        string? failureReason,
+        DateTime createdAt,
+        DateTime? updatedAt)
+    {
+        return new NotificationEntity
+        {
+            Id = id,
+            CorrelationId = correlationId,
+            RecipientId = recipientId,
+            Recipient = recipient,
+            Channel = channel,
+            TemplateId = templateId,
+            Payload = payload,
+            Status = status,
+            FailureReason = failureReason,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        };
+    }
+
     public ErrorOr<Success> Dispatch(ConsentDecision consent, bool isPayloadValid)
     {
         if (Status != NotificationStatus.Pending)

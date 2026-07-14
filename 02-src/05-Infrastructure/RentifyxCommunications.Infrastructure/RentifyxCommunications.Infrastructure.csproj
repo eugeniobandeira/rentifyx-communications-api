@@ -13,6 +13,12 @@
     </PackageReference>
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" />
     <PackageReference Include="AWSSDK.SecretsManager" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" />
+    <PackageReference Include="AWSSDK.SimpleEmail" />
+    <PackageReference Include="Scriban" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\Files\*.scriban" />
   </ItemGroup>
 </Project>

@@ -41,7 +41,7 @@ flowchart TB
 
 The Kafka consumer runs as an `IHostedService` inside the same API host — one deployable, shared health checks and observability (ADR-C06). Full diagram + environment matrix: [`docs/architecture/overview.md`](docs/architecture/overview.md).
 
-> **No LocalStack.** Local development and integration tests connect to a real AWS dev/sandbox account instead of an emulator (decision AD-012, 2026-07-11 — see `.specs/project/STATE.md`). See [Prerequisites](#prerequisites) for what that requires.
+> **Real AWS for manual dev runs, LocalStack for automated tests.** `dotnet run --project AppHost` connects to a real AWS dev/sandbox account (decision AD-012, refined by AD-013, 2026-07-12 — see `.specs/project/STATE.md`). Automated integration tests instead run against a LocalStack container via Testcontainers — no real AWS credentials needed in CI. See [Prerequisites](#prerequisites) for what a manual run requires.
 
 ## Tech Stack
 
@@ -163,11 +163,13 @@ rentifyx-communications-api/
 │   └── 05-Infrastructure/
 │       └── RentifyxCommunications.Infrastructure/ # SES, DynamoDB, SecretsManager implementations
 ├── 03-tests/
-│   ├── 01-Common/      # Shared builders (Bogus)
-│   ├── 02-Validators/  # FluentValidation unit tests
-│   ├── 03-Handlers/    # Handler unit tests
-│   ├── 04-Repositories/# Repository integration tests (Testcontainers)
-│   └── 05-Integration/ # API integration tests (WebApplicationFactory)
+│   ├── 00-Domain/       # Domain aggregate/value-object unit tests
+│   ├── 01-Common/       # Shared builders (Bogus)
+│   ├── 02-Validators/   # FluentValidation unit tests
+│   ├── 03-Handlers/     # Application handler unit tests (Moq)
+│   ├── 04-Repositories/ # Repository unit tests
+│   ├── 05-Integration/  # LocalStack (DynamoDB/SES/SecretsManager) + API integration tests (Testcontainers)
+│   └── 06-Api/          # Api-layer unit tests (consumer, middlewares)
 ├── docs/
 │   ├── architecture/   # Architecture overview
 │   ├── decisions/      # ADRs (C01–C09)
@@ -209,12 +211,11 @@ Kafka message received
 SaveIfNotExists(status=Pending)   ← atomic conditional write on correlationId (ADR-C08)
         │   duplicate? → ack, skip
         ▼
-UpdateStatus(Rendering)
-        │
+ConsentRepository.FindAsync()      ← LGPD Art. 8 check (ADR-C04)
+        │   opted-out? → status=Suppressed, raise NotificationSuppressed, SES never called
+        ▼
 TemplateRenderer.Render()
-        │
-ConsentRepository.GetPreference()  ← LGPD Art. 8 check (ADR-C04)
-        │   opted-out? → status=Suppressed, raise NotificationSuppressed
+        │   render failure? → status=Failed
         ▼
 UpdateStatus(Dispatching)          ← persisted before SES call
         │
@@ -229,9 +230,11 @@ If the process crashes between `Dispatching` and the final status flip, the reco
 
 | Key | Purpose |
 |---|---|
-| `PK = NOTIF#{id}` | Primary access by notification ID |
+| `PK = NOTIF#{correlationId}` | Idempotency target — `attribute_not_exists(PK)` conditional write (corrected 2026-07-13; see ADR-C08) |
 | `GSI1 = RECIPIENT#{recipientId}` | Query notification history per recipient |
-| `GSI2 = CORRELATION#{correlationId}` | Idempotency lookup (conditional write target) |
+| `GSI2 = ID#{id}` | Lookup by the notification's own `Id` (no longer the partition key) |
+
+Consent records share the same table: `PK = CONSENT#{recipientId}`, `SK = CHANNEL#{channel}`.
 
 TTL: 90 days on all notification records (LGPD Art. 46 data minimization).
 
@@ -246,7 +249,7 @@ TTL: 90 days on all notification records (LGPD Art. 46 data minimization).
 | C05 | Server-side template rendering (Scriban) — templates versioned in code |
 | C06 | Kafka consumer as `IHostedService` in API host — single deployable |
 | C07 | Outbox-style status lifecycle — persist before send |
-| C08 | Atomic idempotency via DynamoDB `attribute_not_exists(correlationId)` |
+| C08 | Atomic idempotency via DynamoDB `attribute_not_exists(PK)`, keyed by `correlationId` |
 | C09 | Token-bucket rate limiter + Polly circuit breaker in front of `IEmailSender` |
 
 Full ADR docs: [`docs/decisions/`](docs/decisions/)
@@ -348,31 +351,21 @@ Returns RFC 7807 `ProblemDetails` for all unhandled exceptions. Exception detail
 
 ## Project Status
 
-Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning docs), not here — this table is a snapshot and will go stale. See `.specs/project/ROADMAP.md` for the full epic breakdown and `.specs/features/e01-foundation/tasks.md` for task-level detail.
+Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning docs), not here — this table is a snapshot and will go stale. See `.specs/project/ROADMAP.md` for the full epic breakdown.
 
-**E-01 · Project Foundation** (current milestone):
-
-| Task | Status |
+| Epic | Status |
 |---|---|
-| T01 Solution scaffold | ✅ Done |
-| T02 Build props / package management | ✅ Done |
-| T03 CA5xxx security analyzer rules | ✅ Done |
-| T04 Aspire AppHost + ServiceDefaults | ✅ Done |
-| T05 Serilog JSON, health checks, Scalar, ErrorOr | ✅ Done |
-| T06 GlobalExceptionHandler (RFC 7807, prod-safe) | ✅ Done |
-| T07 AWS SDK config for dev/sandbox account | ✅ Done (reworked per AD-012 — was LocalStack) |
-| T08 Document dev-account resource requirements | ✅ Done |
-| T09 Kafka container in AppHost | ✅ Done |
-| T10 NotificationRequestedConsumer skeleton | ✅ Done |
-| T11 ISecretsProvider interface | ✅ Done |
-| T12 SecretsManagerProvider | ✅ Done (fail-fast requires 3 secrets to exist in the dev-account Secrets Manager — not provisioned yet, see STATE.md Todos) |
-| T13 CI workflow (build + test + 80% coverage gate) | ✅ Done (coverage gate is real, currently red — repo coverage ~5.6%) |
-| T14 Dockerfile + Trivy scan in CI | ✅ Done (found and fixed a real HIGH CVE in a transitive dependency along the way) |
-| T15 OWASP dependency-check in CI | ✅ Done (needs the `NVD_API_KEY` repo secret added before it actually runs in CI) |
-| T16 Branch protection rules | Pending |
-| T17 git-secrets pre-commit hook | ✅ Done |
+| E-01 · Project Foundation & DevSecOps Pipeline | ✅ Done |
+| E-02 · Domain Model — Notification & Consent | ✅ Done |
+| E-03 · Application Layer — Use Cases | ✅ Done |
+| E-04 · Infrastructure (F-07 SES/DynamoDB) | 🚧 In progress |
+| E-04 · Infrastructure (F-08 throttling/circuit breaker, F-09 retry/DLQ/reconciliation) | Not started |
+| E-05 · API Layer & LGPD Compliance | Not started |
+| E-06 · Infrastructure as Code & Production Readiness | Not started |
+| E-07 · Marketing Email Campaigns | Not started (spec/design/tasks written) |
+| E-08 · Identity-API Integration Contract | Not started (spec written) |
 
-**Not started:** E-02 through E-06 (domain model through IaC/ship gate), E-07 (marketing campaigns — spec/design/tasks written), E-08 (identity-api contract — spec written).
+Known gaps carried from E-01 (not yet resolved, tracked in `.specs/project/STATE.md` Todos): branch protection's coverage gate is red until more real tests land across epics; `NVD_API_KEY` repo secret not yet added (blocks the OWASP CI job); dev-account DynamoDB/SES/Secrets Manager resources still need manual provisioning before a real (non-test) run.
 
 ## Infrastructure as Code
 

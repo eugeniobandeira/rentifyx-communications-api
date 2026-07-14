@@ -13,6 +13,8 @@
     <PackageReference Include="Aspire.Hosting.Testing" />
     <PackageReference Include="Confluent.Kafka" />
     <PackageReference Include="AWSSDK.SecretsManager" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" />
+    <PackageReference Include="AWSSDK.SimpleEmail" />
     <PackageReference Include="Testcontainers.LocalStack" />
     <PackageReference Include="Moq" />
     <PackageReference Include="xunit" />

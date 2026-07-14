@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** E-04 — Infrastructure (SES, DynamoDB, Idempotency & Resilience)
-**Status:** E-01, E-02, and E-03 complete; E-04 not started (needs Specify)
+**Status:** E-01, E-02, E-03 complete; E-04 F-07 (SES/DynamoDB) done; F-08 (throttling/circuit breaker) and F-09 (retry/DLQ/reconciliation) not started
 
 ---
 
@@ -86,13 +86,15 @@
 
 ### Features
 
-**F-07 · SES Integration** — PLANNED
+**F-07 · SES Integration** — DONE (2026-07-13) — spec/design/tasks in `.specs/features/e04-f07-ses-dynamodb/`, 25 new tests passing on branch `feat/e04-f07-ses-dynamodb`
 
-- `SesEmailSender` (port from identity-api, generalized) + `MockEmailSender` for local/test
-- `DynamoDbNotificationRepository`: SaveIfNotExists, GetById, GetByRecipient, UpdateStatus
-- Single-table design: PK=`NOTIF#{id}`, GSI1=`RECIPIENT#{recipientId}`, GSI2=`CORRELATION#{correlationId}`
-- DynamoDB TTL: 90-day auto-expiry on notification records (LGPD Art. 46 data minimization)
-- Integration tests for SES + DynamoDB (including conditional-write race) run against the real AWS dev/sandbox account — no LocalStack (AD-012); CI credential strategy still to be decided (see STATE.md Todos)
+- `SesEmailSender` (`AWSSDK.SimpleEmail` V1 — V2 tried first, reverted after discovering LocalStack Community doesn't support `sesv2`) + `MockEmailSender` for local/test — ✅ done, selected at DI time via `IHostEnvironment`
+- `DynamoDbNotificationRepository`: SaveIfNotExists, GetById, GetByRecipient, UpdateStatus — ✅ done
+- `DynamoDbConsentRepository`: FindAsync — ✅ done
+- `ScribanTemplateRenderer` (ADR-C05 resolved: Scriban) with one example template (`welcome-email`) — ✅ done
+- Single-table design: PK=`NOTIF#{correlationId}` (corrected 2026-07-13, see STATE.md AD-008 — was originally `NOTIF#{id}`, which didn't actually enforce idempotency), GSI1=`RECIPIENT#{recipientId}`, GSI2=`ID#{id}`
+- DynamoDB TTL: 90-day auto-expiry on notification records (LGPD Art. 46 data minimization) — ✅ done
+- Integration tests for SES + DynamoDB (including conditional-write race) run against **LocalStack via Testcontainers**, per AD-013 — not the real AWS dev/sandbox account as originally planned in this bullet (AD-012 was already refined by AD-013 for automated tests specifically)
 
 **F-08 · Throttling & Circuit Breaking** — PLANNED
 
