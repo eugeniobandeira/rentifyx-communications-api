@@ -232,10 +232,10 @@ Phase 5 — Evidence & Docs (Parallel, after T06):
 - Skill: none
 
 **Done when**:
-- [ ] Test fires 1,000 sends through a `ResilientEmailSender` wrapping a rate-simulating `MockEmailSender`
-- [ ] Assertion: the observed call rate to the inner sender never exceeds the configured `TokenBucketPermitsPerSecond`
-- [ ] Tagged so it does NOT run as part of the default CI gate (e.g. `[Trait("Category", "LoadTest")]`, excluded from the standard `--filter "Category!=Integration"` quick gate) — this is on-demand evidence per spec THR-08's P3 priority, not a required CI check
-- [ ] Documented in this task how to run it manually (exact `dotnet test --filter` invocation)
+- [x] Test fires 1,000 sends through a `ResilientEmailSender` wrapping a custom `CountingEmailSender` fake (not `MockEmailSender` — its `List<>` isn't safe for 1,000 concurrent writes; the fake uses `Interlocked.Increment` instead, documented as a deliberate deviation from the task's original wording)
+- [x] Assertion: total wall-clock elapsed time is close to the theoretical minimum given `(BurstSize - TokenBucketPermitsPerSecond) / TokenBucketPermitsPerSecond` (the first bucket-full of calls goes through instantly, the rest wait for refills) — proves the burst was actually throttled to the configured rate, not let through instantly. A direct per-second call-count assertion was considered but rejected as more flake-prone under CI/test-runner scheduler jitter than a timing lower-bound.
+- [x] Tagged `[Trait("Category", "LoadTest")]`; CI's `--filter "Category!=Integration"` was updated to `"Category!=Integration&Category!=LoadTest"` (`.github/workflows/ci.yml`) since a new category isn't excluded by an existing filter automatically — this is on-demand evidence per spec THR-08's P3 priority, not a required CI check
+- [x] Documented in this task how to run it manually: `dotnet test --filter "Category=LoadTest"`
 
 **Tests**: none (per Test Coverage Matrix — this is evidence, not a CI-gated correctness test; T03/T04's unit tests already prove the mechanism)
 **Gate**: n/a (manual/on-demand)
