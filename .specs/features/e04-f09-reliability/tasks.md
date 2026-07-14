@@ -281,9 +281,9 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `IKafkaProducerFactory.Create(): IProducer<Null, string>` defined
-- [ ] `KafkaProducerFactory` reads the same `kafka` connection string as `KafkaConsumerFactory` via `IConfiguration.GetConnectionString("kafka")`
-- [ ] `dotnet build --no-incremental` passes
+- [x] `IKafkaProducerFactory.Create(): IProducer<Null, string>` defined
+- [x] `KafkaProducerFactory` reads the same `kafka` connection string as `KafkaConsumerFactory` via `IConfiguration.GetConnectionString("kafka")`
+- [x] `dotnet build --no-incremental` passes
 
 **Tests**: none
 **Gate**: build
