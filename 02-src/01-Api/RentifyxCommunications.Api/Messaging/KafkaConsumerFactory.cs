@@ -1,7 +1,7 @@
 using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 
-namespace RentifyxCommunications.Api.Consumers;
+namespace RentifyxCommunications.Api.Messaging;
 
 internal sealed class KafkaConsumerFactory(IConfiguration configuration) : IKafkaConsumerFactory
 {

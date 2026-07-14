@@ -5,14 +5,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using RentifyxCommunications.Api.Consumers;
+using RentifyxCommunications.Api.Messaging;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
 using RentifyxCommunications.Domain.Enums;
 using Xunit;
 
-namespace RentifyxCommunications.Tests.Api.Consumers;
+namespace RentifyxCommunications.Tests.Api.Messaging;
 
 public sealed class NotificationRequestedConsumerTests
 {

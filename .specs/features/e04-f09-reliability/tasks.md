@@ -173,11 +173,11 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] All 3 source files moved, namespace changed to `RentifyxCommunications.Api.Messaging`
-- [ ] Test file moved, namespace changed to `RentifyxCommunications.Tests.Api.Messaging`, all `using`s updated
-- [ ] `Program.cs`'s `AddHostedService<NotificationRequestedConsumer>()` registration unaffected in behavior (namespace import updated)
-- [ ] `dotnet build --no-incremental` passes
-- [ ] `dotnet test --filter "Category!=Integration"` passes, all 6 existing `NotificationRequestedConsumerTests` unchanged in behavior, 0 regressions
+- [x] All 3 source files moved, namespace changed to `RentifyxCommunications.Api.Messaging`
+- [x] Test file moved, namespace changed to `RentifyxCommunications.Tests.Api.Messaging`, all `using`s updated
+- [x] `Program.cs`'s `AddHostedService<NotificationRequestedConsumer>()` registration unaffected in behavior (namespace import updated, alphabetical `using` order preserved)
+- [x] `dotnet build --no-incremental` passes
+- [x] `dotnet test --filter "Category!=Integration"` passes, all 7 existing `NotificationRequestedConsumerTests` unchanged in behavior, 0 regressions
 
 **Tests**: none
 **Gate**: quick

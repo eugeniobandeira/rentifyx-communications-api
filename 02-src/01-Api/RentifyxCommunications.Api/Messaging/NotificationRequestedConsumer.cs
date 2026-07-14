@@ -9,7 +9,7 @@ using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
 
-namespace RentifyxCommunications.Api.Consumers;
+namespace RentifyxCommunications.Api.Messaging;
 
 public sealed class NotificationRequestedConsumer(
     ILogger<NotificationRequestedConsumer> logger,

@@ -1,5 +1,5 @@
-﻿using RentifyxCommunications.Api.Consumers;
-using RentifyxCommunications.Api.Extensions;
+﻿using RentifyxCommunications.Api.Extensions;
+using RentifyxCommunications.Api.Messaging;
 using RentifyxCommunications.Api.Middlewares;
 using RentifyxCommunications.Infrastructure.Resilience;
 using RentifyxCommunications.Infrastructure.Secrets;
