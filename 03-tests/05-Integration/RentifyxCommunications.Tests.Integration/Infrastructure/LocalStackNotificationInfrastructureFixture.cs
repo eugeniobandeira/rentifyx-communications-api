@@ -3,7 +3,7 @@ using Amazon.DynamoDBv2.Model;
 using Amazon.Runtime;
 using Amazon.SimpleEmail;
 using Amazon.SimpleEmail.Model;
-using RentifyxCommunications.Infrastructure.Repositories;
+using RentifyxCommunications.Infrastructure.Repositories.Notifications;
 using Testcontainers.LocalStack;
 using Xunit;
 

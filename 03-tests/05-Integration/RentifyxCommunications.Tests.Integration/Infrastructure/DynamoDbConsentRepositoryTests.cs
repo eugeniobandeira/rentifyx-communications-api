@@ -2,7 +2,7 @@ using Amazon.DynamoDBv2.Model;
 using FluentAssertions;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.ValueObjects;
-using RentifyxCommunications.Infrastructure.Repositories;
+using RentifyxCommunications.Infrastructure.Repositories.Notifications;
 using Xunit;
 
 namespace RentifyxCommunications.Tests.Integration.Infrastructure;

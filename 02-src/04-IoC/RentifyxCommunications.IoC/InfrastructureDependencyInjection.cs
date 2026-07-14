@@ -7,6 +7,7 @@ using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Infrastructure.Context;
 using RentifyxCommunications.Infrastructure.Email;
 using RentifyxCommunications.Infrastructure.Repositories;
+using RentifyxCommunications.Infrastructure.Repositories.Notifications;
 using RentifyxCommunications.Infrastructure.Secrets;
 using RentifyxCommunications.Infrastructure.Templates;
 using Amazon.DynamoDBv2;

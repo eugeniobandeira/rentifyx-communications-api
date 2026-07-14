@@ -1,11 +1,10 @@
-using System.Globalization;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Domain.ValueObjects;
 
-namespace RentifyxCommunications.Infrastructure.Repositories;
+namespace RentifyxCommunications.Infrastructure.Repositories.Notifications;
 
 public sealed class DynamoDbConsentRepository(IAmazonDynamoDB client) : IConsentRepository
 {
@@ -24,9 +23,6 @@ public sealed class DynamoDbConsentRepository(IAmazonDynamoDB client) : IConsent
         if (!response.IsItemSet)
             return null;
 
-        bool optedIn = response.Item["OptedIn"].BOOL ?? false;
-        DateTime updatedAt = DateTime.Parse(response.Item["UpdatedAt"].S, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-
-        return ConsentPreference.Create(recipientId, channel, optedIn, updatedAt).Value;
+        return ConsentItemMapper.ToEntity(response.Item, recipientId, channel);
     }
 }
