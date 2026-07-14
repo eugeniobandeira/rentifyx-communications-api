@@ -34,7 +34,7 @@ jobs:
           dotnet test RentifyxCommunications.slnx
           --no-build
           --configuration Release
-          --filter "Category!=Integration"
+          --filter "Category!=Integration&Category!=LoadTest"
           --logger "trx;LogFileName=test-results.trx"
           --results-directory ./TestResults
           --collect:"XPlat Code Coverage"

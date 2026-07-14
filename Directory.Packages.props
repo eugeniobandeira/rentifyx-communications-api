@@ -54,6 +54,10 @@
     <PackageVersion Include="Scriban" Version="7.2.5" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
   </ItemGroup>
+  <ItemGroup Label="Resilience">
+    <PackageVersion Include="Polly.Core" Version="8.7.0" />
+    <PackageVersion Include="Polly.RateLimiting" Version="8.7.0" />
+  </ItemGroup>
   <ItemGroup Label="Tests">
     <PackageVersion Include="Bogus" Version="35.6.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
