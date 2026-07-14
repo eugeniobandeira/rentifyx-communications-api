@@ -80,7 +80,7 @@ public sealed class DispatchNotificationHandler(
 
         if (notification.Status == NotificationStatus.Suppressed)
         {
-            await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Suppressed, cancellationToken);
+            await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Suppressed, cancellationToken: cancellationToken);
             logger.LogInformation(
                 "Notification suppressed - recipient opted out. CorrelationId={CorrelationId}",
                 request.CorrelationId);
@@ -91,22 +91,22 @@ public sealed class DispatchNotificationHandler(
         if (renderResult.IsError)
         {
             notification.MarkFailed(renderResult.FirstError.Description);
-            await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Failed, cancellationToken);
+            await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Failed, notification.FailureReason, cancellationToken);
             return new DispatchNotificationResponse(NotificationStatus.Failed, WasDuplicate: false);
         }
 
-        await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Dispatching, cancellationToken);
+        await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Dispatching, cancellationToken: cancellationToken);
 
         ErrorOr<Success> sendResult = await emailSender.SendAsync(notification.Recipient, renderResult.Value, cancellationToken);
         if (sendResult.IsError)
         {
             notification.MarkFailed(sendResult.FirstError.Description);
-            await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Failed, cancellationToken);
+            await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Failed, notification.FailureReason, cancellationToken);
             return new DispatchNotificationResponse(NotificationStatus.Failed, WasDuplicate: false);
         }
 
         notification.MarkSent();
-        await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Sent, cancellationToken);
+        await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Sent, cancellationToken: cancellationToken);
         return new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false);
     }
 }

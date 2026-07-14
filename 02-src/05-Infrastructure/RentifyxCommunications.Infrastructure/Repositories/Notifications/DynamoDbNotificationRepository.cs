@@ -46,6 +46,21 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
         return response.Items.Count == 0 ? null : NotificationItemMapper.ToEntity(response.Items[0]);
     }
 
+    public async Task<NotificationEntity?> GetByCorrelationIdAsync(Guid correlationId, CancellationToken cancellationToken = default)
+    {
+        GetItemResponse response = await client.GetItemAsync(new GetItemRequest
+        {
+            TableName = TableName,
+            Key = new Dictionary<string, AttributeValue>
+            {
+                ["PK"] = new($"NOTIF#{correlationId}"),
+                ["SK"] = new("METADATA")
+            }
+        }, cancellationToken);
+
+        return response.IsItemSet ? NotificationItemMapper.ToEntity(response.Item) : null;
+    }
+
     public async Task<IReadOnlyList<NotificationEntity>> GetByRecipientAsync(Guid recipientId, CancellationToken cancellationToken = default)
     {
         QueryResponse response = await client.QueryAsync(new QueryRequest
@@ -62,13 +77,27 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
         return response.Items.Select(NotificationItemMapper.ToEntity).ToList();
     }
 
-    public async Task UpdateStatusAsync(Guid id, NotificationStatus status, CancellationToken cancellationToken = default)
+    public async Task UpdateStatusAsync(Guid id, NotificationStatus status, string? failureReason = null, CancellationToken cancellationToken = default)
     {
         NotificationEntity? notification = await GetByIdAsync(id, cancellationToken);
         if (notification is null)
             return;
 
         string updatedAt = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+
+        string updateExpression = "SET #status = :status, UpdatedAt = :updatedAt, GSI3PK = :gsi3pk, GSI3SK = :updatedAt";
+        Dictionary<string, AttributeValue> expressionAttributeValues = new()
+        {
+            [":status"] = new(status.ToString()),
+            [":updatedAt"] = new(updatedAt),
+            [":gsi3pk"] = new($"STATUS#{status}")
+        };
+
+        if (failureReason is not null)
+        {
+            updateExpression += ", FailureReason = :failureReason";
+            expressionAttributeValues[":failureReason"] = new(failureReason);
+        }
 
         await client.UpdateItemAsync(new UpdateItemRequest
         {
@@ -78,14 +107,9 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
                 ["PK"] = new($"NOTIF#{notification.CorrelationId}"),
                 ["SK"] = new("METADATA")
             },
-            UpdateExpression = "SET #status = :status, UpdatedAt = :updatedAt, GSI3PK = :gsi3pk, GSI3SK = :updatedAt",
+            UpdateExpression = updateExpression,
             ExpressionAttributeNames = new Dictionary<string, string> { ["#status"] = "Status" },
-            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-            {
-                [":status"] = new(status.ToString()),
-                [":updatedAt"] = new(updatedAt),
-                [":gsi3pk"] = new($"STATUS#{status}")
-            }
+            ExpressionAttributeValues = expressionAttributeValues
         }, cancellationToken);
     }
 

@@ -425,12 +425,13 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] Subscribes to `RetryTopicChain.DlqTopic`
-- [ ] On each message, logs at `Critical` level with the full header set (retry count, exception type/message, original topic) for triage visibility
-- [ ] Deserializes the payload to extract the notification's `CorrelationId`/`Id` and calls `UpdateStatusAsync(id, NotificationStatus.Failed, ct)` — **Design note**: the DLQ message carries the same `DispatchNotificationRequest` payload; the notification's own `Id` isn't in that payload (only `CorrelationId` is) — Task must confirm whether `GetByIdAsync`-by-correlation or a lookup is needed, since `INotificationRepository` currently only supports `GetByIdAsync(Guid id)`, not by `correlationId` directly. If no such lookup exists, this step logs a warning and skips the status update rather than guessing — flagged explicitly in code, not silently wrong.
-- [ ] Always commits the offset (DLQ is terminal — nothing to route further)
-- [ ] Unit tests: a DLQ message triggers a `Critical` log with the header content; commit always happens
-- [ ] `dotnet test --filter "Category!=Integration"` passes
+- [x] Subscribes to `RetryTopicChain.DlqTopic`
+- [x] On each message, logs at `Critical` level with the full header set (retry count, exception type/message, original topic) for triage visibility
+- [x] **Resolved the flagged design gap**: `INotificationRepository` gained a new `GetByCorrelationIdAsync(Guid correlationId, ct): Task<NotificationEntity?>` method (direct `GetItem` on `PK=NOTIF#{correlationId}` — cheaper than `GetByIdAsync`'s GSI2 query, since `correlationId` is already the table's primary key). `DlqObserverHostedService` deserializes the payload, looks up the record by `CorrelationId`, and calls `UpdateStatusAsync(entity.Id, Failed, exceptionMessage)` — logs a warning and skips the update (doesn't guess/crash) if no matching record exists.
+- [x] **Second gap found and fixed while implementing this**: `UpdateStatusAsync` never actually persisted `FailureReason` — it only ever wrote `Status`/`UpdatedAt`(/`GSI3PK`/`GSI3SK`), even though `NotificationEntity.MarkFailed(reason)` sets it in memory and `NotificationItemMapper.ToEntity` reads it back if present. This meant `DispatchNotificationHandler`'s own two existing `MarkFailed` → `UpdateStatusAsync(Failed)` call sites (pre-dating F-09) never actually saved a failure reason either. Fixed by adding an optional `string? failureReason = null` parameter to `UpdateStatusAsync`, conditionally included in the `UpdateExpression`; updated `DispatchNotificationHandler`'s two call sites to pass `notification.FailureReason`, closing the pre-existing gap as a byproduct.
+- [x] Always commits the offset (DLQ is terminal — nothing to route further)
+- [x] Unit tests: a DLQ message with a matching record calls `UpdateStatusAsync` with the correct id/status/reason; a DLQ message with no matching record skips the update without crashing; both always commit. Plus 3 new integration tests (`GetByCorrelationIdAsync` found/not-found, `UpdateStatusAsync` failure-reason persistence).
+- [x] `dotnet test --filter "Category!=Integration"` passes (0 regressions); `dotnet test --filter "Category=Integration&FullyQualifiedName~DynamoDbNotificationRepositoryTests"` → 12/12 pass
 
 **Tests**: unit
 **Gate**: quick

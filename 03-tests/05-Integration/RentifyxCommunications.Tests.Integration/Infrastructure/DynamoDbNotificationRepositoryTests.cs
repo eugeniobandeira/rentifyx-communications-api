@@ -121,6 +121,41 @@ public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationIn
     }
 
     [Fact]
+    public async Task UpdateStatusAsync_ShouldPersistFailureReason_WhenProvided()
+    {
+        NotificationEntity notification = CreateNotification();
+        await _sut.SaveIfNotExistsAsync(notification);
+
+        await _sut.UpdateStatusAsync(notification.Id, NotificationStatus.Failed, "SES rejected the message");
+
+        NotificationEntity? result = await _sut.GetByIdAsync(notification.Id);
+        result.Should().NotBeNull();
+        result!.Status.Should().Be(NotificationStatus.Failed);
+        result.FailureReason.Should().Be("SES rejected the message");
+    }
+
+    [Fact]
+    public async Task GetByCorrelationIdAsync_WithExistingNotification_ShouldReturnHydratedEntity()
+    {
+        NotificationEntity notification = CreateNotification();
+        await _sut.SaveIfNotExistsAsync(notification);
+
+        NotificationEntity? result = await _sut.GetByCorrelationIdAsync(notification.CorrelationId);
+
+        result.Should().NotBeNull();
+        result!.Id.Should().Be(notification.Id);
+        result.CorrelationId.Should().Be(notification.CorrelationId);
+    }
+
+    [Fact]
+    public async Task GetByCorrelationIdAsync_WithMissingNotification_ShouldReturnNull()
+    {
+        NotificationEntity? result = await _sut.GetByCorrelationIdAsync(Guid.NewGuid());
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GetStuckDispatchingAsync_WithOldDispatchingRecord_ShouldReturnIt()
     {
         NotificationEntity notification = CreateNotification();
