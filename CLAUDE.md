@@ -23,7 +23,7 @@ Domain/Interfaces/
 └── Notifications/        # INotificationRepository, IConsentRepository, ITemplateRenderer, IEmailSender
 ```
 
-Do not place an interface directly under `Interfaces/` (loose) when it belongs to a specific domain concept — give it a subfolder named after that concept, matching the `Examples/` precedent. The same rule applies to `Application/`: validators, requests, and handlers each get their own subfolder under `Features/{Feature}/Handlers/{Action}/`.
+Do not place an interface directly under `Interfaces/` (loose) when it belongs to a specific domain concept — give it a subfolder named after that concept, matching the `Examples/` precedent. The same rule applies to `Application/`: validators, requests, and handler results each get their own subfolder under `Features/{Feature}/Handlers/{Action}/` — `Request/`, `Validator/`, `Response/` — with the handler class itself as the only file loose at the `{Action}/` root. A handler's result type takes the `Response` suffix (e.g. `DispatchNotificationResponse`), matching `ExampleResponse`, not `Result`/`Outcome`.
 
 ## Constructors
 

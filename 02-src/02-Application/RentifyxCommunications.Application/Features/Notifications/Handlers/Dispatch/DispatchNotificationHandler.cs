@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Extensions;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Response;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
@@ -17,9 +18,9 @@ public sealed class DispatchNotificationHandler(
     IConsentRepository consentRepository,
     ITemplateRenderer templateRenderer,
     IEmailSender emailSender,
-    ILogger<DispatchNotificationHandler> logger) : IHandler<DispatchNotificationRequest, DispatchOutcome>
+    ILogger<DispatchNotificationHandler> logger) : IHandler<DispatchNotificationRequest, DispatchNotificationResponse>
 {
-    public async Task<ErrorOr<DispatchOutcome>> HandleAsync(
+    public async Task<ErrorOr<DispatchNotificationResponse>> HandleAsync(
         DispatchNotificationRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -63,7 +64,7 @@ public sealed class DispatchNotificationHandler(
             logger.LogInformation(
                 "Duplicate NotificationRequested message. CorrelationId={CorrelationId}",
                 request.CorrelationId);
-            return new DispatchOutcome(NotificationStatus.Pending, WasDuplicate: true);
+            return new DispatchNotificationResponse(NotificationStatus.Pending, WasDuplicate: true);
         }
 
         ConsentPreference? preference = await consentRepository.FindAsync(request.RecipientId, channel, cancellationToken);
@@ -83,7 +84,7 @@ public sealed class DispatchNotificationHandler(
             logger.LogInformation(
                 "Notification suppressed - recipient opted out. CorrelationId={CorrelationId}",
                 request.CorrelationId);
-            return new DispatchOutcome(NotificationStatus.Suppressed, WasDuplicate: false);
+            return new DispatchNotificationResponse(NotificationStatus.Suppressed, WasDuplicate: false);
         }
 
         ErrorOr<string> renderResult = await templateRenderer.RenderAsync(notification.TemplateId, notification.Payload, cancellationToken);
@@ -91,7 +92,7 @@ public sealed class DispatchNotificationHandler(
         {
             notification.MarkFailed(renderResult.FirstError.Description);
             await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Failed, cancellationToken);
-            return new DispatchOutcome(NotificationStatus.Failed, WasDuplicate: false);
+            return new DispatchNotificationResponse(NotificationStatus.Failed, WasDuplicate: false);
         }
 
         await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Dispatching, cancellationToken);
@@ -101,11 +102,11 @@ public sealed class DispatchNotificationHandler(
         {
             notification.MarkFailed(sendResult.FirstError.Description);
             await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Failed, cancellationToken);
-            return new DispatchOutcome(NotificationStatus.Failed, WasDuplicate: false);
+            return new DispatchNotificationResponse(NotificationStatus.Failed, WasDuplicate: false);
         }
 
         notification.MarkSent();
         await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Sent, cancellationToken);
-        return new DispatchOutcome(NotificationStatus.Sent, WasDuplicate: false);
+        return new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false);
     }
 }

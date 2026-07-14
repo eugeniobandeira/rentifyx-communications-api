@@ -5,6 +5,7 @@ using Moq;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Response;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
@@ -23,10 +24,10 @@ public sealed class NotificationDispatchProcessorTests
 
     private static (
         NotificationDispatchProcessor Processor,
-        Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> Handler,
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> Handler,
         Mock<IFailureRouter> Router) CreateSut()
     {
-        Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler = new();
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
         Mock<IFailureRouter> router = new();
         NotificationDispatchProcessor processor = new(handler.Object, router.Object, Mock.Of<ILogger<NotificationDispatchProcessor>>());
 
@@ -36,10 +37,10 @@ public sealed class NotificationDispatchProcessorTests
     [Fact]
     public async Task ProcessAsync_ShouldNotRoute_WhenHandlerSucceeds()
     {
-        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler, Mock<IFailureRouter> router) = CreateSut();
+        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler, Mock<IFailureRouter> router) = CreateSut();
         handler
             .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DispatchOutcome(NotificationStatus.Sent, WasDuplicate: false));
+            .ReturnsAsync(new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false));
 
         await sut.ProcessAsync(ValidMessage, Context);
 
@@ -51,7 +52,7 @@ public sealed class NotificationDispatchProcessorTests
     [Fact]
     public async Task ProcessAsync_ShouldRouteToDlq_WhenMessageIsMalformedJson()
     {
-        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler, Mock<IFailureRouter> router) = CreateSut();
+        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler, Mock<IFailureRouter> router) = CreateSut();
 
         await sut.ProcessAsync("{not-valid-json", Context);
 
@@ -64,7 +65,7 @@ public sealed class NotificationDispatchProcessorTests
     [Fact]
     public async Task ProcessAsync_ShouldRouteAsPoisonPill_WhenHandlerReturnsAPoisonPillError()
     {
-        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler, Mock<IFailureRouter> router) = CreateSut();
+        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler, Mock<IFailureRouter> router) = CreateSut();
         handler
             .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Error> { Error.Failure(TemplateErrorCodes.NotFound, "not found") });
@@ -79,7 +80,7 @@ public sealed class NotificationDispatchProcessorTests
     [Fact]
     public async Task ProcessAsync_ShouldRouteAsTransient_WhenHandlerReturnsATransientError()
     {
-        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler, Mock<IFailureRouter> router) = CreateSut();
+        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler, Mock<IFailureRouter> router) = CreateSut();
         handler
             .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Error> { Error.Failure(SesErrorCodes.SendFailed, "ses down") });
@@ -94,7 +95,7 @@ public sealed class NotificationDispatchProcessorTests
     [Fact]
     public async Task ProcessAsync_ShouldClassifyAndRoute_WhenHandlerThrows()
     {
-        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler, Mock<IFailureRouter> router) = CreateSut();
+        (NotificationDispatchProcessor sut, Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler, Mock<IFailureRouter> router) = CreateSut();
         handler
             .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("db unreachable"));

@@ -9,6 +9,7 @@ using RentifyxCommunications.Api.Messaging;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Response;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
@@ -78,10 +79,10 @@ public sealed class NotificationRequestedConsumerTests
     [Fact]
     public async Task ConsumeLoop_WithValidMessage_ShouldCallHandlerAndLogInformation()
     {
-        Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler = new();
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
         handler
             .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DispatchOutcome(NotificationStatus.Sent, WasDuplicate: false));
+            .ReturnsAsync(new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false));
 
         Mock<IConsumer<Ignore, string>> consumer = new();
         consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
@@ -109,7 +110,7 @@ public sealed class NotificationRequestedConsumerTests
     [Fact]
     public async Task ConsumeLoop_WithMalformedJson_ShouldRouteToDlqAndCommit()
     {
-        Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler = new();
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
 
         Mock<IConsumer<Ignore, string>> consumer = new();
         consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
@@ -137,7 +138,7 @@ public sealed class NotificationRequestedConsumerTests
     [Fact]
     public async Task ConsumeLoop_WithTransientHandlerFailure_ShouldRouteAsTransientAndCommit()
     {
-        Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler = new();
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
         handler
             .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ErrorOr.Error> { ErrorOr.Error.Failure(SesErrorCodes.SendFailed, "ses down") });
@@ -167,7 +168,7 @@ public sealed class NotificationRequestedConsumerTests
     [Fact]
     public async Task ConsumeLoop_WhenHandlerThrows_ShouldLogErrorAndCommitWithoutCrashingLoop()
     {
-        Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler = new();
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
         handler
             .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("simulated infra failure"));
@@ -197,10 +198,10 @@ public sealed class NotificationRequestedConsumerTests
     [Fact]
     public async Task ConsumeLoop_WithMalformedMessageFollowedByValidMessage_ShouldStillProcessValidMessage()
     {
-        Mock<IHandler<DispatchNotificationRequest, DispatchOutcome>> handler = new();
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
         handler
             .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DispatchOutcome(NotificationStatus.Sent, WasDuplicate: false));
+            .ReturnsAsync(new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false));
 
         Mock<IConsumer<Ignore, string>> consumer = new();
         consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
@@ -255,12 +256,12 @@ public sealed class NotificationRequestedConsumerTests
     private static NotificationRequestedConsumer CreateSut(
         SharedLogEntries entries,
         IKafkaConsumerFactory factory,
-        IHandler<DispatchNotificationRequest, DispatchOutcome>? handler = null,
+        IHandler<DispatchNotificationRequest, DispatchNotificationResponse>? handler = null,
         TimeSpan? retryDelayOverride = null,
         IFailureRouter? router = null)
     {
         ServiceCollection services = new();
-        services.AddSingleton(handler ?? Mock.Of<IHandler<DispatchNotificationRequest, DispatchOutcome>>());
+        services.AddSingleton(handler ?? Mock.Of<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>>());
         services.AddSingleton(router ?? Mock.Of<IFailureRouter>());
         services.AddSingleton<ILogger<NotificationDispatchProcessor>>(new ListLogger<NotificationDispatchProcessor>(entries));
         services.AddScoped<NotificationDispatchProcessor>();

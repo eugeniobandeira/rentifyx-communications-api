@@ -3,6 +3,7 @@ using ErrorOr;
 using Microsoft.Extensions.Logging;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Response;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Domain.ValueObjects;
@@ -14,7 +15,7 @@ namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Dis
 /// consumer (the original topic and each retry stage) so the logic exists in exactly one place.
 /// </summary>
 public sealed class NotificationDispatchProcessor(
-    IHandler<DispatchNotificationRequest, DispatchOutcome> handler,
+    IHandler<DispatchNotificationRequest, DispatchNotificationResponse> handler,
     IFailureRouter failureRouter,
     ILogger<NotificationDispatchProcessor> logger)
 {
@@ -41,7 +42,7 @@ public sealed class NotificationDispatchProcessor(
 
         try
         {
-            ErrorOr<DispatchOutcome> outcome = await handler.HandleAsync(request, cancellationToken);
+            ErrorOr<DispatchNotificationResponse> outcome = await handler.HandleAsync(request, cancellationToken);
 
             if (outcome.IsError)
             {

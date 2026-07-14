@@ -14,6 +14,7 @@ using RentifyxCommunications.Application.Features.Examples.Handlers.Update.Reque
 using RentifyxCommunications.Application.Features.Examples.Handlers.Update.Validator;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Response;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Validator;
 using RentifyxCommunications.Domain.Common;
 using RentifyxCommunications.Domain.Entities;
@@ -34,7 +35,7 @@ internal static class ApplicationDependencyInjection
         services.AddScoped<IHandler<UpdateExampleRequest, ExampleEntity>, UpdateExampleHandler>();
 
         services.AddScoped<IValidator<DispatchNotificationRequest>, DispatchNotificationValidator>();
-        services.AddScoped<IHandler<DispatchNotificationRequest, DispatchOutcome>, DispatchNotificationHandler>();
+        services.AddScoped<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>, DispatchNotificationHandler>();
 
         return services;
     }

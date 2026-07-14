@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Response;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Validator;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Enums;
@@ -48,7 +49,7 @@ public sealed class DispatchNotificationHandlerTests
         DispatchNotificationHandler sut = CreateSut();
         DispatchNotificationRequest request = ValidRequest() with { CorrelationId = Guid.Empty };
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(request);
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(request);
 
         result.IsError.Should().BeTrue();
         _notificationRepository.Verify(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -63,7 +64,7 @@ public sealed class DispatchNotificationHandlerTests
         DispatchNotificationHandler sut = CreateSut();
         DispatchNotificationRequest request = ValidRequest() with { RecipientEmail = "not-an-email" };
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(request);
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(request);
 
         result.IsError.Should().BeTrue();
         _notificationRepository.Verify(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -78,7 +79,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.WasDuplicate.Should().BeTrue();
@@ -121,7 +122,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Suppressed);
@@ -191,7 +192,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Failed);
@@ -222,7 +223,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Sent);
@@ -243,7 +244,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Failed);
