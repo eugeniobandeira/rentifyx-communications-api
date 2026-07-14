@@ -6,6 +6,7 @@ using RentifyxCommunications.Domain.Interfaces.Examples;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Infrastructure.Context;
 using RentifyxCommunications.Infrastructure.Email;
+using RentifyxCommunications.Infrastructure.Messaging;
 using RentifyxCommunications.Infrastructure.Options;
 using RentifyxCommunications.Infrastructure.Repositories;
 using RentifyxCommunications.Infrastructure.Repositories.Notifications;
@@ -36,6 +37,7 @@ internal static class InfrastructureDependencyInjection
         services.AddAwsOptions(configuration);
         services.AddSecretsManager();
         services.AddNotificationInfrastructure(configuration);
+        services.AddMessaging(configuration);
 
         return services;
     }
@@ -127,6 +129,20 @@ internal static class InfrastructureDependencyInjection
 
             return new ResilientEmailSender(innerSender, sp.GetRequiredService<ResiliencePipeline<ErrorOr<Success>>>());
         });
+
+        return services;
+    }
+
+    private static IServiceCollection AddMessaging(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddSingleton<IKafkaProducerFactory, KafkaProducerFactory>();
+        services.AddScoped<IFailureRouter, KafkaFailureRouter>();
+
+        ReconciliationOptions reconciliationOptions = configuration.GetSection("Reconciliation").Get<ReconciliationOptions>()
+            ?? new ReconciliationOptions();
+        services.AddSingleton(reconciliationOptions);
 
         return services;
     }

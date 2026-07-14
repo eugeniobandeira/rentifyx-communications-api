@@ -32,7 +32,7 @@ public sealed class RetryTopicConsumerTests
             .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false));
 
-        Headers headers = BuildHeaders(nextRetryAt: DateTimeOffset.UtcNow.AddMilliseconds(300));
+        Headers headers = BuildHeaders(nextRetryAt: DateTimeOffset.UtcNow.AddSeconds(1));
         Mock<IConsumer<Ignore, string>> consumer = new();
         consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
             .Returns(MessageResult(headers))
@@ -45,11 +45,13 @@ public sealed class RetryTopicConsumerTests
         Stopwatch stopwatch = Stopwatch.StartNew();
 
         await sut.StartAsync(CancellationToken.None);
-        await WaitForAsync(() => handler.Invocations.Count > 0);
+        await WaitForAsync(() => handler.Invocations.Count > 0, TimeSpan.FromSeconds(10));
         await sut.StopAsync(CancellationToken.None);
         stopwatch.Stop();
 
-        stopwatch.Elapsed.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(250));
+        // Generous lower bound (half the configured delay) to stay robust under parallel test-run CPU contention,
+        // while still proving a real delay happened rather than immediate processing.
+        stopwatch.Elapsed.Should().BeGreaterThanOrEqualTo(TimeSpan.FromMilliseconds(500));
     }
 
     [Fact]
@@ -135,9 +137,9 @@ public sealed class RetryTopicConsumerTests
         };
     }
 
-    private static async Task WaitForAsync(Func<bool> condition)
+    private static async Task WaitForAsync(Func<bool> condition, TimeSpan? timeoutOverride = null)
     {
-        using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(5));
+        using CancellationTokenSource timeout = new(timeoutOverride ?? TimeSpan.FromSeconds(5));
         while (!condition() && !timeout.IsCancellationRequested)
         {
             await Task.Delay(10);

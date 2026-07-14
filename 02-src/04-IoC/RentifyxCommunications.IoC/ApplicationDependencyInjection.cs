@@ -36,6 +36,7 @@ internal static class ApplicationDependencyInjection
 
         services.AddScoped<IValidator<DispatchNotificationRequest>, DispatchNotificationValidator>();
         services.AddScoped<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>, DispatchNotificationHandler>();
+        services.AddScoped<NotificationDispatchProcessor>();
 
         return services;
     }
