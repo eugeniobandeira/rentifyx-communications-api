@@ -120,10 +120,10 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `OriginalTopic`, `Retry5sTopic`, `Retry1mTopic`, `Retry10mTopic`, `DlqTopic` string constants defined, matching spec's exact topic names
-- [ ] `NextStage(int currentRetryCount): string` — `0→Retry5sTopic`, `1→Retry1mTopic`, `2→Retry10mTopic`, `>=3→DlqTopic`
-- [ ] `DelayFor(string topic): TimeSpan` — `Retry5sTopic→5s`, `Retry1mTopic→1m`, `Retry10mTopic→10m`; throws for any other topic (fail-fast on programmer error, not a runtime business outcome — per CLAUDE.md's narrower throw exception)
-- [ ] Unit tests: `NextStage` for each boundary (0,1,2,3,4); `DelayFor` for each valid topic and the throw case
+- [x] `OriginalTopic`, `Retry5sTopic`, `Retry1mTopic`, `Retry10mTopic`, `DlqTopic` string constants defined, matching spec's exact topic names
+- [x] `NextStage(int currentRetryCount): string` — `0→Retry5sTopic`, `1→Retry1mTopic`, `2→Retry10mTopic`, `>=3→DlqTopic`
+- [x] `DelayFor(string topic): TimeSpan` — `Retry5sTopic→5s`, `Retry1mTopic→1m`, `Retry10mTopic→10m`; throws for any other topic (fail-fast on programmer error, not a runtime business outcome — per CLAUDE.md's narrower throw exception)
+- [x] Unit tests: `NextStage` for each boundary (0,1,2,3,4); `DelayFor` for each valid topic and the throw case
 - [ ] `dotnet test --filter "Category!=Integration"` passes
 
 **Tests**: unit
