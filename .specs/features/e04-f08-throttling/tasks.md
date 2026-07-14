@@ -120,10 +120,10 @@ Phase 5 — Evidence & Docs (Parallel, after T06):
 - Skill: none
 
 **Done when**:
-- [ ] `Create(ResilienceOptions options): ResiliencePipeline<ErrorOr<Success>>` implemented per design: `AddRateLimiter` wrapping a `TokenBucketRateLimiter` (`TokenLimit`/`TokensPerPeriod` derived from `TokenBucketPermitsPerSecond`, `ReplenishmentPeriod = 1s`, `QueueLimit` sized from `TokenBucketQueueMaxWaitSeconds`), `AddCircuitBreaker` with `FailureRatio = 1.0`, `MinimumThroughput = options.CircuitBreakerMinimumThroughput`, `SamplingDuration`/`BreakDuration` from `options`
-- [ ] Both strategies' `ShouldHandle` is `new PredicateBuilder<ErrorOr<Success>>().HandleResult(r => r.IsError)` — the pipeline reacts to `ErrorOr` failures, not thrown exceptions (per design's "inner sender never throws" finding)
-- [ ] Unit tests: (a) firing more calls than the configured rate in a short window causes some calls to wait past the rate-limiter's window before completing (or, once the queue's max wait is simulated as exceeded, throws `RateLimiterRejectedException`); (b) firing `CircuitBreakerMinimumThroughput` consecutive calls that return `IsError = true` opens the circuit — the next call throws `BrokenCircuitException` without invoking the wrapped delegate
-- [ ] `dotnet test --filter "Category!=Integration"` passes
+- [x] `Create(ResilienceOptions options): ResiliencePipeline<ErrorOr<Success>>` implemented per design: `AddCircuitBreaker` (outer) with `FailureRatio = 1.0`, `MinimumThroughput = options.CircuitBreakerMinimumThroughput`, `SamplingDuration`/`BreakDuration` from `options`, then `AddRateLimiter` (inner) wrapping a `TokenBucketRateLimiter` (`TokenLimit`/`TokensPerPeriod` derived from `TokenBucketPermitsPerSecond`, `ReplenishmentPeriod = 1s`, `QueueLimit = TokenBucketPermitsPerSecond * TokenBucketQueueMaxWaitSeconds` as the queue-depth approximation of "max wait seconds", documented as such since the BCL rate limiter doesn't expose a literal wall-clock timeout)
+- [x] Circuit breaker's `ShouldHandle` is `new PredicateBuilder<ErrorOr<Success>>().HandleResult(r => r.IsError)` — the pipeline reacts to `ErrorOr` failures, not thrown exceptions (per design's "inner sender never throws" finding). The rate limiter passed via `.AddRateLimiter(RateLimiter)` doesn't need its own `ShouldHandle` — admission control isn't result-dependent.
+- [x] Unit tests: (a) `TokenBucketPermitsPerSecond=1, QueueMaxWaitSeconds=0` — first call succeeds, immediate second call throws `RateLimiterRejectedException`; (b) `CircuitBreakerMinimumThroughput=2` — 2 failing calls open the circuit, the 3rd call throws `BrokenCircuitException` and never reaches the wrapped delegate (asserted via a call counter)
+- [x] `dotnet test --filter "Category!=Integration"` passes (2 new tests, 0 regressions across the full unit suite)
 
 **Tests**: unit
 **Gate**: quick
