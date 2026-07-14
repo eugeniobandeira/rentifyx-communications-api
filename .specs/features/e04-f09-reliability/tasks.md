@@ -336,13 +336,14 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `ProcessAsync(string rawMessage, RetryContext context, CancellationToken ct): Task` implemented
-- [ ] `JsonException` during deserialization → `FailureClassifier`-independent direct `PoisonPill` routing (never reaches the handler) — matches E-03's existing malformed-message handling, now with routing added
-- [ ] `outcome.IsError` → `FailureClassifier.Classify(outcome.Errors)`, then `IFailureRouter.RouteAsync` with the classification
-- [ ] A successful `outcome` (including `Suppressed`) → no further action; the handler already persisted the terminal status (spec REL-03 — business-rule outcomes never reach classification)
-- [ ] An unexpected exception from `handler.HandleAsync` itself (not an `ErrorOr` error) → `FailureClassifier.Classify(exception)`, then routed
-- [ ] Unit tests: successful dispatch does not call the router; `outcome.IsError` with a poison-pill code routes to DLQ; `outcome.IsError` with a transient code routes to retry; malformed JSON routes to DLQ without invoking the handler; an exception thrown by the handler is classified and routed
-- [ ] `dotnet test --filter "Category!=Integration"` passes
+- [x] `ProcessAsync(string rawMessage, RetryContext context, CancellationToken ct): Task` implemented; registered `Scoped` (T17) — resolved per-message from an `IServiceScopeFactory` scope by each consumer, same lifetime pattern E-03 already used for the handler itself, just one level removed
+- [x] `JsonException` during deserialization → direct `PoisonPill` routing (never reaches the handler) — matches E-03's existing malformed-message handling, now with routing added
+- [x] `outcome.IsError` → `FailureClassifier.Classify(outcome.Errors)`, then `IFailureRouter.RouteAsync` with the classification and the first error's code/description
+- [x] A successful `outcome` (including `Suppressed`) → no further action; the handler already persisted the terminal status (spec REL-03 — business-rule outcomes never reach classification)
+- [x] An unexpected exception from `handler.HandleAsync` itself (not an `ErrorOr` error) → `FailureClassifier.Classify(exception)`, then routed
+- [x] Logging moved from `NotificationRequestedConsumer` into this processor, so every stage's consumer (not just the original) gets consistent log output
+- [x] Unit tests: successful dispatch does not call the router; `outcome.IsError` with a poison-pill code routes to DLQ; `outcome.IsError` with a transient code routes to retry; malformed JSON routes to DLQ without invoking the handler; an exception thrown by the handler is classified and routed
+- [x] `dotnet test --filter "Category!=Integration"` passes
 
 **Tests**: unit
 **Gate**: quick
