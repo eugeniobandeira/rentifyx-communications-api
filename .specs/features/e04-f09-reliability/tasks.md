@@ -271,7 +271,7 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 ### T08: `IKafkaProducerFactory` / `KafkaProducerFactory` [P]
 
 **What**: Creates the `IProducer<Null, string>` used by `KafkaFailureRouter` and `ReconciliationHostedService`
-**Where**: `02-src/01-Api/RentifyxCommunications.Api/Messaging/IKafkaProducerFactory.cs`, `KafkaProducerFactory.cs`
+**Where**: `02-src/05-Infrastructure/RentifyxCommunications.Infrastructure/Messaging/IKafkaProducerFactory.cs`, `KafkaProducerFactory.cs` — **relocated from `Api/Messaging/` while implementing T09** (see design.md's correction note): `KafkaFailureRouter` lives in `Infrastructure`, which has no project reference to `Api`
 **Depends on**: T04
 **Reuses**: `KafkaConsumerFactory`'s exact config-reading pattern (E-03)
 **Requirement**: REL-04
@@ -284,6 +284,7 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - [x] `IKafkaProducerFactory.Create(): IProducer<Null, string>` defined
 - [x] `KafkaProducerFactory` reads the same `kafka` connection string as `KafkaConsumerFactory` via `IConfiguration.GetConnectionString("kafka")`
 - [x] `dotnet build --no-incremental` passes
+- [x] **Correction**: relocated to `Infrastructure/Messaging/` (from an original `Api/Messaging/` placement) with a new `Confluent.Kafka` package reference added to `Infrastructure.csproj`, once T09 revealed `KafkaFailureRouter` (Infrastructure) couldn't reference an `Api`-layer type — `Infrastructure` has no project reference to `Api` in this repo's dependency graph
 
 **Tests**: none
 **Gate**: build
@@ -307,11 +308,11 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `PoisonPill` → publishes to `RetryTopicChain.DlqTopic`, `x-retry-count` unchanged from `context.RetryCount`
-- [ ] `Transient` → publishes to `RetryTopicChain.NextStage(context.RetryCount)`, `x-retry-count = context.RetryCount + 1`, `x-next-retry-at = now + RetryTopicChain.DelayFor(nextTopic)` (only when the next stage isn't the DLQ — the DLQ has no further delay)
-- [ ] All six required headers set on every publish: `x-original-topic`, `x-retry-count`, `x-first-failure-timestamp` (preserved from `context.FirstFailureTimestamp`, or set to `now` if this is the first failure), `x-exception-type`, `x-exception-message`, `x-next-retry-at` (DLQ publishes omit `x-next-retry-at` — nothing further will read it)
-- [ ] Unit tests (mocked `IKafkaProducerFactory`/`IProducer`): PoisonPill → DLQ with correct headers; Transient from `RetryCount=0` → `retry-5s`; Transient from `RetryCount=2` (last retry stage) → `dlq`, not a 4th retry stage
-- [ ] `dotnet test --filter "Category!=Integration"` passes
+- [x] `PoisonPill` → publishes to `RetryTopicChain.DlqTopic`, `x-retry-count` unchanged from `context.RetryCount`
+- [x] `Transient` → publishes to `RetryTopicChain.NextStage(context.RetryCount)`, `x-retry-count = context.RetryCount + 1`, `x-next-retry-at = now + RetryTopicChain.DelayFor(nextTopic)` (only when the next stage isn't the DLQ — the DLQ has no further delay)
+- [x] All six required headers set on every publish: `x-original-topic`, `x-retry-count`, `x-first-failure-timestamp` (preserved from `context.FirstFailureTimestamp`, or set to `now` if this is the first failure), `x-exception-type`, `x-exception-message`, `x-next-retry-at` (DLQ publishes omit `x-next-retry-at` — nothing further will read it)
+- [x] Unit tests (mocked `IKafkaProducerFactory`/`IProducer`): PoisonPill → DLQ with no `x-next-retry-at` header; Transient from `RetryCount=0` → `retry-5s` with all headers populated; Transient from `RetryCount=3` (chain exhausted — **corrected from this task's original "`RetryCount=2` is the last retry stage" wording, which was wrong: `RetryTopicChain.NextStage` maps `0/1/2 → 5s/1m/10m`, so `RetryCount=2` is still a real retry stage (`retry-10m`), and `RetryCount=3` is the first exhausted count that actually maps to the DLQ — caught by a failing test before it shipped**) → `dlq`
+- [x] `dotnet test --filter "Category!=Integration"` passes
 
 **Tests**: unit
 **Gate**: quick

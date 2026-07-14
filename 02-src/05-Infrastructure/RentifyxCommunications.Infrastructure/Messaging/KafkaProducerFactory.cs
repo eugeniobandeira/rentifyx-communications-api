@@ -1,9 +1,9 @@
 using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 
-namespace RentifyxCommunications.Api.Messaging;
+namespace RentifyxCommunications.Infrastructure.Messaging;
 
-internal sealed class KafkaProducerFactory(IConfiguration configuration) : IKafkaProducerFactory
+public sealed class KafkaProducerFactory(IConfiguration configuration) : IKafkaProducerFactory
 {
     public IProducer<Null, string> Create()
     {

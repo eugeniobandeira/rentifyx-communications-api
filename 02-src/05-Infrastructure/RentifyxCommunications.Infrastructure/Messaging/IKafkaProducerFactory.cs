@@ -1,6 +1,6 @@
 using Confluent.Kafka;
 
-namespace RentifyxCommunications.Api.Messaging;
+namespace RentifyxCommunications.Infrastructure.Messaging;
 
 public interface IKafkaProducerFactory
 {
