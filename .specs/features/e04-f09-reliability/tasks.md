@@ -218,7 +218,7 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 **What**: Maps `ErrorOr` error codes / caught exceptions to `FailureClassification` per spec's classification table
 **Where**: `02-src/02-Application/RentifyxCommunications.Application/Features/Notifications/Handlers/Dispatch/FailureClassifier.cs`
 **Depends on**: T01, T03
-**Reuses**: `SesErrorCodes`, `TemplateErrorCodes`, `ResilienceErrorCodes`, `NotificationErrorCodes` (Domain/Constants)
+**Reuses**: `SesErrorCodes`, `ResilienceErrorCodes` (Domain/Constants) — implemented as an explicit **allow-list of Transient codes** rather than matching `Template.*`/`Notification.*`/`Dispatch.*` prefixes for PoisonPill; anything not in the Transient allow-list already falls through to PoisonPill by construction, so no separate list of poison-pill codes was needed (simpler than the design's originally-sketched two-sided prefix matching, same behavior)
 **Requirement**: REL-01, REL-02, REL-03
 
 **Tools**:
@@ -226,10 +226,10 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `Classify(IReadOnlyList<Error> errors): FailureClassification` — `Template.*` (all three), `Notification.Invalid*`, FluentValidation errors → `PoisonPill`; `Ses.SendFailed`, `Resilience.RateLimitExceeded`, `Resilience.CircuitOpen` → `Transient`; any unmatched code → `PoisonPill` (fail-closed, per spec REL-02)
-- [ ] `Classify(Exception exception): FailureClassification` — `JsonException` → `PoisonPill`; any other exception → `Transient`
-- [ ] Unit tests: one per row in the spec's classification table (11 rows), plus the fail-closed default case for an unmatched code
-- [ ] `dotnet test --filter "Category!=Integration"` passes
+- [x] `Classify(IReadOnlyList<Error> errors): FailureClassification` — first error's code checked against a `Transient` allow-list (`Ses.SendFailed`, `Resilience.RateLimitExceeded`, `Resilience.CircuitOpen`); anything else (including `Template.*`, `Notification.*`, `Dispatch.*`, an empty error list, or an unmatched code) → `PoisonPill` (fail-closed, per spec REL-02)
+- [x] `Classify(Exception exception): FailureClassification` — `JsonException` → `PoisonPill`; any other exception → `Transient`
+- [x] Unit tests: one per row in the spec's classification table, plus the fail-closed default case for an unmatched code and an empty error list (15 tests)
+- [x] `dotnet test --filter "Category!=Integration"` passes
 
 **Tests**: unit
 **Gate**: quick
