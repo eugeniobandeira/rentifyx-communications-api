@@ -17,6 +17,8 @@
     <PackageReference Include="AWSSDK.SimpleEmail" />
     <PackageReference Include="Scriban" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="Polly.Core" />
+    <PackageReference Include="Polly.RateLimiting" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Templates\Files\*.scriban" />

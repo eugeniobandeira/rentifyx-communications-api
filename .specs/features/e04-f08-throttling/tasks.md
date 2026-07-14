@@ -69,9 +69,9 @@ Phase 5 — Evidence & Docs (Parallel, after T06):
 - Skill: none
 
 **Done when**:
-- [ ] `Directory.Packages.props` has `PackageVersion` entries for both packages
-- [ ] `RentifyxCommunications.Infrastructure.csproj` references both (no explicit version)
-- [ ] `dotnet build --no-incremental` passes
+- [x] `Directory.Packages.props` has `PackageVersion` entries for both packages (`Polly.Core` 8.7.0, `Polly.RateLimiting` 8.7.0 — confirmed latest stable via web search 2026-07-14)
+- [x] `RentifyxCommunications.Infrastructure.csproj` references both (no explicit version)
+- [x] `dotnet build --no-incremental` passes
 
 **Tests**: none
 **Gate**: build
