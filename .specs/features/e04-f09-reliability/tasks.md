@@ -396,12 +396,12 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] Constructor accepts `topic: string` (which retry topic this instance subscribes to) alongside the existing dependencies (`IKafkaConsumerFactory`, `IServiceScopeFactory`, `IConfiguration`, logger)
-- [ ] Before processing, reads `x-next-retry-at` from the message headers; if `now < x-next-retry-at`, `await Task.Delay(x-next-retry-at - now, token)` before proceeding
-- [ ] Parses `x-retry-count`/`x-original-topic`/`x-first-failure-timestamp` headers into a `RetryContext`, then delegates to `NotificationDispatchProcessor.ProcessAsync`
-- [ ] Always commits the offset after processing (same always-commit rule as the original consumer)
-- [ ] Unit tests: a message with a future `x-next-retry-at` causes a measurable delay before the processor is invoked; a message with a past/elapsed `x-next-retry-at` is processed immediately; headers are correctly parsed into `RetryContext`
-- [ ] `dotnet test --filter "Category!=Integration"` passes
+- [x] Constructor accepts `topic: string` (which retry topic this instance subscribes to) alongside the existing dependencies (`IKafkaConsumerFactory`, `IServiceScopeFactory`, logger) — dropped `IConfiguration` from the original task text, since `RetryTopicConsumer` has no need to read `Kafka:ConsumerGroupId` itself (unlike `NotificationRequestedConsumer`, which logs the group id at startup); all instances share the same consumer group via `KafkaConsumerFactory`
+- [x] Before processing, reads `x-next-retry-at` from the message headers; if `now < x-next-retry-at`, `await Task.Delay(x-next-retry-at - now, token)` before proceeding
+- [x] Parses `x-retry-count`/`x-original-topic`/`x-first-failure-timestamp` headers into a `RetryContext`, then delegates to `NotificationDispatchProcessor.ProcessAsync`
+- [x] Always commits the offset after processing (same always-commit rule as the original consumer)
+- [x] Unit tests: a message with a future `x-next-retry-at` causes a measurable delay before the processor is invoked; a message with a past/elapsed `x-next-retry-at` is processed immediately; headers are correctly parsed into `RetryContext` and routed with the right classification/values
+- [x] `dotnet test --filter "Category!=Integration"` passes (0 regressions)
 
 **Tests**: unit
 **Gate**: quick
