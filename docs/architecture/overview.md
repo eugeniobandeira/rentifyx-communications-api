@@ -18,8 +18,8 @@ flowchart TB
         Idempotency["SaveIfNotExists<br/>(conditional write, ADR-C08)"]
         Consent{"IConsentRepository<br/>LGPD Art. 8 check"}
         Renderer["ITemplateRenderer<br/>(Scriban)"]
-        Limiter["Token-bucket limiter<br/>+ Polly circuit breaker (ADR-C09)"]
-        Sender["IEmailSender<br/>(SesEmailSender)"]
+        Limiter["ResilientEmailSender<br/>token-bucket limiter + Polly circuit breaker (ADR-C09, F-08)"]
+        Sender["IEmailSender<br/>(SesEmailSender / MockEmailSender,<br/>selected via IHostEnvironment)"]
         Secrets["ISecretsProvider"]
 
         Topic --> Consumer --> Handler
@@ -56,6 +56,7 @@ flowchart TB
 - Every dispatch follows the outbox lifecycle (`Pending → Rendering → Dispatching → Sent | Failed | Suppressed`, ADR-C07) so a crash mid-send can be reconciled without duplicate emails.
 - Consent is checked **inside** this service, never trusted from the producer (ADR-C04) — centralizes LGPD Art. 8 compliance in one place.
 - `ISecretsProvider` is the same abstraction and code path in every environment (local dev, staging, prod) — only the underlying AWS account/credentials differ (AD-012).
+- `ResilientEmailSender` (F-08, 2026-07-14) wraps `IEmailSender` with a Polly `ResiliencePipeline` — a token-bucket rate limiter and a ratio-based circuit breaker (`FailureRatio = 1.0` + `MinimumThroughput`, approximating "N consecutive SES failures" since Polly v8 dropped v7's pure consecutive-count breaker) — both thresholds configuration-driven via `ResilienceOptions`. A send rejected by either (queue-wait timeout or open circuit) is mapped to an `ErrorOr` failure and the notification is marked `Failed`; routing that failure to a DLQ is F-09's concern, not F-08's. `ResilienceStartupValidator` fails fast at startup if any threshold is misconfigured (mirrors `SecretsStartupValidator`).
 
 ## Environments
 
@@ -76,6 +77,18 @@ These resources are **not** auto-provisioned by this service — they must exist
 | DynamoDB table `delivery-log` | PK = `LOG#{id}` (S), billing mode `PAY_PER_REQUEST` |
 | SES sender identity | A verified domain or email identity for outbound sends |
 | Secrets Manager entries | `rentifyx/comms/ses-arn`, `rentifyx/comms/kafka-sasl-username`, `rentifyx/comms/kafka-sasl-password` |
+
+## Resilience Configuration (F-08)
+
+`ResilienceOptions` binds from the `Resilience` configuration section (falls back to the defaults below if the section is absent). **These are conservative placeholder values, not the confirmed real SES account sending-rate quota** — B-001 (`.specs/project/STATE.md` Active Blockers) is still open. Retune via configuration once the real quota is known; no code change or redeploy is required.
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `Resilience:TokenBucketPermitsPerSecond` | `14` | Token-bucket refill rate — sends per second allowed before throttling |
+| `Resilience:TokenBucketQueueMaxWaitSeconds` | `5` | How long a send may wait for a permit before being rejected (approximated as queue depth, not a literal wall-clock timeout — the BCL rate limiter has no such knob) |
+| `Resilience:CircuitBreakerMinimumThroughput` | `5` | Failures required within the sampling window to open the circuit (approximates "N consecutive failures") |
+| `Resilience:CircuitBreakerSamplingDurationSeconds` | `30` | Window `MinimumThroughput` failures must occur within |
+| `Resilience:CircuitBreakerBreakDurationSeconds` | `30` | How long the circuit stays open before allowing a half-open probe |
 
 ## Layer Structure
 

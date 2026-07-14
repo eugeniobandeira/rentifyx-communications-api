@@ -104,14 +104,14 @@ F-07 shipped `SesEmailSender`/`MockEmailSender` as direct, unprotected adapters 
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| THR-01 | P1: Token-bucket rate limiting | In Tasks | Pending — T03, T04 |
-| THR-02 | P1: Token-bucket rate limiting | In Tasks | Pending — T03, T04 |
-| THR-03 | P1: Token-bucket rate limiting | In Tasks | Pending — T04 |
-| THR-04 | P1: Circuit breaker | In Tasks | Pending — T03, T04 |
-| THR-05 | P1: Circuit breaker | In Tasks | Pending — T04 |
-| THR-06 | P1: Circuit breaker | In Tasks | Pending — T03 |
-| THR-07 | P2: Configuration-driven thresholds | In Tasks | Pending — T02, T03, T06 |
-| THR-08 | P3: Burst load test evidence | In Tasks | Pending — T07 |
+| THR-01 | P1: Token-bucket rate limiting | Verified | Implemented — T03, T04 |
+| THR-02 | P1: Token-bucket rate limiting | Verified | Implemented — T03, T04 |
+| THR-03 | P1: Token-bucket rate limiting | Verified | Implemented — T04 |
+| THR-04 | P1: Circuit breaker | Verified | Implemented — T03, T04 |
+| THR-05 | P1: Circuit breaker | Verified | Implemented — T04 |
+| THR-06 | P1: Circuit breaker | Verified | Implemented — T03 |
+| THR-07 | P2: Configuration-driven thresholds | Verified | Implemented — T02, T03, T06 |
+| THR-08 | P3: Burst load test evidence | Verified | Implemented — T07 |
 
 **ID format:** `THR-[NUMBER]`
 

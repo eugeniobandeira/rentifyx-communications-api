@@ -1,7 +1,7 @@
 # E-04 · F-08 — Throttling & Circuit Breaking Tasks
 
 **Design**: `.specs/features/e04-f08-throttling/design.md`
-**Status**: Approved
+**Status**: Done (2026-07-14) — T01-T08 all complete, 0 regressions across the full unit suite
 
 ---
 
@@ -258,9 +258,9 @@ Phase 5 — Evidence & Docs (Parallel, after T06):
 - Skill: none
 
 **Done when**:
-- [ ] Diagram/prose reflects `ResilientEmailSender` sitting between `DispatchNotificationHandler` and the real `SesEmailSender`/`MockEmailSender`
-- [ ] New configuration keys (`ResilienceOptions`'s five settings) documented alongside existing config docs, explicitly flagged as placeholder values pending B-001
-- [ ] Notes B-001 is still open and these values should be revisited once the real SES quota is confirmed
+- [x] Diagram/prose reflects `ResilientEmailSender` sitting between `DispatchNotificationHandler` and the real `SesEmailSender`/`MockEmailSender` — diagram's `Limiter` node updated from aspirational to naming the actual class, "Key properties" bullet list gains an F-08 entry
+- [x] New configuration keys (`ResilienceOptions`'s five settings) documented in a new "Resilience Configuration (F-08)" section, explicitly flagged as placeholder values pending B-001
+- [x] Notes B-001 is still open and these values should be revisited once the real SES quota is confirmed
 
 **Tests**: none
 **Gate**: n/a (documentation)
