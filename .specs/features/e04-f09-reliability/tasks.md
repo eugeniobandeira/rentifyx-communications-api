@@ -479,8 +479,8 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `ReconciliationOptions(int PollIntervalSeconds = 60, int StalenessThresholdSeconds = 120)` defined
-- [ ] `dotnet build --no-incremental` passes
+- [x] `ReconciliationOptions(int PollIntervalSeconds = 60, int StalenessThresholdSeconds = 120)` defined
+- [x] `dotnet build --no-incremental` passes
 
 **Tests**: none
 **Gate**: build
