@@ -1,13 +1,11 @@
-﻿using System.Text.Json;
 using Confluent.Kafka;
-using ErrorOr;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
-using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
+using RentifyxCommunications.Domain.Constants;
+using RentifyxCommunications.Domain.ValueObjects;
 
 namespace RentifyxCommunications.Api.Messaging;
 
@@ -18,13 +16,8 @@ public sealed class NotificationRequestedConsumer(
     IConfiguration configuration,
     TimeSpan? startupRetryDelayOverride = null) : IHostedService, IDisposable
 {
-    internal const string Topic = "notification-requested";
+    internal const string Topic = RetryTopicChain.OriginalTopic;
     internal const int MaxStartupAttempts = 3;
-
-    private static readonly JsonSerializerOptions DeserializeOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
 
     private readonly ILogger<NotificationRequestedConsumer> _logger = logger;
     private readonly IKafkaConsumerFactory _consumerFactory = consumerFactory;
@@ -115,50 +108,21 @@ public sealed class NotificationRequestedConsumer(
 
     private async Task ProcessMessageAsync(ConsumeResult<Ignore, string> result, CancellationToken token)
     {
-        DispatchNotificationRequest? request = null;
-
         try
         {
-            request = JsonSerializer.Deserialize<DispatchNotificationRequest>(result.Message.Value, DeserializeOptions)
-                ?? throw new JsonException("Deserialized NotificationRequested message was null.");
-
             using IServiceScope scope = _scopeFactory.CreateScope();
-            IHandler<DispatchNotificationRequest, DispatchOutcome> handler =
-                scope.ServiceProvider.GetRequiredService<IHandler<DispatchNotificationRequest, DispatchOutcome>>();
+            NotificationDispatchProcessor processor = scope.ServiceProvider.GetRequiredService<NotificationDispatchProcessor>();
 
-            ErrorOr<DispatchOutcome> outcome = await handler.HandleAsync(request, token);
-
-            if (outcome.IsError)
-            {
-                _logger.LogError(
-                    "DispatchNotificationHandler returned errors. CorrelationId={CorrelationId} Errors={@Errors}",
-                    request.CorrelationId,
-                    outcome.Errors);
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "Notification processed. CorrelationId={CorrelationId} Status={Status} WasDuplicate={WasDuplicate}",
-                    request.CorrelationId,
-                    outcome.Value.Status,
-                    outcome.Value.WasDuplicate);
-            }
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(
-                ex,
-                "Malformed NotificationRequested message. Partition={Partition} Offset={Offset} Payload={Payload}",
-                result.Partition.Value,
-                result.Offset.Value,
-                result.Message.Value);
+            RetryContext context = new(Topic);
+            await processor.ProcessAsync(result.Message.Value, context, token);
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
-                "Unexpected error processing NotificationRequested message. CorrelationId={CorrelationId}",
-                request?.CorrelationId);
+                "Unexpected error routing a NotificationRequested message. Partition={Partition} Offset={Offset}",
+                result.Partition.Value,
+                result.Offset.Value);
         }
     }
 

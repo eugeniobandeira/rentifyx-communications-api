@@ -367,12 +367,12 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `ProcessMessageAsync` now constructs `new RetryContext(NotificationRequestedConsumer.Topic)` and delegates to `NotificationDispatchProcessor.ProcessAsync` (resolved from the per-message DI scope, same pattern as the existing handler resolution)
-- [ ] The consumer still always commits the offset after processing (unchanged from E-03 — spec's always-commit rule)
-- [ ] Existing 6 tests (`StartAsync_LogsSubscription...`, `StopAsync_Cancels...`, `StartAsync_DoesNotThrow...`, `ConsumeLoop_WithValidMessage...`, `ConsumeLoop_WithMalformedJson...`, `ConsumeLoop_WhenHandlerThrows...`, `ConsumeLoop_WithMalformedMessageFollowedByValidMessage...`) pass with `IFailureRouter` mocked instead of asserting only on logs where they previously did
-- [ ] New test: malformed JSON now results in `IFailureRouter.RouteAsync` called with `PoisonPill` (in addition to the existing "handler never called, still commits" assertions)
-- [ ] New test: a transient `ErrorOr` failure from the handler results in `IFailureRouter.RouteAsync` called with `Transient`
-- [ ] `dotnet test --filter "Category!=Integration"` passes
+- [x] `ProcessMessageAsync` now constructs `new RetryContext(NotificationRequestedConsumer.Topic)` and delegates to `NotificationDispatchProcessor.ProcessAsync` (resolved from the per-message DI scope, same pattern as the existing handler resolution — the consumer no longer resolves `IHandler` directly at all)
+- [x] The consumer still always commits the offset after processing (unchanged from E-03 — spec's always-commit rule); the top-level `try/catch` is kept around scope-creation + the processor call specifically so a failure inside `IFailureRouter.RouteAsync` itself (design's flagged double-failure gap) still can't block the partition
+- [x] All 7 existing tests updated (not 6 — the file actually had 7) and passing, with `IFailureRouter` mocked and log assertions now reading from a shared `ListLogger<T>` that both `NotificationRequestedConsumer` and `NotificationDispatchProcessor` write into (their logs previously came from one logger; now they come from two different typed loggers resolved from the same DI container, so the test helper needed a shared capture sink, not a single `ILogger<NotificationRequestedConsumer>`)
+- [x] New test: malformed JSON now results in `IFailureRouter.RouteAsync` called with `PoisonPill` (in addition to the existing "handler never called, still commits" assertions)
+- [x] New test: a transient `ErrorOr` failure from the handler results in `IFailureRouter.RouteAsync` called with `Transient`
+- [x] `dotnet test --filter "Category!=Integration"` passes (8 tests in this file, 0 regressions across the full suite)
 
 **Tests**: unit
 **Gate**: quick
