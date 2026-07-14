@@ -191,10 +191,12 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 ### T05: `RetryContext` record [P]
 
 **What**: Record carrying per-message retry state through the processor/router
-**Where**: `02-src/02-Application/RentifyxCommunications.Application/Features/Notifications/Handlers/Dispatch/RetryContext.cs`
+**Where**: `02-src/03-Domain/RentifyxCommunications.Domain/ValueObjects/RetryContext.cs` — **relocated from Application during T07** (see correction below); originally placed in `Application/Features/Notifications/Handlers/Dispatch/`
 **Depends on**: None
 **Reuses**: `DispatchNotificationRequest`'s record style (E-03)
 **Requirement**: REL-04, REL-06
+
+**Correction (found while implementing T07):** `IFailureRouter`'s interface, per design, belongs in `Domain/Interfaces/Notifications/` (mirroring `IEmailSender`) — but its `RouteAsync` signature takes a `RetryContext`. With `RetryContext` in `Application`, `Domain` would have to reference `Application` to declare the interface, which directly violates this repo's Clean Architecture dependency rule ("Domain has no outbound dependencies"). Fixed by moving `RetryContext` to `Domain/ValueObjects/` — it's a plain data carrier with no Application-specific logic, so the move has no other effect. `NotificationDispatchProcessor` (T10, Application layer) will reference it from `Domain.ValueObjects` like any other Domain value object (`EmailAddress`, `TemplateId`).
 
 **Tools**:
 - MCP: none
@@ -253,8 +255,9 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `RouteAsync(string rawMessage, RetryContext context, FailureClassification classification, string exceptionType, string exceptionMessage, CancellationToken ct): Task` defined
-- [ ] `dotnet build --no-incremental` passes
+- [x] `RouteAsync(string rawMessage, RetryContext context, FailureClassification classification, string exceptionType, string exceptionMessage, CancellationToken ct): Task` defined
+- [x] `dotnet build --no-incremental` passes
+- [x] `RetryContext` relocated from Application to `Domain/ValueObjects/` (see T05's Correction note) so this interface doesn't create a Domain→Application dependency
 
 **Tests**: none
 **Gate**: build

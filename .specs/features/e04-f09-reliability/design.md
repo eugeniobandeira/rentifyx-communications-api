@@ -75,7 +75,7 @@ flowchart TB
 ### `RetryContext` (record)
 
 - **Purpose**: Carries the per-message retry state (parsed from Kafka headers, or defaults for the original topic) through the processor and into the router.
-- **Location**: `02-src/02-Application/RentifyxCommunications.Application/Features/Notifications/Handlers/Dispatch/RetryContext.cs`
+- **Location**: `02-src/03-Domain/RentifyxCommunications.Domain/ValueObjects/RetryContext.cs` — **corrected during Execute (T07)** from an original `Application`-layer placement, since `IFailureRouter` (Domain) needs to reference it and Domain cannot depend on Application
 - **Interfaces**: `RetryContext(string OriginalTopic, int RetryCount, DateTimeOffset? FirstFailureTimestamp)` — `RetryCount = 0`/`FirstFailureTimestamp = null` for the original topic's first attempt
 - **Dependencies**: none
 - **Reuses**: n/a — new

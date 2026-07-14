@@ -1,4 +1,4 @@
-namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+namespace RentifyxCommunications.Domain.ValueObjects;
 
 public sealed record RetryContext(
     string OriginalTopic,
