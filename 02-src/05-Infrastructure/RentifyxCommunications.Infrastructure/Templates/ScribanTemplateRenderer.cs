@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using ErrorOr;
+using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Domain.ValueObjects;
 using Scriban;
@@ -22,7 +23,7 @@ public sealed partial class ScribanTemplateRenderer : ITemplateRenderer
 
         if (resourceName is null)
             return Task.FromResult<ErrorOr<string>>(Error.NotFound(
-                "Template.NotFound",
+                TemplateErrorCodes.NotFound,
                 $"Template '{templateId.Value}' was not found."));
 
         string source = ReadResource(resourceName);
@@ -32,13 +33,13 @@ public sealed partial class ScribanTemplateRenderer : ITemplateRenderer
 
         if (missingFields.Count > 0)
             return Task.FromResult<ErrorOr<string>>(Error.Validation(
-                "Template.MissingField",
+                TemplateErrorCodes.MissingField,
                 $"Payload is missing required field(s): {string.Join(", ", missingFields)}."));
 
         Template template = Template.Parse(source);
         if (template.HasErrors)
             return Task.FromResult<ErrorOr<string>>(Error.Failure(
-                "Template.ParseError",
+                TemplateErrorCodes.ParseError,
                 string.Join("; ", template.Messages)));
 
         ScriptObject scriptObject = new();

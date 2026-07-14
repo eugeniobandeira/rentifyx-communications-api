@@ -93,10 +93,10 @@ Phase 6 — Observability & Docs (Parallel, after T17):
 - Skill: none
 
 **Done when**:
-- [ ] `SesErrorCodes.SendFailed = "Ses.SendFailed"` defined and used in `SesEmailSender.cs`
-- [ ] `TemplateErrorCodes.NotFound = "Template.NotFound"`, `MissingField = "Template.MissingField"`, `ParseError = "Template.ParseError"` defined and used in `ScribanTemplateRenderer.cs`
-- [ ] No other behavior change — existing `SesEmailSenderTests`/`ScribanTemplateRendererTests` pass unmodified
-- [ ] `dotnet test --filter "Category!=Integration"` passes, 0 regressions
+- [x] `SesErrorCodes.SendFailed = "Ses.SendFailed"` defined and used in `SesEmailSender.cs`
+- [x] `TemplateErrorCodes.NotFound = "Template.NotFound"`, `MissingField = "Template.MissingField"`, `ParseError = "Template.ParseError"` defined and used in `ScribanTemplateRenderer.cs`
+- [x] No other behavior change — existing `SesEmailSenderTests`/`ScribanTemplateRendererTests` pass unmodified
+- [x] `dotnet test --filter "Category!=Integration"` passes, 0 regressions
 
 **Tests**: none
 **Gate**: quick

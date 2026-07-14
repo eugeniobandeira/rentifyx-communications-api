@@ -2,6 +2,7 @@ using Amazon.SimpleEmail;
 using Amazon.SimpleEmail.Model;
 using ErrorOr;
 using RentifyxCommunications.Application.Abstractions;
+using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Domain.ValueObjects;
 
@@ -39,7 +40,7 @@ public sealed class SesEmailSender(
         }
         catch (AmazonSimpleEmailServiceException ex)
         {
-            return Error.Failure("Ses.SendFailed", ex.Message);
+            return Error.Failure(SesErrorCodes.SendFailed, ex.Message);
         }
     }
 
