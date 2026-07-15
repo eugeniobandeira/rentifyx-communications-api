@@ -116,6 +116,14 @@ Always use named constants instead of inline literals repeated or meaningful acr
 - Error codes, validation limits, and repeated string keys go in `Domain/Constants/` (e.g. `NotificationErrorCodes.InvalidPayload`, `ValidationConstants.ExampleRules.NameMaxLength`), never inlined as `"Notification.InvalidPayload"` at each call site.
 - This applies to Kafka topic names, config keys, and any other value referenced from more than one place.
 
+## Configuration Binding
+
+**Use `IOptions<T>` only where its actual benefit applies: a class that the DI container constructs (a registered singleton/scoped service or hosted service) and that needs the config value via constructor injection.** For a one-shot startup read inside an `AddX(this IServiceCollection services, IConfiguration configuration)` extension method that is called directly from `Program.cs` and never resolved again, bind a plain typed record once with `configuration.GetSection("X").Get<T>()` and use it immediately — do not also register it with `services.Configure<T>()` just for consistency. Registering `IOptions<T>` for something nothing ever injects is ceremony, not safety.
+
+- **Use `IOptions<T>`:** `KafkaOptions` (consumed by `KafkaConsumerFactory`/`KafkaProducerFactory`/`NotificationRequestedConsumer`, all DI-constructed), `ResilienceOptions`, `ReconciliationOptions`, `SecretsProviderOptions` (all consumed by DI-constructed singletons/hosted services).
+- **Just bind a typed record, skip `IOptions<T>`:** `Cors`, `RateLimit`, `OpenApi` — read once inside their own `AddX` extension method, never injected elsewhere.
+- **Don't wrap what a library already binds:** `configuration.GetAWSOptions()` (AWS SDK) already reads the `"AWS"` section by convention — don't create a custom `AwsOptions` record duplicating that read; only bind what the library doesn't already cover (e.g. the `Profile` fail-fast check can keep reading `configuration["AWS:Profile"]` directly).
+
 ## Enum Persistence
 
 **Never persist an enum as its underlying numeric value.** Always store/serialize the string name (`"Sent"`, `"Email"`), never the `int` (`3`, `0`) — a number in a database record with no enum definition next to it is meaningless on its own.
