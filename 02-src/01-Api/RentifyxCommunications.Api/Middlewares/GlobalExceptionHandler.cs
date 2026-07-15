@@ -17,23 +17,36 @@ internal sealed class GlobalExceptionHandler(
         Exception exception,
         CancellationToken cancellationToken)
     {
+        string? correlationId = httpContext.Items[CorrelationIdConstants.Key]?.ToString();
+        string traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
+
         if (exception is OperationCanceledException && httpContext.RequestAborted.IsCancellationRequested)
         {
-            logger.LogWarning("Request cancelled by client.");
+            logger.LogWarning(
+                "Request cancelled by client. Path={Path} CorrelationId={CorrelationId} TraceId={TraceId}",
+                httpContext.Request.Path,
+                correlationId,
+                traceId);
             httpContext.Response.StatusCode = StatusClientClosedRequest;
             return true;
         }
 
         if (httpContext.Response.HasStarted)
         {
-            logger.LogWarning("Response already started, cannot write error.");
+            logger.LogWarning(
+                "Response already started, cannot write error. Path={Path} CorrelationId={CorrelationId} TraceId={TraceId}",
+                httpContext.Request.Path,
+                correlationId,
+                traceId);
             return true;
         }
 
-        string? correlationId = httpContext.Items[CorrelationIdConstants.Key]?.ToString();
-        string traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
-
-        logger.LogError(exception, "Unhandled exception.");
+        logger.LogError(
+            exception,
+            "Unhandled exception. Path={Path} CorrelationId={CorrelationId} TraceId={TraceId}",
+            httpContext.Request.Path,
+            correlationId,
+            traceId);
 
         ProblemDetails problem = new()
         {

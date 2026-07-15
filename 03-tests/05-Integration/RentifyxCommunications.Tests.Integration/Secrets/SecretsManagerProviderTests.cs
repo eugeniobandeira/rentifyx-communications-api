@@ -3,6 +3,7 @@ using Amazon.SecretsManager.Model;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Infrastructure.Secrets;
@@ -44,7 +45,7 @@ public sealed class SecretsManagerProviderTests(LocalStackSecretsManagerFixture 
         SecretsManagerProvider provider = new(fixture.Client, cache);
         SecretsProviderOptions options = new(sesArnKey, kafkaUserKey, kafkaPassKey);
         ListLogger logger = new();
-        SecretsStartupValidator validator = new(provider, options, logger);
+        SecretsStartupValidator validator = new(provider, Options.Create(options), logger);
 
         Func<Task> act = () => validator.ValidateAsync();
 

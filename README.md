@@ -233,6 +233,7 @@ If the process crashes between `Dispatching` and the final status flip, the reco
 | `PK = NOTIF#{correlationId}` | Idempotency target — `attribute_not_exists(PK)` conditional write (corrected 2026-07-13; see ADR-C08) |
 | `GSI1 = RECIPIENT#{recipientId}` | Query notification history per recipient |
 | `GSI2 = ID#{id}` | Lookup by the notification's own `Id` (no longer the partition key) |
+| `GSI3 = STATUS#{status}` / `UpdatedAt` | Reconciliation query for records stuck in `Dispatching` (F-09) — see [`docs/architecture/overview.md`](docs/architecture/overview.md) |
 
 Consent records share the same table: `PK = CONSENT#{recipientId}`, `SK = CHANNEL#{channel}`.
 
@@ -256,16 +257,19 @@ Full ADR docs: [`docs/decisions/`](docs/decisions/)
 
 ## HTTP Endpoints
 
-This service is primarily event-driven. The HTTP surface is minimal:
+This service is primarily event-driven — dispatch happens entirely through the Kafka consumer,
+not HTTP. The current HTTP surface is health/docs only:
 
 | Method | Route | Purpose |
 |---|---|---|
-| `GET` | `/v1/api/notifications/{id}` | Delivery status + timestamps |
-| `GET` | `/v1/api/notifications/recipient/{recipientId}` | Notification history |
-| `GET` | `/v1/api/consent/{recipientId}` | Current opt-in/out preferences per channel |
-| `PUT` | `/v1/api/consent/{recipientId}` | Update consent (LGPD Art. 8) |
 | `GET` | `/health` | All health checks |
+| `GET` | `/alive` | Liveness probe |
 | `GET` | `/scalar` | API documentation (Development only) |
+
+Read endpoints for notification status/history and consent management (`GET /v1/api/notifications/{id}`,
+`GET /v1/api/consent/{recipientId}`, `PUT /v1/api/consent/{recipientId}`, etc.) are planned as
+part of **E-05 · API Layer & LGPD Compliance** (see [Project Status](#project-status)) — not yet
+implemented, so they aren't listed here until they exist.
 
 ## Kafka Contract
 
@@ -286,7 +290,7 @@ Topic: `notification-requested`
 
 `correlationId` is the idempotency key — duplicate messages with the same ID are acknowledged and skipped without reprocessing.
 
-Available templates: `AssetApprovedEmail`, `AssetRejectedEmail`, `GenericNotificationEmail`.
+Available templates: `welcome-email` (`Infrastructure/Templates/Files/`). More templates land as content work (E-05+) requires them — `ScribanTemplateRenderer` resolves any `<templateId>.scriban` file placed there, no code change needed to add one.
 
 ## Secrets
 
@@ -306,13 +310,17 @@ Missing a required secret on startup → `[Critical]` log + immediate process ex
 
 ### Custom OTEL metrics
 
+Implemented in `NotificationMetrics` (Application layer, Singleton, one `Meter` per process):
+
 | Metric | Type | Description |
 |---|---|---|
-| `notifications_sent_total` | Counter | Successful SES deliveries |
-| `notifications_suppressed_total` | Counter | Opted-out recipients skipped |
-| `notifications_failed_total` | Counter | Failed deliveries |
-| `kafka_consumer_lag_notification_requested` | Gauge | Consumer lag on the intake topic |
-| `notification_dispatch_duration_seconds` | Histogram | p50/p99 dispatch latency |
+| `notification_dispatch_duration_seconds` | Histogram | Elapsed time from message receipt to dispatch outcome (p50/p99 dispatch latency) |
+| `kafka_consumer_lag_notification_requested` | Gauge | Consumer lag (high watermark minus current position) on the intake topic |
+
+Per-outcome counters (`notifications_sent_total`, `notifications_suppressed_total`,
+`notifications_failed_total`) are planned but not yet implemented — outcome counts can
+currently be derived from the `Status={Status}` field on the `"Notification processed"`
+structured log line instead.
 
 ### SLOs
 
@@ -358,8 +366,7 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | E-01 · Project Foundation & DevSecOps Pipeline | ✅ Done |
 | E-02 · Domain Model — Notification & Consent | ✅ Done |
 | E-03 · Application Layer — Use Cases | ✅ Done |
-| E-04 · Infrastructure (F-07 SES/DynamoDB) | 🚧 In progress |
-| E-04 · Infrastructure (F-08 throttling/circuit breaker, F-09 retry/DLQ/reconciliation) | Not started |
+| E-04 · Infrastructure (F-07 SES/DynamoDB, F-08 throttling/circuit breaker, F-09 retry/DLQ/reconciliation) | ✅ Done |
 | E-05 · API Layer & LGPD Compliance | Not started |
 | E-06 · Infrastructure as Code & Production Readiness | Not started |
 | E-07 · Marketing Email Campaigns | Not started (spec/design/tasks written) |

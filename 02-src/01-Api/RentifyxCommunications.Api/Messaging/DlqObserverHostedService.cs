@@ -1,9 +1,6 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Confluent.Kafka;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Entities;
@@ -46,7 +43,7 @@ public sealed class DlqObserverHostedService(
 
         if (_consumeLoopTask is not null)
         {
-            using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
+            using CancellationTokenSource timeout = new(KafkaConsumerHostedServiceDefaults.ShutdownDrainTimeout);
             using CancellationTokenSource linked =
                 CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
@@ -69,7 +66,7 @@ public sealed class DlqObserverHostedService(
     {
         while (!token.IsCancellationRequested)
         {
-            ConsumeResult<Ignore, string>? result = consumer.Consume(TimeSpan.FromSeconds(1));
+            ConsumeResult<Ignore, string>? result = consumer.Consume(KafkaConsumerHostedServiceDefaults.ConsumePollTimeout);
 
             if (result is null || result.IsPartitionEOF)
                 continue;
@@ -94,9 +91,10 @@ public sealed class DlqObserverHostedService(
             exceptionMessage,
             result.Message.Value);
 
+        DispatchNotificationRequest? request = null;
         try
         {
-            DispatchNotificationRequest? request = JsonSerializer.Deserialize<DispatchNotificationRequest>(result.Message.Value, DeserializeOptions);
+            request = JsonSerializer.Deserialize<DispatchNotificationRequest>(result.Message.Value, DeserializeOptions);
             if (request is null)
             {
                 logger.LogWarning("DLQ message payload could not be deserialized - skipping status update.");
@@ -119,7 +117,10 @@ public sealed class DlqObserverHostedService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error marking a DLQ'd notification as Failed.");
+            logger.LogError(
+                ex,
+                "Unexpected error marking a DLQ'd notification as Failed. CorrelationId={CorrelationId}",
+                request?.CorrelationId);
         }
     }
 

@@ -1,3 +1,5 @@
+using RentifyxCommunications.Api.Extensions.Options;
+
 namespace RentifyxCommunications.Api.Extensions;
 
 internal static class CorsExtension
@@ -8,14 +10,14 @@ internal static class CorsExtension
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        string[] origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-            ?? throw new InvalidOperationException("Cors:AllowedOrigins is not configured.");
+        CorsOptions corsOptions = configuration.GetSection("Cors").Get<CorsOptions>()
+            ?? throw new InvalidOperationException("Cors is not configured.");
 
         services.AddCors(options =>
         {
             options.AddPolicy(PolicyName, policy =>
             {
-                policy.WithOrigins(origins)
+                policy.WithOrigins(corsOptions.AllowedOrigins)
                       .AllowAnyHeader()
                       .AllowAnyMethod()
                       .AllowCredentials()

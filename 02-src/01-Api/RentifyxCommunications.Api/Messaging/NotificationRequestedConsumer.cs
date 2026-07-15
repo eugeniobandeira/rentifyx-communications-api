@@ -1,8 +1,6 @@
-using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+﻿using Confluent.Kafka;
+using Microsoft.Extensions.Options;
+using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.ValueObjects;
@@ -13,7 +11,7 @@ public sealed class NotificationRequestedConsumer(
     ILogger<NotificationRequestedConsumer> logger,
     IKafkaConsumerFactory consumerFactory,
     IServiceScopeFactory scopeFactory,
-    IConfiguration configuration,
+    IOptions<KafkaOptions> kafkaOptions,
     NotificationMetrics? metrics = null,
     TimeSpan? startupRetryDelayOverride = null) : IHostedService, IDisposable
 {
@@ -23,11 +21,8 @@ public sealed class NotificationRequestedConsumer(
     private readonly ILogger<NotificationRequestedConsumer> _logger = logger;
     private readonly IKafkaConsumerFactory _consumerFactory = consumerFactory;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly string _groupId = configuration["Kafka:ConsumerGroupId"] ?? "rentifyx-communications-api";
-#pragma warning disable CA2213 // _metrics is an injected, DI-owned Singleton (shared across the whole app,
-                               // including other consumers) - this class must never dispose it.
-    private readonly NotificationMetrics? _metrics = metrics;
-#pragma warning restore CA2213
+    private readonly string _groupId = kafkaOptions.Value.ConsumerGroupId;
+    private readonly Action<long>? _setConsumerLag = metrics is null ? null : metrics.SetConsumerLag;
     private readonly TimeSpan? _startupRetryDelayOverride = startupRetryDelayOverride;
 
     private IConsumer<Ignore, string>? _consumer;
@@ -78,7 +73,7 @@ public sealed class NotificationRequestedConsumer(
 
         if (_consumeLoopTask is not null)
         {
-            using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
+            using CancellationTokenSource timeout = new(KafkaConsumerHostedServiceDefaults.ShutdownDrainTimeout);
             using CancellationTokenSource linked =
                 CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
@@ -101,7 +96,7 @@ public sealed class NotificationRequestedConsumer(
     {
         while (!token.IsCancellationRequested)
         {
-            ConsumeResult<Ignore, string>? result = consumer.Consume(TimeSpan.FromSeconds(1));
+            ConsumeResult<Ignore, string>? result = consumer.Consume(KafkaConsumerHostedServiceDefaults.ConsumePollTimeout);
 
             if (result is null || result.IsPartitionEOF)
                 continue;
@@ -114,14 +109,14 @@ public sealed class NotificationRequestedConsumer(
 
     private void UpdateConsumerLag(IConsumer<Ignore, string> consumer, TopicPartition partition, long consumedOffset)
     {
-        if (_metrics is null)
+        if (_setConsumerLag is null)
             return;
 
         try
         {
             WatermarkOffsets watermarks = consumer.GetWatermarkOffsets(partition);
             long lag = Math.Max(0, watermarks.High.Value - consumedOffset - 1);
-            _metrics.SetConsumerLag(lag);
+            _setConsumerLag(lag);
         }
         catch (Exception ex)
         {

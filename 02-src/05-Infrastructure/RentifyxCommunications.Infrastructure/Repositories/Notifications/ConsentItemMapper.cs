@@ -5,9 +5,6 @@ using RentifyxCommunications.Domain.ValueObjects;
 
 namespace RentifyxCommunications.Infrastructure.Repositories.Notifications;
 
-/// <summary>
-/// Static mapper between <see cref="ConsentPreference"/> and a DynamoDB item.
-/// </summary>
 public static class ConsentItemMapper
 {
     public static ConsentPreference ToEntity(Dictionary<string, AttributeValue> item, Guid recipientId, Channel channel)

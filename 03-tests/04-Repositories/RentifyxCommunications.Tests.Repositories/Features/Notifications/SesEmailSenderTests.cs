@@ -25,7 +25,8 @@ public sealed class SesEmailSenderTests
             .Setup(p => p.GetSecretAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("arn:aws:ses:us-east-1:000000000000:identity/sender@example.com");
 
-        SesEmailSender sut = new(client.Object, secretsProvider.Object, new SecretsProviderOptions());
+        SecretsProviderOptions options = new("test-ses-arn", "test-kafka-user", "test-kafka-pass");
+        SesEmailSender sut = new(client.Object, secretsProvider.Object, options);
         EmailAddress recipient = EmailAddress.Create("recipient@example.com").Value;
 
         ErrorOr<Success> result = await sut.SendAsync(recipient, "rendered content");

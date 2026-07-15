@@ -1,5 +1,13 @@
 # Tasks: Remove Example scaffold, drop EF Core, formalize IOptions<T>
 
+**Status: DONE (2026-07-15) — PR #10 open** (https://github.com/eugeniobandeira/rentifyx-communications-api/pull/10)
+— T01-T10 all complete on branch `chore/scaffold-cleanup-ioptions`, 9 commits (scaffold/EF
+removal, appsettings + IOptions cleanup, hardcoded-value fixes, comment/CA2213/CA2007/magic-number
+quality pass, log context fixes, docs rewrite). Full solution build green; 126 unit tests passing
+(0 failures) across Domain/Validators/Handlers/Repositories/Api test projects; Integration project
+has 0 non-`Category=Integration` tests (all its tests are LocalStack-tagged, correctly excluded —
+matches CI filter behavior). Awaiting review/merge.
+
 Order matters — each task ends with `dotnet build` (and relevant test run)
 staying green before moving to the next. No `[P]` parallel tasks: this is a
 single linear deletion chain through the dependency graph, not independent

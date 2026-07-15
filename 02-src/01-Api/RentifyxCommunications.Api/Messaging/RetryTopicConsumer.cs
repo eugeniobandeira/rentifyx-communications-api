@@ -1,9 +1,6 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Confluent.Kafka;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Domain.ValueObjects;
 
@@ -44,7 +41,7 @@ public sealed class RetryTopicConsumer(
 
         if (_consumeLoopTask is not null)
         {
-            using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
+            using CancellationTokenSource timeout = new(KafkaConsumerHostedServiceDefaults.ShutdownDrainTimeout);
             using CancellationTokenSource linked =
                 CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
@@ -67,7 +64,7 @@ public sealed class RetryTopicConsumer(
     {
         while (!token.IsCancellationRequested)
         {
-            ConsumeResult<Ignore, string>? result = consumer.Consume(TimeSpan.FromSeconds(1));
+            ConsumeResult<Ignore, string>? result = consumer.Consume(KafkaConsumerHostedServiceDefaults.ConsumePollTimeout);
 
             if (result is null || result.IsPartitionEOF)
                 continue;
