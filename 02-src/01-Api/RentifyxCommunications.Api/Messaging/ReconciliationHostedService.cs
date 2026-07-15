@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Entities;
@@ -15,22 +16,23 @@ namespace RentifyxCommunications.Api.Messaging;
 public sealed class ReconciliationHostedService(
     ILogger<ReconciliationHostedService> logger,
     IServiceScopeFactory scopeFactory,
-    ReconciliationOptions options) : IHostedService, IDisposable
+    IOptions<ReconciliationOptions> reconciliationOptions) : IHostedService, IDisposable
 {
+    private readonly ReconciliationOptions _options = reconciliationOptions.Value;
     private PeriodicTimer? _timer;
     private CancellationTokenSource? _loopCts;
     private Task? _loopTask;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _timer = new PeriodicTimer(TimeSpan.FromSeconds(options.PollIntervalSeconds));
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(_options.PollIntervalSeconds));
         _loopCts = new CancellationTokenSource();
         _loopTask = Task.Run(() => LoopAsync(_timer, _loopCts.Token), CancellationToken.None);
 
         logger.LogInformation(
             "ReconciliationHostedService started. PollIntervalSeconds={PollIntervalSeconds} StalenessThresholdSeconds={StalenessThresholdSeconds}",
-            options.PollIntervalSeconds,
-            options.StalenessThresholdSeconds);
+            _options.PollIntervalSeconds,
+            _options.StalenessThresholdSeconds);
 
         return Task.CompletedTask;
     }
@@ -80,7 +82,7 @@ public sealed class ReconciliationHostedService(
         IFailureRouter router = scope.ServiceProvider.GetRequiredService<IFailureRouter>();
 
         IReadOnlyList<NotificationEntity> stuck = await repository.GetStuckDispatchingAsync(
-            TimeSpan.FromSeconds(options.StalenessThresholdSeconds),
+            TimeSpan.FromSeconds(_options.StalenessThresholdSeconds),
             token);
 
         foreach (NotificationEntity notification in stuck)

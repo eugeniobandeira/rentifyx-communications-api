@@ -1,15 +1,17 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RentifyxCommunications.Application.Abstractions;
 
 namespace RentifyxCommunications.Infrastructure.Secrets;
 
 public sealed class SecretsStartupValidator(
     ISecretsProvider secretsProvider,
-    SecretsProviderOptions options,
+    IOptions<SecretsProviderOptions> secretsProviderOptions,
     ILogger<SecretsStartupValidator> logger)
 {
     public async Task ValidateAsync(CancellationToken ct = default)
     {
+        SecretsProviderOptions options = secretsProviderOptions.Value;
         (string Name, string Key)[] requiredSecrets =
         [
             (nameof(SecretsProviderOptions.SesArn), options.SesArn),

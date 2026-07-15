@@ -1,11 +1,12 @@
 using Confluent.Kafka;
 using ErrorOr;
 using FluentAssertions;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using RentifyxCommunications.Api.Messaging;
+using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
@@ -270,12 +271,11 @@ public sealed class NotificationRequestedConsumerTests
         services.AddScoped<NotificationDispatchProcessor>();
         ServiceProvider provider = services.BuildServiceProvider();
 
-        IConfiguration configuration = new ConfigurationBuilder().Build();
         return new NotificationRequestedConsumer(
             new ListLogger<NotificationRequestedConsumer>(entries),
             factory,
             provider.GetRequiredService<IServiceScopeFactory>(),
-            configuration,
+            Options.Create(new KafkaOptions()),
             startupRetryDelayOverride: retryDelayOverride ?? TimeSpan.Zero);
     }
 

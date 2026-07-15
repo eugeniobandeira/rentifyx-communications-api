@@ -1,5 +1,6 @@
 ﻿using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using RentifyxCommunications.Api.Extensions.Options;
 
 namespace RentifyxCommunications.Api.Extensions;
 
@@ -11,18 +12,17 @@ internal static class RateLimitExtension
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        int permitLimit = configuration.GetValue("RateLimit:PermitLimit", 100);
-        int windowSeconds = configuration.GetValue("RateLimit:WindowSeconds", 60);
-        int queueLimit = configuration.GetValue("RateLimit:QueueLimit", 0);
+        RateLimitOptions rateLimitOptions = configuration.GetSection("RateLimit").Get<RateLimitOptions>()
+            ?? new RateLimitOptions();
 
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.AddFixedWindowLimiter(PolicyName, opt =>
             {
-                opt.PermitLimit = permitLimit;
-                opt.Window = TimeSpan.FromSeconds(windowSeconds);
-                opt.QueueLimit = queueLimit;
+                opt.PermitLimit = rateLimitOptions.PermitLimit;
+                opt.Window = TimeSpan.FromSeconds(rateLimitOptions.WindowSeconds);
+                opt.QueueLimit = rateLimitOptions.QueueLimit;
                 opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
             });
         });

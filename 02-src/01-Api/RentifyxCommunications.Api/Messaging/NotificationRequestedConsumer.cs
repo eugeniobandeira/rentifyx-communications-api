@@ -1,8 +1,9 @@
 using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.ValueObjects;
@@ -13,7 +14,7 @@ public sealed class NotificationRequestedConsumer(
     ILogger<NotificationRequestedConsumer> logger,
     IKafkaConsumerFactory consumerFactory,
     IServiceScopeFactory scopeFactory,
-    IConfiguration configuration,
+    IOptions<KafkaOptions> kafkaOptions,
     NotificationMetrics? metrics = null,
     TimeSpan? startupRetryDelayOverride = null) : IHostedService, IDisposable
 {
@@ -23,7 +24,7 @@ public sealed class NotificationRequestedConsumer(
     private readonly ILogger<NotificationRequestedConsumer> _logger = logger;
     private readonly IKafkaConsumerFactory _consumerFactory = consumerFactory;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly string _groupId = configuration["Kafka:ConsumerGroupId"] ?? "rentifyx-communications-api";
+    private readonly string _groupId = kafkaOptions.Value.ConsumerGroupId;
 #pragma warning disable CA2213 // _metrics is an injected, DI-owned Singleton (shared across the whole app,
                                // including other consumers) - this class must never dispose it.
     private readonly NotificationMetrics? _metrics = metrics;

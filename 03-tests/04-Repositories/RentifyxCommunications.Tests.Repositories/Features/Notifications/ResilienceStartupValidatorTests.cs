@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using RentifyxCommunications.Infrastructure.Options;
 using RentifyxCommunications.Infrastructure.Resilience;
@@ -12,7 +13,7 @@ public sealed class ResilienceStartupValidatorTests
     [Fact]
     public void Validate_ShouldNotThrow_WhenAllOptionsAreValid()
     {
-        ResilienceStartupValidator sut = new(new ResilienceOptions(), Mock.Of<ILogger<ResilienceStartupValidator>>());
+        ResilienceStartupValidator sut = new(Options.Create(new ResilienceOptions()), Mock.Of<ILogger<ResilienceStartupValidator>>());
 
         Action act = sut.Validate;
 
@@ -23,7 +24,7 @@ public sealed class ResilienceStartupValidatorTests
     public void Validate_ShouldNotThrow_WhenTokenBucketQueueMaxWaitSecondsIsZero()
     {
         ResilienceOptions options = new(TokenBucketQueueMaxWaitSeconds: 0);
-        ResilienceStartupValidator sut = new(options, Mock.Of<ILogger<ResilienceStartupValidator>>());
+        ResilienceStartupValidator sut = new(Options.Create(options), Mock.Of<ILogger<ResilienceStartupValidator>>());
 
         Action act = sut.Validate;
 
@@ -36,7 +37,7 @@ public sealed class ResilienceStartupValidatorTests
     public void Validate_ShouldThrow_WhenTokenBucketPermitsPerSecondIsZeroOrNegative(int value)
     {
         ResilienceOptions options = new(TokenBucketPermitsPerSecond: value);
-        ResilienceStartupValidator sut = new(options, Mock.Of<ILogger<ResilienceStartupValidator>>());
+        ResilienceStartupValidator sut = new(Options.Create(options), Mock.Of<ILogger<ResilienceStartupValidator>>());
 
         Action act = sut.Validate;
 
@@ -50,7 +51,7 @@ public sealed class ResilienceStartupValidatorTests
     public void Validate_ShouldThrow_WhenCircuitBreakerMinimumThroughputIsZeroOrNegative(int value)
     {
         ResilienceOptions options = new(CircuitBreakerMinimumThroughput: value);
-        ResilienceStartupValidator sut = new(options, Mock.Of<ILogger<ResilienceStartupValidator>>());
+        ResilienceStartupValidator sut = new(Options.Create(options), Mock.Of<ILogger<ResilienceStartupValidator>>());
 
         Action act = sut.Validate;
 
@@ -64,7 +65,7 @@ public sealed class ResilienceStartupValidatorTests
     public void Validate_ShouldThrow_WhenCircuitBreakerSamplingDurationSecondsIsZeroOrNegative(int value)
     {
         ResilienceOptions options = new(CircuitBreakerSamplingDurationSeconds: value);
-        ResilienceStartupValidator sut = new(options, Mock.Of<ILogger<ResilienceStartupValidator>>());
+        ResilienceStartupValidator sut = new(Options.Create(options), Mock.Of<ILogger<ResilienceStartupValidator>>());
 
         Action act = sut.Validate;
 
@@ -78,7 +79,7 @@ public sealed class ResilienceStartupValidatorTests
     public void Validate_ShouldThrow_WhenCircuitBreakerBreakDurationSecondsIsZeroOrNegative(int value)
     {
         ResilienceOptions options = new(CircuitBreakerBreakDurationSeconds: value);
-        ResilienceStartupValidator sut = new(options, Mock.Of<ILogger<ResilienceStartupValidator>>());
+        ResilienceStartupValidator sut = new(Options.Create(options), Mock.Of<ILogger<ResilienceStartupValidator>>());
 
         Action act = sut.Validate;
 
@@ -90,7 +91,7 @@ public sealed class ResilienceStartupValidatorTests
     public void Validate_ShouldThrow_WhenTokenBucketQueueMaxWaitSecondsIsNegative()
     {
         ResilienceOptions options = new(TokenBucketQueueMaxWaitSeconds: -1);
-        ResilienceStartupValidator sut = new(options, Mock.Of<ILogger<ResilienceStartupValidator>>());
+        ResilienceStartupValidator sut = new(Options.Create(options), Mock.Of<ILogger<ResilienceStartupValidator>>());
 
         Action act = sut.Validate;
 

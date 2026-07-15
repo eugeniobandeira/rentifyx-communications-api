@@ -1,9 +1,13 @@
 using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using RentifyxCommunications.Application.Abstractions;
 
 namespace RentifyxCommunications.Api.Messaging;
 
-internal sealed class KafkaConsumerFactory(IConfiguration configuration) : IKafkaConsumerFactory
+internal sealed class KafkaConsumerFactory(
+    IConfiguration configuration,
+    IOptions<KafkaOptions> kafkaOptions) : IKafkaConsumerFactory
 {
     public IConsumer<Ignore, string> Create()
     {
@@ -13,7 +17,7 @@ internal sealed class KafkaConsumerFactory(IConfiguration configuration) : IKafk
         ConsumerConfig config = new()
         {
             BootstrapServers = bootstrapServers,
-            GroupId = configuration["Kafka:ConsumerGroupId"] ?? "rentifyx-communications-api",
+            GroupId = kafkaOptions.Value.ConsumerGroupId,
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
         };

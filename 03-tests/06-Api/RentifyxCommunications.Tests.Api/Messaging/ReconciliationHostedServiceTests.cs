@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using RentifyxCommunications.Api.Messaging;
 using RentifyxCommunications.Domain.Constants;
@@ -120,6 +121,6 @@ public sealed class ReconciliationHostedServiceTests
         return new ReconciliationHostedService(
             Mock.Of<ILogger<ReconciliationHostedService>>(),
             provider.GetRequiredService<IServiceScopeFactory>(),
-            options);
+            Options.Create(options));
     }
 }
