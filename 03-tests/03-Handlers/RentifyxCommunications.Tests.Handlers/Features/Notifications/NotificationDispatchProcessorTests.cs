@@ -22,6 +22,8 @@ public sealed class NotificationDispatchProcessorTests
         {"correlationId":"11111111-1111-1111-1111-111111111111","recipientId":"22222222-2222-2222-2222-222222222222","recipientEmail":"user@example.com","channel":"Email","templateId":"welcome-email","payload":{"name":"Alice"}}
         """;
 
+    private static readonly NotificationMetrics Metrics = new();
+
     private static (
         NotificationDispatchProcessor Processor,
         Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> Handler,
@@ -29,7 +31,7 @@ public sealed class NotificationDispatchProcessorTests
     {
         Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
         Mock<IFailureRouter> router = new();
-        NotificationDispatchProcessor processor = new(handler.Object, router.Object, Mock.Of<ILogger<NotificationDispatchProcessor>>());
+        NotificationDispatchProcessor processor = new(handler.Object, router.Object, Metrics, Mock.Of<ILogger<NotificationDispatchProcessor>>());
 
         return (processor, handler, router);
     }

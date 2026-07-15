@@ -14,6 +14,7 @@ public sealed class NotificationRequestedConsumer(
     IKafkaConsumerFactory consumerFactory,
     IServiceScopeFactory scopeFactory,
     IConfiguration configuration,
+    NotificationMetrics? metrics = null,
     TimeSpan? startupRetryDelayOverride = null) : IHostedService, IDisposable
 {
     internal const string Topic = RetryTopicChain.OriginalTopic;
@@ -23,6 +24,10 @@ public sealed class NotificationRequestedConsumer(
     private readonly IKafkaConsumerFactory _consumerFactory = consumerFactory;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly string _groupId = configuration["Kafka:ConsumerGroupId"] ?? "rentifyx-communications-api";
+#pragma warning disable CA2213 // _metrics is an injected, DI-owned Singleton (shared across the whole app,
+                               // including other consumers) - this class must never dispose it.
+    private readonly NotificationMetrics? _metrics = metrics;
+#pragma warning restore CA2213
     private readonly TimeSpan? _startupRetryDelayOverride = startupRetryDelayOverride;
 
     private IConsumer<Ignore, string>? _consumer;
@@ -103,6 +108,24 @@ public sealed class NotificationRequestedConsumer(
 
             await ProcessMessageAsync(result, token);
             consumer.Commit(result);
+            UpdateConsumerLag(consumer, result.TopicPartition, result.Offset.Value);
+        }
+    }
+
+    private void UpdateConsumerLag(IConsumer<Ignore, string> consumer, TopicPartition partition, long consumedOffset)
+    {
+        if (_metrics is null)
+            return;
+
+        try
+        {
+            WatermarkOffsets watermarks = consumer.GetWatermarkOffsets(partition);
+            long lag = Math.Max(0, watermarks.High.Value - consumedOffset - 1);
+            _metrics.SetConsumerLag(lag);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to compute consumer lag for {Partition}", partition);
         }
     }
 

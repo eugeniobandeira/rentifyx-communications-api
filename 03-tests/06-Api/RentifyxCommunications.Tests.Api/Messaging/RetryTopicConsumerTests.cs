@@ -20,6 +20,8 @@ namespace RentifyxCommunications.Tests.Api.Messaging;
 
 public sealed class RetryTopicConsumerTests
 {
+    private static readonly NotificationMetrics Metrics = new();
+
     private const string ValidMessage = """
         {"correlationId":"11111111-1111-1111-1111-111111111111","recipientId":"22222222-2222-2222-2222-222222222222","recipientEmail":"user@example.com","channel":"Email","templateId":"welcome-email","payload":{"name":"Alice"}}
         """;
@@ -155,6 +157,7 @@ public sealed class RetryTopicConsumerTests
         ServiceCollection services = new();
         services.AddSingleton(handler);
         services.AddSingleton(router ?? Mock.Of<IFailureRouter>());
+        services.AddSingleton(Metrics);
         services.AddSingleton(Mock.Of<ILogger<NotificationDispatchProcessor>>());
         services.AddScoped<NotificationDispatchProcessor>();
         ServiceProvider provider = services.BuildServiceProvider();

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using ErrorOr;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Dis
 public sealed class NotificationDispatchProcessor(
     IHandler<DispatchNotificationRequest, DispatchNotificationResponse> handler,
     IFailureRouter failureRouter,
+    NotificationMetrics metrics,
     ILogger<NotificationDispatchProcessor> logger)
 {
     private static readonly JsonSerializerOptions DeserializeOptions = new()
@@ -25,6 +27,19 @@ public sealed class NotificationDispatchProcessor(
     };
 
     public async Task ProcessAsync(string rawMessage, RetryContext context, CancellationToken cancellationToken = default)
+    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        try
+        {
+            await ProcessCoreAsync(rawMessage, context, cancellationToken);
+        }
+        finally
+        {
+            metrics.RecordDispatchDuration(stopwatch.Elapsed.TotalSeconds);
+        }
+    }
+
+    private async Task ProcessCoreAsync(string rawMessage, RetryContext context, CancellationToken cancellationToken)
     {
         DispatchNotificationRequest? request;
 

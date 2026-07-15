@@ -20,6 +20,8 @@ namespace RentifyxCommunications.Tests.Api.Messaging;
 
 public sealed class NotificationRequestedConsumerTests
 {
+    private static readonly NotificationMetrics Metrics = new();
+
     [Fact]
     public async Task StartAsync_LogsSubscription_WhenConsumerFactorySucceeds()
     {
@@ -263,6 +265,7 @@ public sealed class NotificationRequestedConsumerTests
         ServiceCollection services = new();
         services.AddSingleton(handler ?? Mock.Of<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>>());
         services.AddSingleton(router ?? Mock.Of<IFailureRouter>());
+        services.AddSingleton(Metrics);
         services.AddSingleton<ILogger<NotificationDispatchProcessor>>(new ListLogger<NotificationDispatchProcessor>(entries));
         services.AddScoped<NotificationDispatchProcessor>();
         ServiceProvider provider = services.BuildServiceProvider();
@@ -273,7 +276,7 @@ public sealed class NotificationRequestedConsumerTests
             factory,
             provider.GetRequiredService<IServiceScopeFactory>(),
             configuration,
-            retryDelayOverride ?? TimeSpan.Zero);
+            startupRetryDelayOverride: retryDelayOverride ?? TimeSpan.Zero);
     }
 
     private sealed class SharedLogEntries : List<(LogLevel Level, string Message)>;
