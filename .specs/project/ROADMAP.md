@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** E-04 — Infrastructure (SES, DynamoDB, Idempotency & Resilience)
-**Status:** E-01, E-02, E-03 complete; E-04 F-07 (SES/DynamoDB) done; F-08 (throttling/circuit breaker) DONE 2026-07-14 (not yet merged, branch `feat/e04-f08-throttling`); F-09 (retry/DLQ/reconciliation) DONE 2026-07-14 (not yet merged, branch `feat/e04-f09-reliability`)
+**Status:** E-01, E-02, E-03 complete; E-04 F-07 (SES/DynamoDB) done; F-08 (throttling/circuit breaker) DONE 2026-07-14 (not yet merged, branch `feat/e04-f08-throttling`); F-09 (retry/DLQ/reconciliation) DONE 2026-07-14 (PR #9 open, not yet merged, branch `feat/e04-f09-reliability`)
 
 ---
 
@@ -104,7 +104,7 @@
 - `ResilienceStartupValidator` fails fast at startup on misconfigured thresholds (mirrors `SecretsStartupValidator`) — ✅ done
 - Load test: 1,000 notifications burst confirmed throttled to the configured rate (T07, `Category=LoadTest`, on-demand — `dotnet test --filter "Category=LoadTest"`, excluded from the default CI gate) — ✅ done
 
-**F-09 · Reliability — Retry, DLQ, Poison Messages & Reconciliation** — DONE (2026-07-14) — spec/design/tasks in `.specs/features/e04-f09-reliability/`, T01-T19 all complete on branch `feat/e04-f09-reliability` (not yet merged), 0 regressions (134 unit tests, 19/20 integration tests — 1 known pre-existing unrelated `AppHostTests` failure)
+**F-09 · Reliability — Retry, DLQ, Poison Messages & Reconciliation** — DONE (2026-07-14) — spec/design/tasks in `.specs/features/e04-f09-reliability/`, T01-T19 all complete on branch `feat/e04-f09-reliability` (PR #9 open, not yet merged), 0 regressions (134 unit tests, 19/20 integration tests — 1 known pre-existing unrelated `AppHostTests` failure)
 
 - `FailureClassifier` classifies every dispatch failure as `PoisonPill` (malformed JSON, unknown template — straight to DLQ, retry will never resolve it) or `Transient` (SES failures, rate-limit/circuit-breaker rejections — retried with backoff) — ✅ done. "Template not found" was reclassified from business-rule to `PoisonPill` during Specify (confirmed with user) — a missing template is a deployment/config defect, not a recoverable runtime condition
 - Retry topic chain, one topic per delay stage, each with its own `RetryTopicConsumer` that only processes once the delay has elapsed (checked via `x-next-retry-at`): `notification-requested` → `notification-requested-retry-5s` → `-retry-1m` → `-retry-10m` → `notification-requested-dlq` — ✅ done
