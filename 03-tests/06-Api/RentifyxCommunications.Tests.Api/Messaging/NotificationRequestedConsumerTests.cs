@@ -275,7 +275,7 @@ public sealed class NotificationRequestedConsumerTests
             new ListLogger<NotificationRequestedConsumer>(entries),
             factory,
             provider.GetRequiredService<IServiceScopeFactory>(),
-            Options.Create(new KafkaOptions()),
+            Options.Create(new KafkaOptions("test-consumer-group")),
             startupRetryDelayOverride: retryDelayOverride ?? TimeSpan.Zero);
     }
 

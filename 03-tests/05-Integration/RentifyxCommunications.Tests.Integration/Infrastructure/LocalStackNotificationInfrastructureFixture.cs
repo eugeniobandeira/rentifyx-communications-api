@@ -3,7 +3,6 @@ using Amazon.DynamoDBv2.Model;
 using Amazon.Runtime;
 using Amazon.SimpleEmail;
 using Amazon.SimpleEmail.Model;
-using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Domain.Constants;
 using Testcontainers.LocalStack;
 using Xunit;
@@ -12,6 +11,8 @@ namespace RentifyxCommunications.Tests.Integration.Infrastructure;
 
 public sealed class LocalStackNotificationInfrastructureFixture : IAsyncLifetime
 {
+    public const string TableName = "notifications";
+
     private LocalStackContainer? _container;
 
     public IAmazonDynamoDB DynamoDb { get; private set; } = null!;
@@ -54,7 +55,7 @@ public sealed class LocalStackNotificationInfrastructureFixture : IAsyncLifetime
     {
         await DynamoDb.CreateTableAsync(new CreateTableRequest
         {
-            TableName = new DynamoDbOptions().NotificationsTableName,
+            TableName = TableName,
             BillingMode = BillingMode.PAY_PER_REQUEST,
             KeySchema =
             [

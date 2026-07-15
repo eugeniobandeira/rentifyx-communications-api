@@ -1,3 +1,3 @@
 namespace RentifyxCommunications.Application.Abstractions;
 
-public sealed record KafkaOptions(string ConsumerGroupId = "rentifyx-communications-api");
+public sealed record KafkaOptions(string ConsumerGroupId);

@@ -1,3 +1,3 @@
 namespace RentifyxCommunications.Application.Abstractions;
 
-public sealed record DynamoDbOptions(string NotificationsTableName = "notifications");
+public sealed record DynamoDbOptions(string NotificationsTableName);

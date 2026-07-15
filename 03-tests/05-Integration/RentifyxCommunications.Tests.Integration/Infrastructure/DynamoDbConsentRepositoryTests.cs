@@ -13,7 +13,7 @@ namespace RentifyxCommunications.Tests.Integration.Infrastructure;
 [Collection(nameof(NotificationInfrastructureFixtureGroup))]
 public sealed class DynamoDbConsentRepositoryTests(LocalStackNotificationInfrastructureFixture fixture)
 {
-    private readonly DynamoDbConsentRepository _sut = new(fixture.DynamoDb, Options.Create(new DynamoDbOptions()));
+    private readonly DynamoDbConsentRepository _sut = new(fixture.DynamoDb, Options.Create(new DynamoDbOptions(LocalStackNotificationInfrastructureFixture.TableName)));
 
     [Fact]
     public async Task FindAsync_WithNoRecord_ShouldReturnNull()
@@ -31,7 +31,7 @@ public sealed class DynamoDbConsentRepositoryTests(LocalStackNotificationInfrast
 
         await fixture.DynamoDb.PutItemAsync(new PutItemRequest
         {
-            TableName = new DynamoDbOptions().NotificationsTableName,
+            TableName = LocalStackNotificationInfrastructureFixture.TableName,
             Item = new Dictionary<string, AttributeValue>
             {
                 ["PK"] = new($"CONSENT#{recipientId}"),
