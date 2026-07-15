@@ -41,7 +41,7 @@ public sealed class ReconciliationHostedService(
 
         if (_loopTask is not null)
         {
-            using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
+            using CancellationTokenSource timeout = new(KafkaConsumerHostedServiceDefaults.ShutdownDrainTimeout);
             using CancellationTokenSource linked =
                 CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 

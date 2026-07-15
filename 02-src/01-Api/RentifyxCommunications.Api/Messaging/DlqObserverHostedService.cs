@@ -43,7 +43,7 @@ public sealed class DlqObserverHostedService(
 
         if (_consumeLoopTask is not null)
         {
-            using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
+            using CancellationTokenSource timeout = new(KafkaConsumerHostedServiceDefaults.ShutdownDrainTimeout);
             using CancellationTokenSource linked =
                 CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
@@ -66,7 +66,7 @@ public sealed class DlqObserverHostedService(
     {
         while (!token.IsCancellationRequested)
         {
-            ConsumeResult<Ignore, string>? result = consumer.Consume(TimeSpan.FromSeconds(1));
+            ConsumeResult<Ignore, string>? result = consumer.Consume(KafkaConsumerHostedServiceDefaults.ConsumePollTimeout);
 
             if (result is null || result.IsPartitionEOF)
                 continue;
