@@ -38,21 +38,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="NAME_REQUIRED" xml:space="preserve">
-    <value>Name is required.</value>
-  </data>
-  <data name="EXAMPLE_NOT_FOUND" xml:space="preserve">
-    <value>Example not found.</value>
-  </data>
-  <data name="NAME_MAX_LENGTH" xml:space="preserve">
-    <value>Name must not exceed {MaxLength} characters.</value>
-  </data>
-  <data name="DESCRIPTION_REQUIRED" xml:space="preserve">
-    <value>Description is required.</value>
-  </data>
-  <data name="DESCRIPTION_MAX_LENGTH" xml:space="preserve">
-    <value>Description must not exceed {MaxLength} characters.</value>
-  </data>
   <data name="CORRELATION_ID_REQUIRED" xml:space="preserve">
     <value>Correlation id is required.</value>
   </data>

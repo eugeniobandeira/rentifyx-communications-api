@@ -1,5 +1,4 @@
-using ErrorOr;
-using FluentAssertions;
+﻿using ErrorOr;
 using Microsoft.Extensions.Logging;
 using Moq;
 using RentifyxCommunications.Application.Common.Handler;

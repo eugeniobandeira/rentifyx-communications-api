@@ -1,14 +1,16 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RentifyxCommunications.Infrastructure.Options;
 
 namespace RentifyxCommunications.Infrastructure.Resilience;
 
 public sealed class ResilienceStartupValidator(
-    ResilienceOptions options,
+    IOptions<ResilienceOptions> resilienceOptions,
     ILogger<ResilienceStartupValidator> logger)
 {
     public void Validate()
     {
+        ResilienceOptions options = resilienceOptions.Value;
         // TokenBucketQueueMaxWaitSeconds is intentionally excluded: 0 is a valid, meaningful setting
         // (reject immediately instead of queueing when the bucket is empty), not a misconfiguration.
         (string Name, int Value)[] requiredPositiveValues =

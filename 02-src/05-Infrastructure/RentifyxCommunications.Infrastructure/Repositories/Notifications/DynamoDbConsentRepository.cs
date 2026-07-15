@@ -1,22 +1,29 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
+using Microsoft.Extensions.Options;
+using RentifyxCommunications.Application.Abstractions;
+using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Domain.ValueObjects;
 
 namespace RentifyxCommunications.Infrastructure.Repositories.Notifications;
 
-public sealed class DynamoDbConsentRepository(IAmazonDynamoDB client) : IConsentRepository
+public sealed class DynamoDbConsentRepository(
+    IAmazonDynamoDB client,
+    IOptions<DynamoDbOptions> dynamoDbOptions) : IConsentRepository
 {
+    private readonly string _tableName = dynamoDbOptions.Value.NotificationsTableName;
+
     public async Task<ConsentPreference?> FindAsync(Guid recipientId, Channel channel, CancellationToken cancellationToken = default)
     {
         GetItemResponse response = await client.GetItemAsync(new GetItemRequest
         {
-            TableName = DynamoDbNotificationRepository.TableName,
+            TableName = _tableName,
             Key = new Dictionary<string, AttributeValue>
             {
-                ["PK"] = new($"CONSENT#{recipientId}"),
-                ["SK"] = new($"CHANNEL#{channel}")
+                [NotificationTableSchema.PartitionKey] = new($"CONSENT#{recipientId}"),
+                [NotificationTableSchema.SortKey] = new($"CHANNEL#{channel}")
             }
         }, cancellationToken);
 

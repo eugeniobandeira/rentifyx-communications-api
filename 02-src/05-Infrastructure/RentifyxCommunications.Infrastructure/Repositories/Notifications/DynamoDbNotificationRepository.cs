@@ -1,15 +1,20 @@
 using System.Globalization;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
+using Microsoft.Extensions.Options;
+using RentifyxCommunications.Application.Abstractions;
+using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 
 namespace RentifyxCommunications.Infrastructure.Repositories.Notifications;
 
-public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INotificationRepository
+public sealed class DynamoDbNotificationRepository(
+    IAmazonDynamoDB client,
+    IOptions<DynamoDbOptions> dynamoDbOptions) : INotificationRepository
 {
-    public const string TableName = "notifications";
+    private readonly string _tableName = dynamoDbOptions.Value.NotificationsTableName;
 
     public async Task<bool> SaveIfNotExistsAsync(NotificationEntity notification, CancellationToken cancellationToken = default)
     {
@@ -17,9 +22,9 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
         {
             await client.PutItemAsync(new PutItemRequest
             {
-                TableName = TableName,
+                TableName = _tableName,
                 Item = NotificationItemMapper.ToItem(notification),
-                ConditionExpression = "attribute_not_exists(PK)"
+                ConditionExpression = $"attribute_not_exists({NotificationTableSchema.PartitionKey})"
             }, cancellationToken);
 
             return true;
@@ -34,9 +39,9 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
     {
         QueryResponse response = await client.QueryAsync(new QueryRequest
         {
-            TableName = TableName,
-            IndexName = "GSI2",
-            KeyConditionExpression = "GSI2PK = :pk",
+            TableName = _tableName,
+            IndexName = NotificationTableSchema.Gsi2IndexName,
+            KeyConditionExpression = $"{NotificationTableSchema.Gsi2PartitionKey} = :pk",
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
                 [":pk"] = new($"ID#{id}")
@@ -50,11 +55,11 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
     {
         GetItemResponse response = await client.GetItemAsync(new GetItemRequest
         {
-            TableName = TableName,
+            TableName = _tableName,
             Key = new Dictionary<string, AttributeValue>
             {
-                ["PK"] = new($"NOTIF#{correlationId}"),
-                ["SK"] = new("METADATA")
+                [NotificationTableSchema.PartitionKey] = new($"NOTIF#{correlationId}"),
+                [NotificationTableSchema.SortKey] = new("METADATA")
             }
         }, cancellationToken);
 
@@ -65,9 +70,9 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
     {
         QueryResponse response = await client.QueryAsync(new QueryRequest
         {
-            TableName = TableName,
-            IndexName = "GSI1",
-            KeyConditionExpression = "GSI1PK = :pk",
+            TableName = _tableName,
+            IndexName = NotificationTableSchema.Gsi1IndexName,
+            KeyConditionExpression = $"{NotificationTableSchema.Gsi1PartitionKey} = :pk",
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
                 [":pk"] = new($"RECIPIENT#{recipientId}")
@@ -85,7 +90,8 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
 
         string updatedAt = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
 
-        string updateExpression = "SET #status = :status, UpdatedAt = :updatedAt, GSI3PK = :gsi3pk, GSI3SK = :updatedAt";
+        string updateExpression =
+            $"SET #status = :status, UpdatedAt = :updatedAt, {NotificationTableSchema.Gsi3PartitionKey} = :gsi3pk, {NotificationTableSchema.Gsi3SortKey} = :updatedAt";
         Dictionary<string, AttributeValue> expressionAttributeValues = new()
         {
             [":status"] = new(status.ToString()),
@@ -101,11 +107,11 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
 
         await client.UpdateItemAsync(new UpdateItemRequest
         {
-            TableName = TableName,
+            TableName = _tableName,
             Key = new Dictionary<string, AttributeValue>
             {
-                ["PK"] = new($"NOTIF#{notification.CorrelationId}"),
-                ["SK"] = new("METADATA")
+                [NotificationTableSchema.PartitionKey] = new($"NOTIF#{notification.CorrelationId}"),
+                [NotificationTableSchema.SortKey] = new("METADATA")
             },
             UpdateExpression = updateExpression,
             ExpressionAttributeNames = new Dictionary<string, string> { ["#status"] = "Status" },
@@ -119,9 +125,9 @@ public sealed class DynamoDbNotificationRepository(IAmazonDynamoDB client) : INo
 
         QueryResponse response = await client.QueryAsync(new QueryRequest
         {
-            TableName = TableName,
-            IndexName = "GSI3",
-            KeyConditionExpression = "GSI3PK = :pk AND GSI3SK < :threshold",
+            TableName = _tableName,
+            IndexName = NotificationTableSchema.Gsi3IndexName,
+            KeyConditionExpression = $"{NotificationTableSchema.Gsi3PartitionKey} = :pk AND {NotificationTableSchema.Gsi3SortKey} < :threshold",
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
                 [":pk"] = new($"STATUS#{NotificationStatus.Dispatching}"),

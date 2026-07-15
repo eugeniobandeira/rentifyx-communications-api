@@ -6,7 +6,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Serilog.AspNetCore" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
 using Microsoft.OpenApi;
+using RentifyxCommunications.Api.Extensions.Options;
 using Scalar.AspNetCore;
 
 namespace RentifyxCommunications.Api.Extensions;
@@ -7,8 +8,8 @@ public static class OpenApiExtensions
 {
     public static IServiceCollection AddOpenApiDocumentation(this IServiceCollection services, IConfiguration configuration)
     {
-        string contactName = configuration["OpenApi:ContactName"]!;
-        string contactUrl = configuration["OpenApi:ContactUrl"]!;
+        OpenApiDocumentationOptions openApiOptions = configuration.GetSection("OpenApi").Get<OpenApiDocumentationOptions>()
+            ?? throw new InvalidOperationException("OpenApi is not configured.");
 
         services.AddOpenApi(options =>
         {
@@ -21,8 +22,8 @@ public static class OpenApiExtensions
                     Description = "API generated with Clean Architecture Template",
                     Contact = new OpenApiContact
                     {
-                        Name = contactName,
-                        Url = new Uri(contactUrl)
+                        Name = openApiOptions.ContactName,
+                        Url = new Uri(openApiOptions.ContactUrl)
                     }
                 };
 

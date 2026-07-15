@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Amazon.DynamoDBv2.Model;
+using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.ValueObjects;
@@ -23,14 +24,14 @@ public static class NotificationItemMapper
 
         Dictionary<string, AttributeValue> item = new()
         {
-            ["PK"] = new($"NOTIF#{notification.CorrelationId}"),
-            ["SK"] = new("METADATA"),
-            ["GSI1PK"] = new($"RECIPIENT#{notification.RecipientId}"),
-            ["GSI1SK"] = new($"NOTIF#{notification.CreatedAt:O}#{notification.Id}"),
-            ["GSI2PK"] = new($"ID#{notification.Id}"),
-            ["GSI2SK"] = new($"ID#{notification.Id}"),
-            ["GSI3PK"] = new($"STATUS#{notification.Status}"),
-            ["GSI3SK"] = new(lastUpdated),
+            [NotificationTableSchema.PartitionKey] = new($"NOTIF#{notification.CorrelationId}"),
+            [NotificationTableSchema.SortKey] = new("METADATA"),
+            [NotificationTableSchema.Gsi1PartitionKey] = new($"RECIPIENT#{notification.RecipientId}"),
+            [NotificationTableSchema.Gsi1SortKey] = new($"NOTIF#{notification.CreatedAt:O}#{notification.Id}"),
+            [NotificationTableSchema.Gsi2PartitionKey] = new($"ID#{notification.Id}"),
+            [NotificationTableSchema.Gsi2SortKey] = new($"ID#{notification.Id}"),
+            [NotificationTableSchema.Gsi3PartitionKey] = new($"STATUS#{notification.Status}"),
+            [NotificationTableSchema.Gsi3SortKey] = new(lastUpdated),
             ["Id"] = new(notification.Id.ToString()),
             ["CorrelationId"] = new(notification.CorrelationId.ToString()),
             ["RecipientId"] = new(notification.RecipientId.ToString()),

@@ -1,6 +1,4 @@
-﻿using OpenTelemetry;
-using OpenTelemetry.Metrics;
-using RentifyxCommunications.Api.Extensions;
+﻿using RentifyxCommunications.Api.Extensions;
 using RentifyxCommunications.Api.Messaging;
 using RentifyxCommunications.Api.Middlewares;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
