@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** E-04 — Infrastructure (SES, DynamoDB, Idempotency & Resilience)
-**Status:** E-01, E-02, E-03 complete; E-04 F-07 (SES/DynamoDB) done; F-08 (throttling/circuit breaker) DONE 2026-07-14 (not yet merged, branch `feat/e04-f08-throttling`); F-09 (retry/DLQ/reconciliation) not started
+**Status:** E-01, E-02, E-03 complete; E-04 F-07 (SES/DynamoDB) done; F-08 (throttling/circuit breaker) DONE 2026-07-14 (not yet merged, branch `feat/e04-f08-throttling`); F-09 (retry/DLQ/reconciliation) DONE 2026-07-14 (PR #9 open, not yet merged, branch `feat/e04-f09-reliability`)
 
 ---
 
@@ -104,22 +104,17 @@
 - `ResilienceStartupValidator` fails fast at startup on misconfigured thresholds (mirrors `SecretsStartupValidator`) — ✅ done
 - Load test: 1,000 notifications burst confirmed throttled to the configured rate (T07, `Category=LoadTest`, on-demand — `dotnet test --filter "Category=LoadTest"`, excluded from the default CI gate) — ✅ done
 
-**F-09 · Reliability — Retry, DLQ, Poison Messages & Reconciliation** — PLANNED
+**F-09 · Reliability — Retry, DLQ, Poison Messages & Reconciliation** — DONE (2026-07-14) — spec/design/tasks in `.specs/features/e04-f09-reliability/`, T01-T19 all complete on branch `feat/e04-f09-reliability` (PR #9 open, not yet merged), 0 regressions (134 unit tests, 19/20 integration tests — 1 known pre-existing unrelated `AppHostTests` failure)
 
-- Retry: 3 attempts with exponential backoff, transient errors only; non-retryable → DLQ immediately
-- Failure classification (determines routing, not just "retry vs. not"):
-  - **Poison pill** (malformed JSON, missing required field, deserialization error) → straight to DLQ, retry will never resolve it
-  - **Transient** (DB unreachable, network timeout, SES throttling) → retry with backoff, most resolve on their own
-  - **Business rule** (e.g. recipient opted out, template not found) → not an error at all — handle as a normal domain outcome (`Suppressed`/`Failed` status), never route to DLQ
-- Retry topic chain, one topic per delay stage, each with its own consumer that only processes once the delay has elapsed (checked via `x-next-retry-at`): `notification-requested` → `notification-requested-retry-5s` → `-retry-1m` → `-retry-10m` → `notification-requested-dlq`
-- DLQ Kafka topic consumer with original payload + failure reason + retry count; required headers on every retry/DLQ message for traceability without needing to reproduce the failure:
-  - `x-original-topic` — where the message originally came from
-  - `x-retry-count` — attempts so far
-  - `x-first-failure-timestamp` — when it first failed
-  - `x-exception-type` / `x-exception-message` — for triage without reprocessing
-  - `x-next-retry-at` — computed timestamp the retry-topic consumer checks before processing
-- Reconciliation `IHostedService`: resolve notifications stuck in `Dispatching` > 2 min
-- OTEL metrics: `kafka_consumer_lag_notification_requested`, `notification_dispatch_duration_seconds` histogram
+- `FailureClassifier` classifies every dispatch failure as `PoisonPill` (malformed JSON, unknown template — straight to DLQ, retry will never resolve it) or `Transient` (SES failures, rate-limit/circuit-breaker rejections — retried with backoff) — ✅ done. "Template not found" was reclassified from business-rule to `PoisonPill` during Specify (confirmed with user) — a missing template is a deployment/config defect, not a recoverable runtime condition
+- Retry topic chain, one topic per delay stage, each with its own `RetryTopicConsumer` that only processes once the delay has elapsed (checked via `x-next-retry-at`): `notification-requested` → `notification-requested-retry-5s` → `-retry-1m` → `-retry-10m` → `notification-requested-dlq` — ✅ done
+- `KafkaFailureRouter` (`IFailureRouter`) publishes to the right topic with all required traceability headers (`x-original-topic`, `x-retry-count`, `x-first-failure-timestamp`, `x-exception-type`, `x-exception-message`, `x-next-retry-at`) — ✅ done
+- `DlqObserverHostedService`: logs every DLQ arrival at `Critical`, looks up the source notification and marks it `Failed` (with reason) if found — ✅ done
+- `ReconciliationHostedService`: `PeriodicTimer`-driven poll of DynamoDB `GSI3` (new) for notifications stuck in `Dispatching` past a configurable staleness threshold (default 120s), republished as `Transient` failures with `RetryCount = 0` — ✅ done
+- `NotificationDispatchProcessor`: shared deserialize → handle → classify → route pipeline extracted from the original consumer and reused identically by all three retry-topic consumers — ✅ done (not in the original design; added during Execute once the retry consumers revealed the duplication)
+- OTEL metrics: `NotificationMetrics` (Singleton `Meter`) — `notification_dispatch_duration_seconds` histogram (recorded in a `finally` block across every dispatch path) and `kafka_consumer_lag_notification_requested` observable gauge (computed locally via `IConsumer.GetWatermarkOffsets`, no extra network round trip) — ✅ done
+- Two Clean Architecture layering corrections made during Execute (documented in `design.md`): `RetryContext` moved from Application to `Domain/ValueObjects/` (Domain's `IFailureRouter` needed it, and Domain cannot depend on Application); `IKafkaProducerFactory`/`KafkaProducerFactory` moved from `Api/Messaging/` to `Infrastructure/Messaging/` (Infrastructure's `KafkaFailureRouter` needed it, and Infrastructure has no project reference to Api)
+- Pre-existing bug fixed along the way: `UpdateStatusAsync` never actually persisted `FailureReason` even though `NotificationEntity.MarkFailed(reason)` set it in memory — added an optional `failureReason` parameter and wired both of `DispatchNotificationHandler`'s existing `MarkFailed` call sites to pass it
 
 *Header schema and retry-topic-chain convention above sourced from a Kafka/.NET reference guide reviewed 2026-07-13 (`kafka-dotnet-versao-final.html`, a personal study doc, not part of the repo's tracked source) — captured here so the pattern isn't lost before F-09 design starts.*
 

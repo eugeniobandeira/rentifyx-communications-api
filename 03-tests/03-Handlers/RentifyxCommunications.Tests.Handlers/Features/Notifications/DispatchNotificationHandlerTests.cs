@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Response;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Validator;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Enums;
@@ -48,7 +49,7 @@ public sealed class DispatchNotificationHandlerTests
         DispatchNotificationHandler sut = CreateSut();
         DispatchNotificationRequest request = ValidRequest() with { CorrelationId = Guid.Empty };
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(request);
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(request);
 
         result.IsError.Should().BeTrue();
         _notificationRepository.Verify(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -63,7 +64,7 @@ public sealed class DispatchNotificationHandlerTests
         DispatchNotificationHandler sut = CreateSut();
         DispatchNotificationRequest request = ValidRequest() with { RecipientEmail = "not-an-email" };
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(request);
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(request);
 
         result.IsError.Should().BeTrue();
         _notificationRepository.Verify(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -78,7 +79,7 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.WasDuplicate.Should().BeTrue();
@@ -121,11 +122,11 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Suppressed);
-        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Suppressed, It.IsAny<CancellationToken>()), Times.Once);
+        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Suppressed, It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
         _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
         _emailSender.Verify(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -191,11 +192,11 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Failed);
-        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Failed, It.IsAny<CancellationToken>()), Times.Once);
+        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Failed, It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
         _emailSender.Verify(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -212,7 +213,7 @@ public sealed class DispatchNotificationHandlerTests
 
         List<string> callOrder = [];
         _notificationRepository
-            .Setup(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Dispatching, It.IsAny<CancellationToken>()))
+            .Setup(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Dispatching, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("UpdateStatusAsync(Dispatching)"))
             .Returns(Task.CompletedTask);
         _emailSender
@@ -222,12 +223,12 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Sent);
         callOrder.Should().Equal("UpdateStatusAsync(Dispatching)", "SendAsync");
-        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Sent, It.IsAny<CancellationToken>()), Times.Once);
+        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Sent, It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -243,11 +244,11 @@ public sealed class DispatchNotificationHandlerTests
 
         DispatchNotificationHandler sut = CreateSut();
 
-        ErrorOr<DispatchOutcome> result = await sut.HandleAsync(ValidRequest());
+        ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(ValidRequest());
 
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Failed);
-        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Failed, It.IsAny<CancellationToken>()), Times.Once);
+        _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Failed, It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -267,7 +268,7 @@ public sealed class DispatchNotificationHandlerTests
             .Callback(() => callOrder.Add("RenderAsync"))
             .ReturnsAsync("rendered content");
         _notificationRepository
-            .Setup(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Dispatching, It.IsAny<CancellationToken>()))
+            .Setup(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Dispatching, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("UpdateStatusAsync(Dispatching)"))
             .Returns(Task.CompletedTask);
         _emailSender
@@ -275,7 +276,7 @@ public sealed class DispatchNotificationHandlerTests
             .Callback(() => callOrder.Add("SendAsync"))
             .ReturnsAsync(Result.Success);
         _notificationRepository
-            .Setup(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Sent, It.IsAny<CancellationToken>()))
+            .Setup(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Sent, It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("UpdateStatusAsync(Sent)"))
             .Returns(Task.CompletedTask);
 

@@ -67,7 +67,9 @@ public sealed class LocalStackNotificationInfrastructureFixture : IAsyncLifetime
                 new AttributeDefinition("GSI1PK", ScalarAttributeType.S),
                 new AttributeDefinition("GSI1SK", ScalarAttributeType.S),
                 new AttributeDefinition("GSI2PK", ScalarAttributeType.S),
-                new AttributeDefinition("GSI2SK", ScalarAttributeType.S)
+                new AttributeDefinition("GSI2SK", ScalarAttributeType.S),
+                new AttributeDefinition("GSI3PK", ScalarAttributeType.S),
+                new AttributeDefinition("GSI3SK", ScalarAttributeType.S)
             ],
             GlobalSecondaryIndexes =
             [
@@ -88,6 +90,16 @@ public sealed class LocalStackNotificationInfrastructureFixture : IAsyncLifetime
                     [
                         new KeySchemaElement("GSI2PK", KeyType.HASH),
                         new KeySchemaElement("GSI2SK", KeyType.RANGE)
+                    ],
+                    Projection = new Projection { ProjectionType = ProjectionType.ALL }
+                },
+                new GlobalSecondaryIndex
+                {
+                    IndexName = "GSI3",
+                    KeySchema =
+                    [
+                        new KeySchemaElement("GSI3PK", KeyType.HASH),
+                        new KeySchemaElement("GSI3SK", KeyType.RANGE)
                     ],
                     Projection = new Projection { ProjectionType = ProjectionType.ALL }
                 }

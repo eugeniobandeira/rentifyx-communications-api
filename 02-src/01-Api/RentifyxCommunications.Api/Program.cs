@@ -1,6 +1,10 @@
-﻿using RentifyxCommunications.Api.Consumers;
+﻿using OpenTelemetry;
+using OpenTelemetry.Metrics;
 using RentifyxCommunications.Api.Extensions;
+using RentifyxCommunications.Api.Messaging;
 using RentifyxCommunications.Api.Middlewares;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Infrastructure.Resilience;
 using RentifyxCommunications.Infrastructure.Secrets;
 using RentifyxCommunications.IoC;
@@ -17,6 +21,7 @@ try
     WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
     builder.AddServiceDefaults();
+    builder.Services.AddOpenTelemetry().WithMetrics(metrics => metrics.AddMeter(NotificationMetrics.MeterName));
 
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
@@ -39,6 +44,23 @@ try
     builder.Services.AddProblemDetails();
     builder.Services.AddSingleton<IKafkaConsumerFactory, KafkaConsumerFactory>();
     builder.Services.AddHostedService<NotificationRequestedConsumer>();
+    builder.Services.AddHostedService(sp => new RetryTopicConsumer(
+        RetryTopicChain.Retry5sTopic,
+        sp.GetRequiredService<ILogger<RetryTopicConsumer>>(),
+        sp.GetRequiredService<IKafkaConsumerFactory>(),
+        sp.GetRequiredService<IServiceScopeFactory>()));
+    builder.Services.AddHostedService(sp => new RetryTopicConsumer(
+        RetryTopicChain.Retry1mTopic,
+        sp.GetRequiredService<ILogger<RetryTopicConsumer>>(),
+        sp.GetRequiredService<IKafkaConsumerFactory>(),
+        sp.GetRequiredService<IServiceScopeFactory>()));
+    builder.Services.AddHostedService(sp => new RetryTopicConsumer(
+        RetryTopicChain.Retry10mTopic,
+        sp.GetRequiredService<ILogger<RetryTopicConsumer>>(),
+        sp.GetRequiredService<IKafkaConsumerFactory>(),
+        sp.GetRequiredService<IServiceScopeFactory>()));
+    builder.Services.AddHostedService<DlqObserverHostedService>();
+    builder.Services.AddHostedService<ReconciliationHostedService>();
 
     WebApplication app = builder.Build();
 

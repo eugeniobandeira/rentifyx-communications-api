@@ -19,6 +19,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="Polly.RateLimiting" />
+    <PackageReference Include="Confluent.Kafka" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Templates\Files\*.scriban" />
