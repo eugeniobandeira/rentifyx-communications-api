@@ -61,51 +61,6 @@ namespace RentifyxCommunications.Domain.MessageResource {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Description must not exceed {MaxLength} characters..
-        /// </summary>
-        public static string DESCRIPTION_MAX_LENGTH {
-            get {
-                return ResourceManager.GetString("DESCRIPTION_MAX_LENGTH", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Description is required..
-        /// </summary>
-        public static string DESCRIPTION_REQUIRED {
-            get {
-                return ResourceManager.GetString("DESCRIPTION_REQUIRED", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Name must not exceed {MaxLength} characters..
-        /// </summary>
-        public static string NAME_MAX_LENGTH {
-            get {
-                return ResourceManager.GetString("NAME_MAX_LENGTH", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Name is required..
-        /// </summary>
-        public static string NAME_REQUIRED {
-            get {
-                return ResourceManager.GetString("NAME_REQUIRED", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Example not found..
-        /// </summary>
-        public static string EXAMPLE_NOT_FOUND {
-            get {
-                return ResourceManager.GetString("EXAMPLE_NOT_FOUND", resourceCulture);
-            }
-        }
-
-        /// <summary>
         ///   Looks up a localized string similar to Correlation id is required..
         /// </summary>
         public static string CORRELATION_ID_REQUIRED {
