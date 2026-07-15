@@ -74,6 +74,7 @@ internal static class InfrastructureDependencyInjection
         services.AddAWSService<IAmazonDynamoDB>();
         services.AddAWSService<IAmazonSimpleEmailService>();
 
+        services.Configure<DynamoDbOptions>(configuration.GetSection("DynamoDb"));
         services.AddScoped<INotificationRepository, DynamoDbNotificationRepository>();
         services.AddScoped<IConsentRepository, DynamoDbConsentRepository>();
         services.AddSingleton<ITemplateRenderer, ScribanTemplateRenderer>();

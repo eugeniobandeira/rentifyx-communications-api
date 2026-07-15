@@ -3,7 +3,8 @@ using Amazon.DynamoDBv2.Model;
 using Amazon.Runtime;
 using Amazon.SimpleEmail;
 using Amazon.SimpleEmail.Model;
-using RentifyxCommunications.Infrastructure.Repositories.Notifications;
+using RentifyxCommunications.Application.Abstractions;
+using RentifyxCommunications.Domain.Constants;
 using Testcontainers.LocalStack;
 using Xunit;
 
@@ -53,53 +54,53 @@ public sealed class LocalStackNotificationInfrastructureFixture : IAsyncLifetime
     {
         await DynamoDb.CreateTableAsync(new CreateTableRequest
         {
-            TableName = DynamoDbNotificationRepository.TableName,
+            TableName = new DynamoDbOptions().NotificationsTableName,
             BillingMode = BillingMode.PAY_PER_REQUEST,
             KeySchema =
             [
-                new KeySchemaElement("PK", KeyType.HASH),
-                new KeySchemaElement("SK", KeyType.RANGE)
+                new KeySchemaElement(NotificationTableSchema.PartitionKey, KeyType.HASH),
+                new KeySchemaElement(NotificationTableSchema.SortKey, KeyType.RANGE)
             ],
             AttributeDefinitions =
             [
-                new AttributeDefinition("PK", ScalarAttributeType.S),
-                new AttributeDefinition("SK", ScalarAttributeType.S),
-                new AttributeDefinition("GSI1PK", ScalarAttributeType.S),
-                new AttributeDefinition("GSI1SK", ScalarAttributeType.S),
-                new AttributeDefinition("GSI2PK", ScalarAttributeType.S),
-                new AttributeDefinition("GSI2SK", ScalarAttributeType.S),
-                new AttributeDefinition("GSI3PK", ScalarAttributeType.S),
-                new AttributeDefinition("GSI3SK", ScalarAttributeType.S)
+                new AttributeDefinition(NotificationTableSchema.PartitionKey, ScalarAttributeType.S),
+                new AttributeDefinition(NotificationTableSchema.SortKey, ScalarAttributeType.S),
+                new AttributeDefinition(NotificationTableSchema.Gsi1PartitionKey, ScalarAttributeType.S),
+                new AttributeDefinition(NotificationTableSchema.Gsi1SortKey, ScalarAttributeType.S),
+                new AttributeDefinition(NotificationTableSchema.Gsi2PartitionKey, ScalarAttributeType.S),
+                new AttributeDefinition(NotificationTableSchema.Gsi2SortKey, ScalarAttributeType.S),
+                new AttributeDefinition(NotificationTableSchema.Gsi3PartitionKey, ScalarAttributeType.S),
+                new AttributeDefinition(NotificationTableSchema.Gsi3SortKey, ScalarAttributeType.S)
             ],
             GlobalSecondaryIndexes =
             [
                 new GlobalSecondaryIndex
                 {
-                    IndexName = "GSI1",
+                    IndexName = NotificationTableSchema.Gsi1IndexName,
                     KeySchema =
                     [
-                        new KeySchemaElement("GSI1PK", KeyType.HASH),
-                        new KeySchemaElement("GSI1SK", KeyType.RANGE)
+                        new KeySchemaElement(NotificationTableSchema.Gsi1PartitionKey, KeyType.HASH),
+                        new KeySchemaElement(NotificationTableSchema.Gsi1SortKey, KeyType.RANGE)
                     ],
                     Projection = new Projection { ProjectionType = ProjectionType.ALL }
                 },
                 new GlobalSecondaryIndex
                 {
-                    IndexName = "GSI2",
+                    IndexName = NotificationTableSchema.Gsi2IndexName,
                     KeySchema =
                     [
-                        new KeySchemaElement("GSI2PK", KeyType.HASH),
-                        new KeySchemaElement("GSI2SK", KeyType.RANGE)
+                        new KeySchemaElement(NotificationTableSchema.Gsi2PartitionKey, KeyType.HASH),
+                        new KeySchemaElement(NotificationTableSchema.Gsi2SortKey, KeyType.RANGE)
                     ],
                     Projection = new Projection { ProjectionType = ProjectionType.ALL }
                 },
                 new GlobalSecondaryIndex
                 {
-                    IndexName = "GSI3",
+                    IndexName = NotificationTableSchema.Gsi3IndexName,
                     KeySchema =
                     [
-                        new KeySchemaElement("GSI3PK", KeyType.HASH),
-                        new KeySchemaElement("GSI3SK", KeyType.RANGE)
+                        new KeySchemaElement(NotificationTableSchema.Gsi3PartitionKey, KeyType.HASH),
+                        new KeySchemaElement(NotificationTableSchema.Gsi3SortKey, KeyType.RANGE)
                     ],
                     Projection = new Projection { ProjectionType = ProjectionType.ALL }
                 }

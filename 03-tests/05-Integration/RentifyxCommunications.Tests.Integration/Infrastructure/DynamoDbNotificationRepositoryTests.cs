@@ -1,6 +1,8 @@
 using System.Globalization;
 using Amazon.DynamoDBv2.Model;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
+using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Domain.Entities;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.ValueObjects;
@@ -13,7 +15,7 @@ namespace RentifyxCommunications.Tests.Integration.Infrastructure;
 [Collection(nameof(NotificationInfrastructureFixtureGroup))]
 public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationInfrastructureFixture fixture)
 {
-    private readonly DynamoDbNotificationRepository _sut = new(fixture.DynamoDb);
+    private readonly DynamoDbNotificationRepository _sut = new(fixture.DynamoDb, Options.Create(new DynamoDbOptions()));
 
     private static NotificationEntity CreateNotification()
     {
@@ -199,7 +201,7 @@ public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationIn
 
         await fixture.DynamoDb.UpdateItemAsync(new UpdateItemRequest
         {
-            TableName = DynamoDbNotificationRepository.TableName,
+            TableName = new DynamoDbOptions().NotificationsTableName,
             Key = new Dictionary<string, AttributeValue>
             {
                 ["PK"] = new($"NOTIF#{correlationId}"),

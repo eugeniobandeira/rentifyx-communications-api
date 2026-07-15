@@ -1,5 +1,12 @@
 # Tasks: Remove Example scaffold, drop EF Core, formalize IOptions<T>
 
+**Status: DONE (2026-07-15)** — T01-T10 all complete on branch `chore/scaffold-cleanup-ioptions`,
+2 commits (`2b42299` scaffold/EF removal, `d72ddce` appsettings + IOptions cleanup).
+Full solution build green; 126 unit tests passing (0 failures) across
+Domain/Validators/Handlers/Repositories/Api test projects; Integration project
+has 0 non-`Category=Integration` tests (all its tests are LocalStack-tagged,
+correctly excluded — matches CI filter behavior). Not yet merged — PR pending.
+
 Order matters — each task ends with `dotnet build` (and relevant test run)
 staying green before moving to the next. No `[P]` parallel tasks: this is a
 single linear deletion chain through the dependency graph, not independent
