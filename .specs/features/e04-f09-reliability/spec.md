@@ -150,22 +150,22 @@
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| REL-01 | P1: Failure classification | In Tasks | Pending |
-| REL-02 | P1: Failure classification | In Tasks | Pending |
-| REL-03 | P1: Failure classification | In Tasks | Pending |
-| REL-04 | P1: Retry topic chain | In Tasks | Pending |
-| REL-05 | P1: Retry topic chain | In Tasks | Pending |
-| REL-06 | P1: Retry topic chain | In Tasks | Pending |
-| REL-07 | P1: Retry topic chain | In Tasks | Pending |
-| REL-08 | P1: Retry topic chain | In Tasks | Pending |
-| REL-09 | P1: Retry topic chain | In Tasks | Pending |
-| REL-10 | P1: DLQ landing | In Tasks | Pending |
-| REL-11 | P1: DLQ landing | In Tasks | Pending |
-| REL-12 | P2: Reconciliation | In Tasks | Pending |
-| REL-13 | P2: Reconciliation | In Tasks | Pending |
-| REL-14 | P2: Reconciliation | In Tasks | Pending |
-| REL-15 | P2: OTEL metrics | In Tasks | Pending |
-| REL-16 | P2: OTEL metrics | In Tasks | Pending |
+| REL-01 | P1: Failure classification | Implementing | Verified |
+| REL-02 | P1: Failure classification | Implementing | Verified |
+| REL-03 | P1: Failure classification | Implementing | Verified |
+| REL-04 | P1: Retry topic chain | Implementing | Verified |
+| REL-05 | P1: Retry topic chain | Implementing | Verified |
+| REL-06 | P1: Retry topic chain | Implementing | Verified |
+| REL-07 | P1: Retry topic chain | Implementing | Verified |
+| REL-08 | P1: Retry topic chain | Implementing | Verified |
+| REL-09 | P1: Retry topic chain | Implementing | Verified |
+| REL-10 | P1: DLQ landing | Implementing | Verified |
+| REL-11 | P1: DLQ landing | Implementing | Verified |
+| REL-12 | P2: Reconciliation | Implementing | Verified |
+| REL-13 | P2: Reconciliation | Implementing | Verified |
+| REL-14 | P2: Reconciliation | Implementing | Verified |
+| REL-15 | P2: OTEL metrics | Implementing | Verified |
+| REL-16 | P2: OTEL metrics | Implementing | Verified |
 
 **ID format:** `REL-[NUMBER]`
 

@@ -1,7 +1,7 @@
 # E-04 · F-09 — Reliability Tasks
 
 **Design**: `.specs/features/e04-f09-reliability/design.md`
-**Status**: Approved
+**Status**: Done (2026-07-14) — T01-T19 all complete, 0 regressions
 
 ---
 
