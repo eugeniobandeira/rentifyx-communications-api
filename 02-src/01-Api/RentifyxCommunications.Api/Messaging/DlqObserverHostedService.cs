@@ -1,9 +1,6 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Confluent.Kafka;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Entities;

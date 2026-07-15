@@ -1,5 +1,4 @@
-using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
+﻿using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 using RentifyxCommunications.Application.Abstractions;
 

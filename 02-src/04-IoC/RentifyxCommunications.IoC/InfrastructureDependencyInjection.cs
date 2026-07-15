@@ -1,13 +1,4 @@
-using RentifyxCommunications.Application.Abstractions;
-using RentifyxCommunications.Domain.Interfaces.Notifications;
-using RentifyxCommunications.Infrastructure.Email;
-using RentifyxCommunications.Infrastructure.Messaging;
-using RentifyxCommunications.Infrastructure.Options;
-using RentifyxCommunications.Infrastructure.Repositories.Notifications;
-using RentifyxCommunications.Infrastructure.Resilience;
-using RentifyxCommunications.Infrastructure.Secrets;
-using RentifyxCommunications.Infrastructure.Templates;
-using Amazon.DynamoDBv2;
+﻿using Amazon.DynamoDBv2;
 using Amazon.Runtime.CredentialManagement;
 using Amazon.SecretsManager;
 using Amazon.SimpleEmail;
@@ -17,6 +8,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Polly;
+using RentifyxCommunications.Application.Abstractions;
+using RentifyxCommunications.Domain.Interfaces.Notifications;
+using RentifyxCommunications.Infrastructure.Email;
+using RentifyxCommunications.Infrastructure.Messaging;
+using RentifyxCommunications.Infrastructure.Options;
+using RentifyxCommunications.Infrastructure.Repositories.Notifications;
+using RentifyxCommunications.Infrastructure.Resilience;
+using RentifyxCommunications.Infrastructure.Secrets;
+using RentifyxCommunications.Infrastructure.Templates;
 
 namespace RentifyxCommunications.IoC;
 

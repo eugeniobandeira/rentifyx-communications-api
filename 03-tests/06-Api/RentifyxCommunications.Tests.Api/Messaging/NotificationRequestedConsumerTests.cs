@@ -1,5 +1,4 @@
-using Confluent.Kafka;
-using ErrorOr;
+﻿using Confluent.Kafka;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

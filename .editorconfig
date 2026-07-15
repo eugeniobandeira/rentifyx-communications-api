@@ -196,7 +196,7 @@ dotnet_diagnostic.CS8767.severity                            = error     # Nulla
 dotnet_diagnostic.CS8774.severity                            = error     # Member must have non-null value on exit
 
 # ── Async / threading ────────────────────────────────────────────────────────
-dotnet_diagnostic.CA2007.severity                            = suggestion # Consider ConfigureAwait
+dotnet_diagnostic.CA2007.severity                            = none       # Consider ConfigureAwait — not needed, ASP.NET Core has no SynchronizationContext to deadlock on
 dotnet_diagnostic.CA2008.severity                            = warning   # Do not create tasks without TaskScheduler
 dotnet_diagnostic.CA2012.severity                            = error     # Use ValueTasks correctly
 dotnet_diagnostic.CA2016.severity                            = warning   # Forward CancellationToken

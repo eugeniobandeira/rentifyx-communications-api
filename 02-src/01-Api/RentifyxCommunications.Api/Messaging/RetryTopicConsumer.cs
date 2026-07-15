@@ -1,9 +1,6 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Confluent.Kafka;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
 using RentifyxCommunications.Domain.ValueObjects;
 

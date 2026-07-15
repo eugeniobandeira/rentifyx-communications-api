@@ -1,7 +1,4 @@
-using Confluent.Kafka;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+﻿using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
@@ -25,10 +22,7 @@ public sealed class NotificationRequestedConsumer(
     private readonly IKafkaConsumerFactory _consumerFactory = consumerFactory;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly string _groupId = kafkaOptions.Value.ConsumerGroupId;
-#pragma warning disable CA2213 // _metrics is an injected, DI-owned Singleton (shared across the whole app,
-                               // including other consumers) - this class must never dispose it.
-    private readonly NotificationMetrics? _metrics = metrics;
-#pragma warning restore CA2213
+    private readonly Action<long>? _setConsumerLag = metrics is null ? null : metrics.SetConsumerLag;
     private readonly TimeSpan? _startupRetryDelayOverride = startupRetryDelayOverride;
 
     private IConsumer<Ignore, string>? _consumer;
@@ -115,14 +109,14 @@ public sealed class NotificationRequestedConsumer(
 
     private void UpdateConsumerLag(IConsumer<Ignore, string> consumer, TopicPartition partition, long consumedOffset)
     {
-        if (_metrics is null)
+        if (_setConsumerLag is null)
             return;
 
         try
         {
             WatermarkOffsets watermarks = consumer.GetWatermarkOffsets(partition);
             long lag = Math.Max(0, watermarks.High.Value - consumedOffset - 1);
-            _metrics.SetConsumerLag(lag);
+            _setConsumerLag(lag);
         }
         catch (Exception ex)
         {
