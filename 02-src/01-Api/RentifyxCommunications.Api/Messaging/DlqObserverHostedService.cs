@@ -91,9 +91,10 @@ public sealed class DlqObserverHostedService(
             exceptionMessage,
             result.Message.Value);
 
+        DispatchNotificationRequest? request = null;
         try
         {
-            DispatchNotificationRequest? request = JsonSerializer.Deserialize<DispatchNotificationRequest>(result.Message.Value, DeserializeOptions);
+            request = JsonSerializer.Deserialize<DispatchNotificationRequest>(result.Message.Value, DeserializeOptions);
             if (request is null)
             {
                 logger.LogWarning("DLQ message payload could not be deserialized - skipping status update.");
@@ -116,7 +117,10 @@ public sealed class DlqObserverHostedService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error marking a DLQ'd notification as Failed.");
+            logger.LogError(
+                ex,
+                "Unexpected error marking a DLQ'd notification as Failed. CorrelationId={CorrelationId}",
+                request?.CorrelationId);
         }
     }
 
