@@ -9,4 +9,6 @@ public static class NotificationErrorCodes
     public const string InvalidEmailAddress = "Notification.InvalidEmailAddress";
     public const string InvalidTemplateId = "Notification.InvalidTemplateId";
     public const string InvalidRecipientId = "Notification.InvalidRecipientId";
+    public const string InvalidId = "Notification.InvalidId";
+    public const string NotFound = "Notification.NotFound";
 }
