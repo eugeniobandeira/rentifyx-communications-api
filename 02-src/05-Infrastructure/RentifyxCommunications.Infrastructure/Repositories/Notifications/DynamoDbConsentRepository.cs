@@ -33,8 +33,12 @@ public sealed class DynamoDbConsentRepository(
         return ConsentItemMapper.ToEntity(response.Item, recipientId, channel);
     }
 
-    public Task UpdateAsync(ConsentPreference consent, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(ConsentPreference consent, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        await client.PutItemAsync(new PutItemRequest
+        {
+            TableName = _tableName,
+            Item = ConsentItemMapper.ToItem(consent)
+        }, cancellationToken);
     }
 }

@@ -48,4 +48,37 @@ public sealed class DynamoDbConsentRepositoryTests(LocalStackNotificationInfrast
         result.Channel.Should().Be(Channel.Email);
         result.OptedIn.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task UpdateAsync_WithNoExistingRecord_ShouldCreateConsentRecord()
+    {
+        Guid recipientId = Guid.NewGuid();
+        DateTime updatedAt = DateTime.UtcNow;
+        ConsentPreference consent = ConsentPreference.Create(recipientId, Channel.Sms, true, updatedAt).Value;
+
+        await _sut.UpdateAsync(consent);
+
+        ConsentPreference? result = await _sut.GetAsync(recipientId, Channel.Sms);
+
+        result.Should().NotBeNull();
+        result!.RecipientId.Should().Be(recipientId);
+        result.Channel.Should().Be(Channel.Sms);
+        result.OptedIn.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithExistingRecord_ShouldOverwriteWithLastWriteWins()
+    {
+        Guid recipientId = Guid.NewGuid();
+        ConsentPreference original = ConsentPreference.Create(recipientId, Channel.Email, true, DateTime.UtcNow.AddDays(-1)).Value;
+        ConsentPreference updated = ConsentPreference.Create(recipientId, Channel.Email, false, DateTime.UtcNow).Value;
+
+        await _sut.UpdateAsync(original);
+        await _sut.UpdateAsync(updated);
+
+        ConsentPreference? result = await _sut.GetAsync(recipientId, Channel.Email);
+
+        result.Should().NotBeNull();
+        result!.OptedIn.Should().BeFalse();
+    }
 }

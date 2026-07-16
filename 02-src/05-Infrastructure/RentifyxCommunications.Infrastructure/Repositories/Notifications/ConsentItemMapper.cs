@@ -1,5 +1,6 @@
 using System.Globalization;
 using Amazon.DynamoDBv2.Model;
+using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.ValueObjects;
 
@@ -14,4 +15,13 @@ public static class ConsentItemMapper
 
         return ConsentPreference.Create(recipientId, channel, optedIn, updatedAt).Value;
     }
+
+    public static Dictionary<string, AttributeValue> ToItem(ConsentPreference consent) =>
+        new()
+        {
+            [NotificationTableSchema.PartitionKey] = new($"CONSENT#{consent.RecipientId}"),
+            [NotificationTableSchema.SortKey] = new($"CHANNEL#{consent.Channel}"),
+            ["OptedIn"] = new AttributeValue { BOOL = consent.OptedIn },
+            ["UpdatedAt"] = new(consent.UpdatedAt.ToString("O", CultureInfo.InvariantCulture))
+        };
 }
