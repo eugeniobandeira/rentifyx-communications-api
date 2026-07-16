@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** E-04 — Infrastructure (SES, DynamoDB, Idempotency & Resilience)
-**Status:** E-01, E-02, E-03 complete; E-04 F-07 (SES/DynamoDB) done; F-08 (throttling/circuit breaker) DONE 2026-07-14 (not yet merged, branch `feat/e04-f08-throttling`); F-09 (retry/DLQ/reconciliation) DONE 2026-07-14 (PR #9 open, not yet merged, branch `feat/e04-f09-reliability`)
+**Current Milestone:** E-05 — API Layer & LGPD Compliance
+**Status:** E-01 through E-04 all complete and merged (PRs #2-#9). Scaffold cleanup merged via PR #10 (2026-07-15). E-05 not yet started — next milestone.
 
 ---
 
@@ -96,7 +96,7 @@
 - DynamoDB TTL: 90-day auto-expiry on notification records (LGPD Art. 46 data minimization) — ✅ done
 - Integration tests for SES + DynamoDB (including conditional-write race) run against **LocalStack via Testcontainers**, per AD-013 — not the real AWS dev/sandbox account as originally planned in this bullet (AD-012 was already refined by AD-013 for automated tests specifically)
 
-**F-08 · Throttling & Circuit Breaking** — DONE (2026-07-14) — spec/design/tasks in `.specs/features/e04-f08-throttling/`, T01-T08 all complete on branch `feat/e04-f08-throttling` (not yet merged), 0 regressions
+**F-08 · Throttling & Circuit Breaking** — DONE and merged (PR #8, `0488cd3`, 2026-07-14) — spec/design/tasks in `.specs/features/e04-f08-throttling/`, T01-T08 all complete, 0 regressions
 
 - `ResilientEmailSender`: `IEmailSender` decorator wrapping F-07's Ses/Mock sender with a token-bucket rate limiter, sized below actual SES account quota — placeholder default 14/s pending B-001 — ✅ done
 - Polly v8 circuit breaker approximating "N consecutive SES failures" via `FailureRatio = 1.0` + `MinimumThroughput` + `SamplingDuration` (Polly v8 dropped v7's pure consecutive-count breaker — confirmed via Context7 during Design 2026-07-14); circuit-broken/rate-limited sends marked `Failed` (existing `NotificationStatus`) — actual DLQ routing is F-09's concern, not F-08's — ✅ done
@@ -104,7 +104,7 @@
 - `ResilienceStartupValidator` fails fast at startup on misconfigured thresholds (mirrors `SecretsStartupValidator`) — ✅ done
 - Load test: 1,000 notifications burst confirmed throttled to the configured rate (T07, `Category=LoadTest`, on-demand — `dotnet test --filter "Category=LoadTest"`, excluded from the default CI gate) — ✅ done
 
-**F-09 · Reliability — Retry, DLQ, Poison Messages & Reconciliation** — DONE (2026-07-14) — spec/design/tasks in `.specs/features/e04-f09-reliability/`, T01-T19 all complete on branch `feat/e04-f09-reliability` (PR #9 open, not yet merged), 0 regressions (134 unit tests, 19/20 integration tests — 1 known pre-existing unrelated `AppHostTests` failure)
+**F-09 · Reliability — Retry, DLQ, Poison Messages & Reconciliation** — DONE and merged (PR #9, `8c16e4a`, 2026-07-15) — spec/design/tasks in `.specs/features/e04-f09-reliability/`, T01-T19 all complete, 0 regressions (134 unit tests, 19/20 integration tests — 1 known pre-existing unrelated `AppHostTests` failure)
 
 - `FailureClassifier` classifies every dispatch failure as `PoisonPill` (malformed JSON, unknown template — straight to DLQ, retry will never resolve it) or `Transient` (SES failures, rate-limit/circuit-breaker rejections — retried with backoff) — ✅ done. "Template not found" was reclassified from business-rule to `PoisonPill` during Specify (confirmed with user) — a missing template is a deployment/config defect, not a recoverable runtime condition
 - Retry topic chain, one topic per delay stage, each with its own `RetryTopicConsumer` that only processes once the delay has elapsed (checked via `x-next-retry-at`): `notification-requested` → `notification-requested-retry-5s` → `-retry-1m` → `-retry-10m` → `notification-requested-dlq` — ✅ done
