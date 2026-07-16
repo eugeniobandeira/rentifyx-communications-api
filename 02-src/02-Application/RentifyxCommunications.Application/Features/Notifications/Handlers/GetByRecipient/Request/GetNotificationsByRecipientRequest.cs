@@ -1,0 +1,3 @@
+namespace RentifyxCommunications.Application.Features.Notifications.Handlers.GetByRecipient.Request;
+
+public sealed record GetNotificationsByRecipientRequest(string RecipientId);
