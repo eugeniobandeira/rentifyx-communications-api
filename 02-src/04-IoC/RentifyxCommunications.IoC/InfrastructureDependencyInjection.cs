@@ -77,6 +77,7 @@ internal static class InfrastructureDependencyInjection
         services.Configure<DynamoDbOptions>(configuration.GetSection("DynamoDb"));
         services.AddScoped<INotificationRepository, DynamoDbNotificationRepository>();
         services.AddScoped<IConsentRepository, DynamoDbConsentRepository>();
+        services.AddScoped<IConsentAuditRepository, DynamoDbConsentAuditRepository>();
         services.AddSingleton<ITemplateRenderer, ScribanTemplateRenderer>();
 
         services.Configure<ResilienceOptions>(configuration.GetSection("Resilience"));

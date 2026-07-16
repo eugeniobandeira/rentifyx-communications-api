@@ -21,4 +21,7 @@ public static class NotificationTableSchema
     public const string Gsi3IndexName = "GSI3";
     public const string Gsi3PartitionKey = "GSI3PK";
     public const string Gsi3SortKey = "GSI3SK";
+
+    public const string ConsentPartitionKeyPrefix = "CONSENT#";
+    public const string ConsentAuditSortKeyPrefix = "AUDIT#";
 }
