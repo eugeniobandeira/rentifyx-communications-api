@@ -5,15 +5,16 @@ using Amazon.Runtime;
 using Amazon.SecretsManager;
 using Amazon.SimpleEmail;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using RentifyxCommunications.Api.Extensions.Options;
 using RentifyxCommunications.Api.Messaging;
-using RentifyxCommunications.Application.Abstractions;
 
 namespace RentifyxCommunications.Tests.Integration.Api;
 
@@ -29,8 +30,9 @@ public sealed class StatusConsentEndpointsWebApplicationFactory : WebApplication
     private const string FakeAwsProfileName = "localstack-test";
     private const string AwsSharedCredentialsFileEnvironmentVariable = "AWS_SHARED_CREDENTIALS_FILE";
 
-    // Mirrors RateLimitExtension.ConsentPolicyName (internal to the Api assembly, not visible here) - the
-    // policy name is route metadata, not behavior, so duplicating the literal is safe.
+    // Mirrors RateLimitExtension.PolicyName/ConsentPolicyName (internal to the Api assembly, not visible here) -
+    // the policy names are route metadata, not behavior, so duplicating the literals is safe.
+    private const string FixedRateLimitPolicyName = "fixed";
     private const string ConsentRateLimitPolicyName = "consent";
 
     // Secret NAMES (not values) - same convention as appsettings.json's "SecretsProvider" section. Exposed so
@@ -81,6 +83,7 @@ public sealed class StatusConsentEndpointsWebApplicationFactory : WebApplication
         builder.ConfigureTestServices(services =>
         {
             RemoveKafkaDependentHostedServices(services);
+            OverrideConsentRateLimitPolicy(services, _consentPermitLimit);
 
             BasicAWSCredentials fakeCredentials = new("test", "test");
 
@@ -95,35 +98,6 @@ public sealed class StatusConsentEndpointsWebApplicationFactory : WebApplication
             services.AddSingleton<IAmazonSecretsManager>(_ => new AmazonSecretsManagerClient(
                 fakeCredentials,
                 new AmazonSecretsManagerConfig { ServiceURL = _secretsManagerServiceUrl }));
-
-            // SecretsProviderOptions is a record with 4 required positional parameters and no parameterless
-            // constructor. Program's own services.Configure<SecretsProviderOptions>(configuration.GetSection(...))
-            // registration relies on IOptionsFactory<T>, which calls Activator.CreateInstance<T>() to build a
-            // base instance before binding config onto it - that throws MissingMethodException for a type with
-            // no parameterless constructor. Registering a closed IOptions<SecretsProviderOptions> directly here
-            // bypasses that broken factory path entirely (the DI container resolves an exact closed-type match
-            // before ever falling back to the open-generic IOptions<> factory).
-            services.AddSingleton<IOptions<SecretsProviderOptions>>(Options.Create(new SecretsProviderOptions(
-                SesArnSecretName,
-                KafkaSaslUsernameSecretName,
-                KafkaSaslPasswordSecretName,
-                ApiKeySecretName)));
-
-            // Program.cs's AddRateLimiting(configuration) reads appsettings.json's real
-            // "RateLimit:Consent:PermitLimit" (10) before ConfigureTestServices ever runs, so the policy must
-            // be overridden here rather than via IConfiguration. Configure<RateLimiterOptions> delegates
-            // compose in registration order, and this one runs last (registered after Program's own
-            // AddRateLimiter call), so re-adding the "consent" policy here replaces its PermitLimit with the
-            // small, test-deterministic value.
-            services.Configure<RateLimiterOptions>(options => options.AddFixedWindowLimiter(
-                ConsentRateLimitPolicyName,
-                opt =>
-                {
-                    opt.PermitLimit = _consentPermitLimit;
-                    opt.Window = TimeSpan.FromSeconds(60);
-                    opt.QueueLimit = 0;
-                    opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                }));
         });
     }
 
@@ -152,6 +126,42 @@ public sealed class StatusConsentEndpointsWebApplicationFactory : WebApplication
 
         foreach (ServiceDescriptor descriptor in descriptorsToRemove)
             services.Remove(descriptor);
+    }
+
+    /// <summary>
+    /// Program's own AddRateLimiting(configuration) reads "RateLimit:Consent:PermitLimit" once, at service
+    /// registration time, and registers the "consent" policy under that name via a single
+    /// <see cref="IConfigureOptions{RateLimiterOptions}"/> delegate. IConfiguration-based overrides (UseSetting,
+    /// ConfigureAppConfiguration) can't reliably beat appsettings.json for a minimal-hosting Program.cs, and
+    /// re-adding the "consent" policy via a second Configure&lt;RateLimiterOptions&gt; throws ArgumentException
+    /// ("policy name already added") once both delegates run. Removing Program's own configure delegate and
+    /// replacing it with a test-only one - the same DI-manipulation pattern <see cref="RemoveKafkaDependentHostedServices"/>
+    /// already uses - sidesteps both problems entirely.
+    /// </summary>
+    private static void OverrideConsentRateLimitPolicy(IServiceCollection services, int consentPermitLimit)
+    {
+        services.RemoveAll<IConfigureOptions<RateLimiterOptions>>();
+
+        services.Configure<RateLimiterOptions>(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            // "fixed" is applied to every endpoint (EndpointExtensions.cs), so it must exist even though no
+            // test in this class fires enough requests to trip it - only its default (100/60s) is needed here.
+            options.AddFixedWindowLimiter(FixedRateLimitPolicyName, opt =>
+            {
+                opt.PermitLimit = 100;
+                opt.Window = TimeSpan.FromSeconds(60);
+                opt.QueueLimit = 0;
+                opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            });
+            options.AddFixedWindowLimiter(ConsentRateLimitPolicyName, opt =>
+            {
+                opt.PermitLimit = consentPermitLimit;
+                opt.Window = TimeSpan.FromSeconds(60);
+                opt.QueueLimit = 0;
+                opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            });
+        });
     }
 
     private static string WriteFakeCredentialsFile()

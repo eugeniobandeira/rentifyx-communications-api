@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using Amazon.DynamoDBv2.Model;
 using FluentAssertions;
@@ -60,7 +60,7 @@ public sealed class StatusConsentEndpointsTests : IClassFixture<StatusConsentEnd
     [Fact]
     public async Task GetNotificationStatus_WithoutApiKey_ReturnsUnauthorized()
     {
-        using HttpResponseMessage response = await _client.GetAsync($"v1/api/notifications/{Guid.NewGuid()}");
+        using HttpResponseMessage response = await _client.GetAsync($"api/v1/notifications/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -68,7 +68,7 @@ public sealed class StatusConsentEndpointsTests : IClassFixture<StatusConsentEnd
     [Fact]
     public async Task GetNotificationsByRecipient_WithoutApiKey_ReturnsUnauthorized()
     {
-        using HttpResponseMessage response = await _client.GetAsync($"v1/api/notifications/recipient/{Guid.NewGuid()}");
+        using HttpResponseMessage response = await _client.GetAsync($"api/v1/notifications/recipient/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -76,7 +76,7 @@ public sealed class StatusConsentEndpointsTests : IClassFixture<StatusConsentEnd
     [Fact]
     public async Task GetConsent_WithoutApiKey_ReturnsUnauthorized()
     {
-        using HttpResponseMessage response = await _client.GetAsync($"v1/api/consent/{Guid.NewGuid()}?channel=Email");
+        using HttpResponseMessage response = await _client.GetAsync($"api/v1/consent/{Guid.NewGuid()}?channel=Email");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -84,7 +84,7 @@ public sealed class StatusConsentEndpointsTests : IClassFixture<StatusConsentEnd
     [Fact]
     public async Task UpdateConsent_WithoutApiKey_ReturnsUnauthorized()
     {
-        using HttpRequestMessage request = new(HttpMethod.Put, $"v1/api/consent/{Guid.NewGuid()}")
+        using HttpRequestMessage request = new(HttpMethod.Put, $"api/v1/consent/{Guid.NewGuid()}")
         {
             Content = JsonContent.Create(new { channel = "Email", optedIn = false })
         };
@@ -139,7 +139,7 @@ public sealed class StatusConsentEndpointsTests : IClassFixture<StatusConsentEnd
 
     private async Task<HttpResponseMessage> SendUpdateConsentAsync(Guid recipientId, bool optedIn)
     {
-        using HttpRequestMessage request = new(HttpMethod.Put, $"v1/api/consent/{recipientId}")
+        using HttpRequestMessage request = new(HttpMethod.Put, $"api/v1/consent/{recipientId}")
         {
             Content = JsonContent.Create(new { channel = "Email", optedIn })
         };
