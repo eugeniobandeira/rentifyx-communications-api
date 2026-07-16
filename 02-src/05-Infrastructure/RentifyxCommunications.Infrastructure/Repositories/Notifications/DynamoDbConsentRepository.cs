@@ -15,7 +15,7 @@ public sealed class DynamoDbConsentRepository(
 {
     private readonly string _tableName = dynamoDbOptions.Value.NotificationsTableName;
 
-    public async Task<ConsentPreference?> FindAsync(Guid recipientId, Channel channel, CancellationToken cancellationToken = default)
+    public async Task<ConsentPreference?> GetAsync(Guid recipientId, Channel channel, CancellationToken cancellationToken = default)
     {
         GetItemResponse response = await client.GetItemAsync(new GetItemRequest
         {
@@ -31,5 +31,10 @@ public sealed class DynamoDbConsentRepository(
             return null;
 
         return ConsentItemMapper.ToEntity(response.Item, recipientId, channel);
+    }
+
+    public Task UpdateAsync(ConsentPreference consent, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 }

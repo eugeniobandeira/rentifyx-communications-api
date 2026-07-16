@@ -67,7 +67,7 @@ public sealed class DispatchNotificationHandler(
             return new DispatchNotificationResponse(NotificationStatus.Pending, WasDuplicate: true);
         }
 
-        ConsentPreference? preference = await consentRepository.FindAsync(request.RecipientId, channel, cancellationToken);
+        ConsentPreference? preference = await consentRepository.GetAsync(request.RecipientId, channel, cancellationToken);
         ConsentDecision consent = preference is null
             ? ConsentDecision.NoRecordFound()
             : ConsentDecision.FromPreference(preference);

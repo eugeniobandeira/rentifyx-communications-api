@@ -5,5 +5,7 @@ namespace RentifyxCommunications.Domain.Interfaces.Notifications;
 
 public interface IConsentRepository
 {
-    Task<ConsentPreference?> FindAsync(Guid recipientId, Channel channel, CancellationToken cancellationToken = default);
+    Task<ConsentPreference?> GetAsync(Guid recipientId, Channel channel, CancellationToken cancellationToken = default);
+
+    Task UpdateAsync(ConsentPreference consent, CancellationToken cancellationToken = default);
 }

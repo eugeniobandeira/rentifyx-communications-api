@@ -16,15 +16,15 @@ public sealed class DynamoDbConsentRepositoryTests(LocalStackNotificationInfrast
     private readonly DynamoDbConsentRepository _sut = new(fixture.DynamoDb, Options.Create(new DynamoDbOptions(LocalStackNotificationInfrastructureFixture.TableName)));
 
     [Fact]
-    public async Task FindAsync_WithNoRecord_ShouldReturnNull()
+    public async Task GetAsync_WithNoRecord_ShouldReturnNull()
     {
-        ConsentPreference? result = await _sut.FindAsync(Guid.NewGuid(), Channel.Email);
+        ConsentPreference? result = await _sut.GetAsync(Guid.NewGuid(), Channel.Email);
 
         result.Should().BeNull();
     }
 
     [Fact]
-    public async Task FindAsync_WithSeededOptedOutRecord_ShouldReturnHydratedPreference()
+    public async Task GetAsync_WithSeededOptedOutRecord_ShouldReturnHydratedPreference()
     {
         Guid recipientId = Guid.NewGuid();
         DateTime updatedAt = DateTime.UtcNow;
@@ -41,7 +41,7 @@ public sealed class DynamoDbConsentRepositoryTests(LocalStackNotificationInfrast
             }
         });
 
-        ConsentPreference? result = await _sut.FindAsync(recipientId, Channel.Email);
+        ConsentPreference? result = await _sut.GetAsync(recipientId, Channel.Email);
 
         result.Should().NotBeNull();
         result!.RecipientId.Should().Be(recipientId);
