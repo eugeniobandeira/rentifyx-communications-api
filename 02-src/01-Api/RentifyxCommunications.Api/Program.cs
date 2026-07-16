@@ -37,6 +37,7 @@ try
     builder.Services.AddCorsPolicy(builder.Configuration);
     builder.Services.AddVersioning();
     builder.Services.AddRateLimiting(builder.Configuration);
+    builder.Services.AddApiKeyAuthentication();
     builder.Services.AddEndpoints();
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
@@ -76,6 +77,7 @@ try
     app.MapDefaultEndpoints();
 
     app.UseExceptionHandler();
+    app.UseSecurityHeaders();
     app.UseCorrelationId();
     app.UseRateLimiting();
     app.UseSerilogRequestLogging(options =>
@@ -93,6 +95,8 @@ try
     if (!app.Environment.IsDevelopment())
         app.UseHttpsRedirection();
     app.UseCorsPolicy();
+    app.UseAuthentication();
+    app.UseAuthorization();
     app.MapEndpoints();
 
     await app.RunAsync();
