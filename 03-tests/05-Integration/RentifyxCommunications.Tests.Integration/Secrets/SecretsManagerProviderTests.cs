@@ -36,14 +36,16 @@ public sealed class SecretsManagerProviderTests(LocalStackSecretsManagerFixture 
         string sesArnKey = $"test/{prefix}/ses-arn";
         string kafkaUserKey = $"test/{prefix}/kafka-user";
         string kafkaPassKey = $"test/{prefix}/kafka-pass";
+        string apiKeyKey = $"test/{prefix}/api-key";
 
         await fixture.SeedSecretAsync(sesArnKey, "arn:aws:ses:us-east-1:000000000000:identity/example.com");
         await fixture.SeedSecretAsync(kafkaUserKey, "some-user");
+        await fixture.SeedSecretAsync(apiKeyKey, "some-api-key");
         // kafkaPassKey is intentionally never seeded
 
         using MemoryCache cache = new(new MemoryCacheOptions());
         SecretsManagerProvider provider = new(fixture.Client, cache);
-        SecretsProviderOptions options = new(sesArnKey, kafkaUserKey, kafkaPassKey);
+        SecretsProviderOptions options = new(sesArnKey, kafkaUserKey, kafkaPassKey, apiKeyKey);
         ListLogger logger = new();
         SecretsStartupValidator validator = new(provider, Options.Create(options), logger);
 

@@ -17,6 +17,7 @@ public sealed class SecretsStartupValidator(
             (nameof(SecretsProviderOptions.SesArn), options.SesArn),
             (nameof(SecretsProviderOptions.KafkaSaslUsername), options.KafkaSaslUsername),
             (nameof(SecretsProviderOptions.KafkaSaslPassword), options.KafkaSaslPassword),
+            (nameof(SecretsProviderOptions.ApiKey), options.ApiKey),
         ];
 
         foreach ((string name, string key) in requiredSecrets)
