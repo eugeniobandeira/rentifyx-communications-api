@@ -7,6 +7,7 @@ namespace RentifyxCommunications.Api.Extensions;
 internal static class RateLimitExtension
 {
     internal const string PolicyName = "fixed";
+    internal const string ConsentPolicyName = "consent";
 
     public static IServiceCollection AddRateLimiting(
         this IServiceCollection services,
@@ -23,6 +24,13 @@ internal static class RateLimitExtension
                 opt.PermitLimit = rateLimitOptions.PermitLimit;
                 opt.Window = TimeSpan.FromSeconds(rateLimitOptions.WindowSeconds);
                 opt.QueueLimit = rateLimitOptions.QueueLimit;
+                opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            });
+            options.AddFixedWindowLimiter(ConsentPolicyName, opt =>
+            {
+                opt.PermitLimit = rateLimitOptions.Consent.PermitLimit;
+                opt.Window = TimeSpan.FromSeconds(rateLimitOptions.Consent.WindowSeconds);
+                opt.QueueLimit = rateLimitOptions.Consent.QueueLimit;
                 opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
             });
         });
