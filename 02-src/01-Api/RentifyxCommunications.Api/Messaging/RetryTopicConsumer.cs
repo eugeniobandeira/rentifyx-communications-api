@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Text;
 using Confluent.Kafka;
-using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 using RentifyxCommunications.Domain.ValueObjects;
 
 namespace RentifyxCommunications.Api.Messaging;

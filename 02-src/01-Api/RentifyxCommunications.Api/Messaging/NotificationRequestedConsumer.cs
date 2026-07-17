@@ -1,7 +1,7 @@
 ﻿using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 using RentifyxCommunications.Application.Abstractions;
-using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.ValueObjects;
 

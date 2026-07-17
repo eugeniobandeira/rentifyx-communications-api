@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
 
-namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 
 /// <summary>
 /// OTEL instrumentation for the notification dispatch pipeline. Registered as a Singleton

@@ -5,7 +5,9 @@ using RentifyxCommunications.Application.Abstractions;
 
 namespace RentifyxCommunications.Infrastructure.Secrets;
 
-public sealed class SecretsManagerProvider(IAmazonSecretsManager client, IMemoryCache cache) : ISecretsProvider
+public sealed class SecretsManagerProvider(
+    IAmazonSecretsManager client,
+    IMemoryCache cache) : ISecretsProvider
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 

@@ -24,4 +24,10 @@ public static class NotificationTableSchema
 
     public const string ConsentPartitionKeyPrefix = "CONSENT#";
     public const string ConsentAuditSortKeyPrefix = "AUDIT#";
+
+    public const string NotificationPartitionKeyPrefix = "NOTIF#";
+    public const string RecipientPartitionKeyPrefix = "RECIPIENT#";
+    public const string IdPartitionKeyPrefix = "ID#";
+    public const string StatusPartitionKeyPrefix = "STATUS#";
+    public const string MetadataSortKeyValue = "METADATA";
 }

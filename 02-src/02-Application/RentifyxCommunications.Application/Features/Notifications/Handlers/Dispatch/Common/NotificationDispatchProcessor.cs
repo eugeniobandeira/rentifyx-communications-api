@@ -9,7 +9,7 @@ using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Domain.ValueObjects;
 
-namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 
 /// <summary>
 /// Shared deserialize -> invoke handler -> classify -> route pipeline, reused by every stage's

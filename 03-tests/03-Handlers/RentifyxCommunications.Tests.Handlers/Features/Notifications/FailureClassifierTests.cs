@@ -1,7 +1,7 @@
 using System.Text.Json;
 using ErrorOr;
 using FluentAssertions;
-using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Enums;
 using Xunit;

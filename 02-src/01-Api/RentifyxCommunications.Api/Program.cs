@@ -1,7 +1,7 @@
 ﻿using RentifyxCommunications.Api.Extensions;
 using RentifyxCommunications.Api.Messaging;
 using RentifyxCommunications.Api.Middlewares;
-using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Infrastructure.Resilience;
 using RentifyxCommunications.Infrastructure.Secrets;

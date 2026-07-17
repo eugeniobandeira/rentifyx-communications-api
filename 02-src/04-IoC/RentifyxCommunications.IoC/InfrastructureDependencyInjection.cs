@@ -60,7 +60,7 @@ internal static class InfrastructureDependencyInjection
     {
         services.AddMemoryCache();
         services.AddAWSService<IAmazonSecretsManager>();
-        services.Configure<SecretsProviderOptions>(configuration.GetSection("SecretsProvider"));
+        services.AddBoundOptions<SecretsProviderOptions>(configuration, "SecretsProvider");
         services.AddSingleton<ISecretsProvider, SecretsManagerProvider>();
         services.AddSingleton<SecretsStartupValidator>();
 
@@ -74,13 +74,13 @@ internal static class InfrastructureDependencyInjection
         services.AddAWSService<IAmazonDynamoDB>();
         services.AddAWSService<IAmazonSimpleEmailService>();
 
-        services.Configure<DynamoDbOptions>(configuration.GetSection("DynamoDb"));
+        services.AddBoundOptions<DynamoDbOptions>(configuration, "DynamoDb");
         services.AddScoped<INotificationRepository, DynamoDbNotificationRepository>();
         services.AddScoped<IConsentRepository, DynamoDbConsentRepository>();
         services.AddScoped<IConsentAuditRepository, DynamoDbConsentAuditRepository>();
         services.AddSingleton<ITemplateRenderer, ScribanTemplateRenderer>();
 
-        services.Configure<ResilienceOptions>(configuration.GetSection("Resilience"));
+        services.AddBoundOptions<ResilienceOptions>(configuration, "Resilience");
         services.AddSingleton<ResilienceStartupValidator>();
         services.AddSingleton(sp =>
             ResiliencePipelineFactory.Create(sp.GetRequiredService<IOptions<ResilienceOptions>>().Value));
@@ -108,8 +108,30 @@ internal static class InfrastructureDependencyInjection
         services.AddSingleton<IKafkaProducerFactory, KafkaProducerFactory>();
         services.AddScoped<IFailureRouter, KafkaFailureRouter>();
 
-        services.Configure<KafkaOptions>(configuration.GetSection("Kafka"));
-        services.Configure<ReconciliationOptions>(configuration.GetSection("Reconciliation"));
+        services.AddBoundOptions<KafkaOptions>(configuration, "Kafka");
+        services.AddBoundOptions<ReconciliationOptions>(configuration, "Reconciliation");
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers <see cref="IOptions{TOptions}"/> for an options record by binding it via
+    /// <see cref="ConfigurationBinder.Get{T}(IConfiguration)"/> (constructor-argument binding) instead of
+    /// <c>services.Configure&lt;TOptions&gt;(section)</c>. The latter relies on
+    /// <see cref="IOptionsFactory{TOptions}"/> calling <c>Activator.CreateInstance&lt;TOptions&gt;()</c> before
+    /// binding config onto the result, which throws <see cref="MissingMethodException"/> for any options
+    /// record here - none has a public parameterless constructor, since C# does not emit one for a positional
+    /// record just because every parameter has a default value.
+    /// </summary>
+    private static IServiceCollection AddBoundOptions<TOptions>(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        string sectionName)
+        where TOptions : class
+    {
+        services.AddSingleton<IOptions<TOptions>>(_ => Options.Create(
+            configuration.GetSection(sectionName).Get<TOptions>()
+            ?? throw new InvalidOperationException($"Configuration section '{sectionName}' is required.")));
 
         return services;
     }
