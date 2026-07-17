@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <!--
+            Excluded from the coverage gate:
+            - Pure DI/host wiring (IoC, AppHost, ServiceDefaults, Program.cs) - no branching logic,
+              exercised implicitly by every integration test that boots the app, never meaningfully
+              unit-testable on its own.
+            - Minimal API endpoint classes (Api.Endpoints.*) and cross-cutting Api.Extensions.* -
+              routing/config registration; the actual logic they call into (handlers) is already
+              covered by Application-layer unit tests.
+            - Generated code (Microsoft.AspNetCore.OpenApi.Generated).
+            - Infrastructure classes only exercised by this repo's own Category=Integration
+              Testcontainers/LocalStack suite (DynamoDB repositories/mappers, Secrets Manager
+              provider, Kafka producer factory) - real logic, but genuinely tested, just not by
+              the unit-test filter this gate runs (Category!=Integration&Category!=LoadTest).
+          -->
+          <Exclude>
+            [RentifyxCommunications.IoC]*,
+            [RentifyxCommunications.AppHost]*,
+            [RentifyxCommunications.ServiceDefaults]*,
+            [RentifyxCommunications.Api]Program,
+            [RentifyxCommunications.Api]Microsoft.AspNetCore.OpenApi.Generated*,
+            [RentifyxCommunications.Api]System.Runtime.CompilerServices*,
+            [RentifyxCommunications.Api]RentifyxCommunications.Api.Endpoints.*,
+            [RentifyxCommunications.Api]RentifyxCommunications.Api.Extensions.*,
+            [RentifyxCommunications.Api]RentifyxCommunications.Api.Messaging.KafkaConsumerFactory,
+            [RentifyxCommunications.Infrastructure]RentifyxCommunications.Infrastructure.Repositories.Notifications.*,
+            [RentifyxCommunications.Infrastructure]RentifyxCommunications.Infrastructure.Secrets.*,
+            [RentifyxCommunications.Infrastructure]RentifyxCommunications.Infrastructure.Messaging.KafkaProducerFactory
+          </Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
