@@ -64,7 +64,7 @@ public sealed class ApiKeyAuthenticationHandlerTests
             .ReturnsAsync(KnownApiKey);
 
         IOptions<SecretsProviderOptions> secretsProviderOptions = Options.Create(
-            new SecretsProviderOptions("ses-arn", "kafka-user", "kafka-pass", ApiKeySecretName));
+            new SecretsProviderOptions("ses-arn", ApiKeySecretName));
 
         ApiKeyAuthenticationHandler handler = new(
             new StaticOptionsMonitor(new ApiKeyAuthenticationOptions()),

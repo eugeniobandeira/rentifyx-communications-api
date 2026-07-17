@@ -22,7 +22,7 @@ public sealed class SesEmailSenderTests(LocalStackNotificationInfrastructureFixt
             .Setup(p => p.GetSecretAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("arn:aws:ses:us-east-1:000000000000:identity/sender@example.com");
 
-        SecretsProviderOptions options = new("test-ses-arn", "test-kafka-user", "test-kafka-pass", "test-api-key");
+        SecretsProviderOptions options = new("test-ses-arn", "test-api-key");
         SesEmailSender sut = new(fixture.Ses, secretsProvider.Object, options);
         EmailAddress recipient = EmailAddress.Create("recipient@example.com").Value;
 

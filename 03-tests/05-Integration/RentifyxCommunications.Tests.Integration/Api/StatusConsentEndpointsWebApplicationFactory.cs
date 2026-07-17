@@ -38,8 +38,6 @@ public sealed class StatusConsentEndpointsWebApplicationFactory : WebApplication
     // Secret NAMES (not values) - same convention as appsettings.json's "SecretsProvider" section. Exposed so
     // callers can seed matching secrets into their LocalStack Secrets Manager fixture under these names.
     public const string SesArnSecretName = "rentifyx/comms/ses-arn";
-    public const string KafkaSaslUsernameSecretName = "rentifyx/comms/kafka-sasl-username";
-    public const string KafkaSaslPasswordSecretName = "rentifyx/comms/kafka-sasl-password";
     public const string ApiKeySecretName = "rentifyx/comms/api-key";
 
     private static readonly Type[] KafkaDependentHostedServiceTypes =

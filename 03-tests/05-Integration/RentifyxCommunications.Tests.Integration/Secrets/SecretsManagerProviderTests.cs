@@ -34,18 +34,14 @@ public sealed class SecretsManagerProviderTests(LocalStackSecretsManagerFixture 
     {
         string prefix = Guid.NewGuid().ToString();
         string sesArnKey = $"test/{prefix}/ses-arn";
-        string kafkaUserKey = $"test/{prefix}/kafka-user";
-        string kafkaPassKey = $"test/{prefix}/kafka-pass";
         string apiKeyKey = $"test/{prefix}/api-key";
 
         await fixture.SeedSecretAsync(sesArnKey, "arn:aws:ses:us-east-1:000000000000:identity/example.com");
-        await fixture.SeedSecretAsync(kafkaUserKey, "some-user");
-        await fixture.SeedSecretAsync(apiKeyKey, "some-api-key");
-        // kafkaPassKey is intentionally never seeded
+        // apiKeyKey is intentionally never seeded
 
         using MemoryCache cache = new(new MemoryCacheOptions());
         SecretsManagerProvider provider = new(fixture.Client, cache);
-        SecretsProviderOptions options = new(sesArnKey, kafkaUserKey, kafkaPassKey, apiKeyKey);
+        SecretsProviderOptions options = new(sesArnKey, apiKeyKey);
         ListLogger logger = new();
         SecretsStartupValidator validator = new(provider, Options.Create(options), logger);
 
@@ -54,7 +50,7 @@ public sealed class SecretsManagerProviderTests(LocalStackSecretsManagerFixture 
         await act.Should().ThrowAsync<InvalidOperationException>();
         logger.Entries.Should().Contain(e =>
             e.Level == LogLevel.Critical &&
-            e.Message.Contains(nameof(SecretsProviderOptions.KafkaSaslPassword), StringComparison.Ordinal));
+            e.Message.Contains(nameof(SecretsProviderOptions.ApiKey), StringComparison.Ordinal));
     }
 
     [Fact]

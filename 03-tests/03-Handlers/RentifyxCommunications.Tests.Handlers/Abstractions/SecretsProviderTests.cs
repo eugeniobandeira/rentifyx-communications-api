@@ -33,11 +33,9 @@ public sealed class SecretsProviderTests
     [Fact]
     public void SecretsProviderOptions_HasExpectedProperties()
     {
-        SecretsProviderOptions options = new("ses-arn", "kafka-user", "kafka-pass", "api-key");
+        SecretsProviderOptions options = new("ses-arn", "api-key");
 
         options.SesArn.Should().Be("ses-arn");
-        options.KafkaSaslUsername.Should().Be("kafka-user");
-        options.KafkaSaslPassword.Should().Be("kafka-pass");
         options.ApiKey.Should().Be("api-key");
     }
 }

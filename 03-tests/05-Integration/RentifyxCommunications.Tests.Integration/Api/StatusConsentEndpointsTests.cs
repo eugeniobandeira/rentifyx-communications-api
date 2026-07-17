@@ -169,12 +169,6 @@ public sealed class StatusConsentEndpointsTests : IClassFixture<StatusConsentEnd
                 StatusConsentEndpointsWebApplicationFactory.SesArnSecretName,
                 "arn:aws:ses:us-east-1:000000000000:identity/test@example.com");
             await SecretsManager.SeedSecretAsync(
-                StatusConsentEndpointsWebApplicationFactory.KafkaSaslUsernameSecretName,
-                "test-kafka-username");
-            await SecretsManager.SeedSecretAsync(
-                StatusConsentEndpointsWebApplicationFactory.KafkaSaslPasswordSecretName,
-                "test-kafka-password");
-            await SecretsManager.SeedSecretAsync(
                 StatusConsentEndpointsWebApplicationFactory.ApiKeySecretName,
                 ApiKeyValue);
         }
