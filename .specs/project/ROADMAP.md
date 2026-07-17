@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** E-05 — API Layer & LGPD Compliance
-**Status:** E-01 through E-04 all complete and merged (PRs #2-#9). Scaffold cleanup merged via PR #10 (2026-07-15). E-05 not yet started — next milestone.
+**Current Milestone:** E-06 — Infrastructure as Code & Production Readiness
+**Status:** E-01 through E-05 all complete and merged. E-01–E-04 via PRs #2-#9. Scaffold cleanup via PR #10 (`97cb912`, 2026-07-15). E-05/F-10 (status/consent endpoints, API-key auth, security headers, consent-audit trail, rate limiting) via a sequence of direct commits on `main` (2026-07-15/16), then a follow-up convention/bugfix pass merged via PR #11 (`81adc2e`, 2026-07-17). E-06 (Terraform/Helm, SLOs, load test, staging deploy) not started — next milestone, and the actual gate before this service (and the cross-repo Kafka flow with `rentifyx-identity-api`) can go live.
 
 ---
 
@@ -127,13 +127,15 @@
 
 ### Features
 
-**F-10 · Status & Consent Endpoints** — PLANNED
+**F-10 · Status & Consent Endpoints** — DONE (2026-07-15/16, direct commits on `main` + follow-up PR #11 merged 2026-07-17) — spec/design/tasks in `.specs/features/e05-f10-status-consent-endpoints/`, all 16 tasks (T1-T16) implemented
 
-- `GET /v1/api/notifications/{id}` and `GET /v1/api/notifications/recipient/{recipientId}`
-- `GET /v1/api/consent/{recipientId}` + `PUT /v1/api/consent/{recipientId}` with audit log
-- Rate limiting on consent endpoints (prevent enumeration/abuse)
-- Security headers: HSTS, X-Content-Type-Options, X-Frame-Options, CSP
-- Scalar UI at `/scalar` + AsyncAPI/markdown spec for `NotificationRequested` Kafka contract
+- `GET /v1/api/notifications/{id}` and `GET /v1/api/notifications/recipient/{recipientId}` (`GetNotificationStatusHandler`/`GetNotificationsByRecipientHandler`) — ✅ done
+- `GET /v1/api/consent/{recipientId}` + `PUT /v1/api/consent/{recipientId}` (`GetConsentHandler`/`UpdateConsentHandler`), `ConsentAuditEntry` VO + `IConsentAuditRepository`/`DynamoDbConsentAuditRepository` audit trail — ✅ done
+- `ApiKeyAuthenticationHandler` + `AddApiKeyAuthentication`, `SecurityHeadersMiddleware` (HSTS, X-Content-Type-Options, X-Frame-Options, CSP) — ✅ done
+- Dedicated `"consent"` rate-limit policy (prevent enumeration/abuse) — ✅ done
+- Scalar UI + `docs/contracts/notification-requested.md` (AsyncAPI/markdown spec for the `NotificationRequested` Kafka contract) — ✅ done
+- `StatusConsentEndpointsTests` — real `Program.cs` boot end-to-end against LocalStack, 6 tests passing — ✅ done
+- 2026-07-16 hardening pass found and fixed 2 real production bugs before PR #11 (missing handler/validator DI registrations; broken `Configure<T>` options binding, replaced with a `ConfigurationBinder.Get<T>()`-based `AddBoundOptions<T>` helper) — full details in `STATE.md`
 
 ---
 
