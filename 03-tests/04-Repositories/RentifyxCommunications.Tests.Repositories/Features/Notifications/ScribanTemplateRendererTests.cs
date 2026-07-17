@@ -44,4 +44,28 @@ public sealed class ScribanTemplateRendererTests
         result.FirstError.Type.Should().Be(ErrorType.Validation);
         result.FirstError.Description.Should().Contain("name");
     }
+
+    [Fact]
+    public async Task RenderAsync_EmailVerificationWithToken_ShouldContainVerificationLink()
+    {
+        TemplateId templateId = TemplateId.Create("email-verification").Value;
+        Dictionary<string, string> payload = new() { ["token"] = "abc123" };
+
+        ErrorOr<string> result = await _sut.RenderAsync(templateId, payload);
+
+        result.IsError.Should().BeFalse();
+        result.Value.Should().Contain("token=abc123");
+    }
+
+    [Fact]
+    public async Task RenderAsync_PasswordResetWithToken_ShouldContainResetLink()
+    {
+        TemplateId templateId = TemplateId.Create("password-reset").Value;
+        Dictionary<string, string> payload = new() { ["token"] = "xyz789" };
+
+        ErrorOr<string> result = await _sut.RenderAsync(templateId, payload);
+
+        result.IsError.Should().BeFalse();
+        result.Value.Should().Contain("token=xyz789");
+    }
 }
