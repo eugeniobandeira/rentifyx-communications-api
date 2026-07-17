@@ -45,17 +45,20 @@ appsettings.*.local.json
 /.secrets/
 
 # ─── Terraform ──────────────────────────────────────────────────────────────
-iac/.terraform/
-iac/.terraform.lock.hcl
-iac/*.tfstate
-iac/*.tfstate.*
-iac/*.tfvars
-iac/override.tf
-iac/override.tf.json
-iac/*_override.tf
-iac/*_override.tf.json
-iac/.terraformrc
-iac/terraform.rc
+# Note: actual Terraform files live under iac/terraform/, not iac/ directly -
+# .terraform/ (bare, no path prefix) matches at any depth, unlike iac/.terraform/
+# which only matched a literal iac/.terraform/ that never existed.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
 
 # ─── OS ─────────────────────────────────────────────────────────────────────
 .DS_Store
