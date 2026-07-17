@@ -92,14 +92,23 @@ jobs:
       # in a March 2026 supply-chain attack. Tags are immutable again since the
       # incident, but SHA-pinning a security-scanning action is worth doing
       # regardless. Commit verified as the signed v0.36.0 release tag.
-      - name: Trivy vulnerability scan
+      #
+      # Two separate scans, not one: Trivy's SARIF formatter ignores the
+      # --severity filter when populating `results` (only trims the `rules`
+      # catalog) - confirmed by reproducing locally, where the same trivy
+      # binary with the same --severity HIGH,CRITICAL flag returns 0 findings
+      # in table format but the CI's sarif+exit-code combo failed on 35
+      # MEDIUM/LOW findings, none HIGH/CRITICAL. So: sarif output is
+      # informational only (exit-code 0, always uploaded); table output with
+      # the same severity filter is the actual gate (exit-code 1).
+      - name: Trivy scan (SARIF report, informational)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: rentifyx-comms:${{ github.sha }}
           format: sarif
           output: trivy-results.sarif
           severity: HIGH,CRITICAL
-          exit-code: '1'
+          exit-code: '0'
 
       - name: Upload Trivy scan report
         if: always()
@@ -107,6 +116,14 @@ jobs:
         with:
           name: trivy-report
           path: trivy-results.sarif
+
+      - name: Trivy scan (HIGH/CRITICAL gate)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: rentifyx-comms:${{ github.sha }}
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: '1'
 
   owasp-check:
     runs-on: ubuntu-latest
