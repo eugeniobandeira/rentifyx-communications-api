@@ -3,7 +3,7 @@ using ErrorOr;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Enums;
 
-namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 
 /// <summary>
 /// Maps a dispatch failure to <see cref="FailureClassification"/>, per the F-09 spec's

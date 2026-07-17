@@ -24,13 +24,13 @@ public static class NotificationItemMapper
 
         Dictionary<string, AttributeValue> item = new()
         {
-            [NotificationTableSchema.PartitionKey] = new($"NOTIF#{notification.CorrelationId}"),
-            [NotificationTableSchema.SortKey] = new("METADATA"),
-            [NotificationTableSchema.Gsi1PartitionKey] = new($"RECIPIENT#{notification.RecipientId}"),
-            [NotificationTableSchema.Gsi1SortKey] = new($"NOTIF#{notification.CreatedAt:O}#{notification.Id}"),
-            [NotificationTableSchema.Gsi2PartitionKey] = new($"ID#{notification.Id}"),
-            [NotificationTableSchema.Gsi2SortKey] = new($"ID#{notification.Id}"),
-            [NotificationTableSchema.Gsi3PartitionKey] = new($"STATUS#{notification.Status}"),
+            [NotificationTableSchema.PartitionKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{notification.CorrelationId}"),
+            [NotificationTableSchema.SortKey] = new(NotificationTableSchema.MetadataSortKeyValue),
+            [NotificationTableSchema.Gsi1PartitionKey] = new($"{NotificationTableSchema.RecipientPartitionKeyPrefix}{notification.RecipientId}"),
+            [NotificationTableSchema.Gsi1SortKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{notification.CreatedAt:O}#{notification.Id}"),
+            [NotificationTableSchema.Gsi2PartitionKey] = new($"{NotificationTableSchema.IdPartitionKeyPrefix}{notification.Id}"),
+            [NotificationTableSchema.Gsi2SortKey] = new($"{NotificationTableSchema.IdPartitionKeyPrefix}{notification.Id}"),
+            [NotificationTableSchema.Gsi3PartitionKey] = new($"{NotificationTableSchema.StatusPartitionKeyPrefix}{notification.Status}"),
             [NotificationTableSchema.Gsi3SortKey] = new(lastUpdated),
             ["Id"] = new(notification.Id.ToString()),
             ["CorrelationId"] = new(notification.CorrelationId.ToString()),

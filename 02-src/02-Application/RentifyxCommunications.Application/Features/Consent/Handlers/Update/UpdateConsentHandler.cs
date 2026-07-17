@@ -4,6 +4,7 @@ using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Extensions;
 using RentifyxCommunications.Application.Features.Consent.Handlers.Update.Request;
 using RentifyxCommunications.Application.Features.Consent.Handlers.Update.Response;
+using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Enums;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Domain.ValueObjects;
@@ -64,10 +65,10 @@ public sealed class UpdateConsentHandler(
             // NOT rolled back. We still surface this as an error rather than swallowing it: an audit-less
             // consent change is itself an LGPD compliance gap, so silently returning success would hide it.
             return Error.Unexpected(
-                code: "Consent.AuditWriteFailed",
+                code: ConsentErrorCodes.AuditWriteFailed,
                 description: $"Consent was updated but the audit trail could not be recorded: {ex.Message}");
         }
 
-        return new ConsentResponse(recipientId, channel, request.OptedIn, changedAt);
+        return new ConsentResponse(recipientId, channel.ToString(), request.OptedIn, changedAt);
     }
 }

@@ -10,6 +10,7 @@ using RentifyxCommunications.Application.Features.Consent.Handlers.Update.Valida
 using GetConsentResponse = RentifyxCommunications.Application.Features.Consent.Handlers.Get.Response.ConsentResponse;
 using UpdateConsentResponse = RentifyxCommunications.Application.Features.Consent.Handlers.Update.Response.ConsentResponse;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Response;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Validator;

@@ -44,7 +44,7 @@ public sealed class DynamoDbNotificationRepository(
             KeyConditionExpression = $"{NotificationTableSchema.Gsi2PartitionKey} = :pk",
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
-                [":pk"] = new($"ID#{id}")
+                [":pk"] = new($"{NotificationTableSchema.IdPartitionKeyPrefix}{id}")
             }
         }, cancellationToken);
 
@@ -58,8 +58,8 @@ public sealed class DynamoDbNotificationRepository(
             TableName = _tableName,
             Key = new Dictionary<string, AttributeValue>
             {
-                [NotificationTableSchema.PartitionKey] = new($"NOTIF#{correlationId}"),
-                [NotificationTableSchema.SortKey] = new("METADATA")
+                [NotificationTableSchema.PartitionKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{correlationId}"),
+                [NotificationTableSchema.SortKey] = new(NotificationTableSchema.MetadataSortKeyValue)
             }
         }, cancellationToken);
 
@@ -75,7 +75,7 @@ public sealed class DynamoDbNotificationRepository(
             KeyConditionExpression = $"{NotificationTableSchema.Gsi1PartitionKey} = :pk",
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
-                [":pk"] = new($"RECIPIENT#{recipientId}")
+                [":pk"] = new($"{NotificationTableSchema.RecipientPartitionKeyPrefix}{recipientId}")
             }
         }, cancellationToken);
 
@@ -96,7 +96,7 @@ public sealed class DynamoDbNotificationRepository(
         {
             [":status"] = new(status.ToString()),
             [":updatedAt"] = new(updatedAt),
-            [":gsi3pk"] = new($"STATUS#{status}")
+            [":gsi3pk"] = new($"{NotificationTableSchema.StatusPartitionKeyPrefix}{status}")
         };
 
         if (failureReason is not null)
@@ -110,8 +110,8 @@ public sealed class DynamoDbNotificationRepository(
             TableName = _tableName,
             Key = new Dictionary<string, AttributeValue>
             {
-                [NotificationTableSchema.PartitionKey] = new($"NOTIF#{notification.CorrelationId}"),
-                [NotificationTableSchema.SortKey] = new("METADATA")
+                [NotificationTableSchema.PartitionKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{notification.CorrelationId}"),
+                [NotificationTableSchema.SortKey] = new(NotificationTableSchema.MetadataSortKeyValue)
             },
             UpdateExpression = updateExpression,
             ExpressionAttributeNames = new Dictionary<string, string> { ["#status"] = "Status" },
@@ -130,7 +130,7 @@ public sealed class DynamoDbNotificationRepository(
             KeyConditionExpression = $"{NotificationTableSchema.Gsi3PartitionKey} = :pk AND {NotificationTableSchema.Gsi3SortKey} < :threshold",
             ExpressionAttributeValues = new Dictionary<string, AttributeValue>
             {
-                [":pk"] = new($"STATUS#{NotificationStatus.Dispatching}"),
+                [":pk"] = new($"{NotificationTableSchema.StatusPartitionKeyPrefix}{NotificationStatus.Dispatching}"),
                 [":threshold"] = new(threshold)
             }
         }, cancellationToken);

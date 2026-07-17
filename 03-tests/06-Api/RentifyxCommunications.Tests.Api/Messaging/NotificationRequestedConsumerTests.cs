@@ -7,7 +7,7 @@ using Moq;
 using RentifyxCommunications.Api.Messaging;
 using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Application.Common.Handler;
-using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch;
+using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Request;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Response;
 using RentifyxCommunications.Domain.Constants;
