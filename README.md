@@ -8,17 +8,27 @@ Channel-agnostic notification microservice for the RentifyX platform. Consumes `
 
 > **v1 scope:** Email only (AWS SES). SMS and push channels are modelled in the domain but not implemented.
 
+## Why this service exists
+
+`identity-api` needs to send transactional email (verification, password reset) without owning
+email infrastructure directly, and other RentifyX services will eventually need the same thing for
+their own notifications. Rather than every service reimplementing SES retry logic, consent
+tracking, and template rendering, this service owns that concern once, behind a Kafka contract —
+producers publish an event and move on; this service guarantees delivery (or a clearly-recorded
+failure), enforces LGPD consent before ever calling SES, and never blocks a producer's request path
+waiting on an email provider.
+
 ## Architecture Overview
 
 ```mermaid
 flowchart TB
     subgraph Producers["Event Producers"]
-        IdentityAPI["identity-api"]
-        AssetRegistry["asset-registry"]
-        LeasingAPI["leasing-api"]
+        IdentityAPI["identity-api<br/>(live)"]
+        FutureProducers["future services<br/>(planned)"]
     end
 
-    Producers -->|"NotificationRequested"| Topic[["Kafka topic:<br/>notification-requested"]]
+    Producers -->|"NotificationRequested"| MSK[["rentifyx-platform:<br/>MSK Serverless<br/>(SASL/IAM)"]]
+    MSK --> Consumer
 
     subgraph Host["RentifyX.Communications.Api — single deployable"]
         Consumer["NotificationRequestedConsumer<br/>(IHostedService)"] --> Handler["DispatchNotificationHandler"]
@@ -49,7 +59,7 @@ The Kafka consumer runs as an `IHostedService` inside the same API host — one 
 |---|---|
 | Framework | ASP.NET Core 10 Minimal APIs |
 | Orchestration | .NET Aspire 9.3.1 |
-| Event intake | Apache Kafka (Confluent.Kafka) — `IHostedService` consumer |
+| Event intake | Apache Kafka (Confluent.Kafka) — `IHostedService` consumer, SASL/IAM auth against MSK Serverless in production (`AWS.MSK.Auth`) |
 | Email delivery | AWS SES (`AWSSDK.SimpleEmail`) |
 | Persistence | AWS DynamoDB (`AWSSDK.DynamoDBv2`) — single-table design |
 | Secrets | AWS Secrets Manager (`AWSSDK.SecretsManager`) |
@@ -62,7 +72,7 @@ The Kafka consumer runs as an `IHostedService` inside the same API host — one 
 | API docs | Scalar + Microsoft.AspNetCore.OpenApi |
 | Testing | xUnit, Moq, FluentAssertions, Bogus, Testcontainers |
 | AWS environment | Real dev/sandbox AWS account (DynamoDB, SES, SecretsManager, KMS) — no local emulation (AD-012) |
-| IaC | Terraform + Helm |
+| IaC | Terraform (own EC2/DynamoDB/SES/IAM; Kafka IAM policy consumed cross-repo from `rentifyx-platform`) |
 
 ## Prerequisites
 
@@ -174,7 +184,7 @@ rentifyx-communications-api/
 │   ├── architecture/   # Architecture overview
 │   ├── decisions/      # ADRs (C01–C09)
 │   └── guides/         # Contributor guides
-├── iac/                # Terraform modules (SES, DynamoDB, Secrets Manager, IAM IRSA)
+├── iac/                # Terraform modules (SES, DynamoDB, KMS, Secrets Manager, IAM, EC2, GitHub OIDC)
 ├── k8s/                # Kustomize manifests (base + dev/prod overlays)
 ├── .specs/             # TLC spec-driven docs (PROJECT, ROADMAP, STATE, feature specs)
 ├── .hooks/             # git-secrets pre-commit hook
@@ -267,9 +277,8 @@ not HTTP. The current HTTP surface is health/docs only:
 | `GET` | `/scalar` | API documentation (Development only) |
 
 Read endpoints for notification status/history and consent management (`GET /v1/api/notifications/{id}`,
-`GET /v1/api/consent/{recipientId}`, `PUT /v1/api/consent/{recipientId}`, etc.) are planned as
-part of **E-05 · API Layer & LGPD Compliance** (see [Project Status](#project-status)) — not yet
-implemented, so they aren't listed here until they exist.
+`GET /v1/api/consent/{recipientId}`, `PUT /v1/api/consent/{recipientId}`, etc.) shipped as part of
+**E-05 · API Layer & LGPD Compliance** (see [Project Status](#project-status)).
 
 ## Kafka Contract
 
@@ -290,7 +299,7 @@ Topic: `notification-requested`
 
 `correlationId` is the idempotency key — duplicate messages with the same ID are acknowledged and skipped without reprocessing.
 
-Available templates: `welcome-email` (`Infrastructure/Templates/Files/`). More templates land as content work (E-05+) requires them — `ScribanTemplateRenderer` resolves any `<templateId>.scriban` file placed there, no code change needed to add one.
+Available templates: `welcome-email`, `email-verification`, `password-reset` (`Infrastructure/Templates/Files/`). More templates land as content work requires them — `ScribanTemplateRenderer` resolves any `<templateId>.scriban` file placed there, no code change needed to add one.
 
 ## Secrets
 
@@ -299,8 +308,11 @@ Secrets are loaded from AWS Secrets Manager at startup — never from `appsettin
 | Secret key | Value |
 |---|---|
 | `rentifyx/comms/ses-arn` | SES verified sender identity ARN |
-| `rentifyx/comms/kafka-sasl-username` | Kafka SASL username |
-| `rentifyx/comms/kafka-sasl-password` | Kafka SASL password |
+| `rentifyx/comms/api-key` | API key for inbound admin/consent endpoints |
+
+Kafka no longer uses SASL username/password secrets — the consumer authenticates to MSK Serverless
+via SASL/IAM (`AWS.MSK.Auth`), signing with the EC2 instance's own IAM role, so there's nothing to
+store in Secrets Manager for it.
 
 These must already exist in the AWS dev/sandbox account before running locally — see [`docs/architecture/overview.md`](docs/architecture/overview.md#aws-dev-account-requirements). Nothing auto-creates them (no LocalStack, no init script — AD-012).
 
@@ -367,8 +379,8 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | E-02 · Domain Model — Notification & Consent | ✅ Done |
 | E-03 · Application Layer — Use Cases | ✅ Done |
 | E-04 · Infrastructure (F-07 SES/DynamoDB, F-08 throttling/circuit breaker, F-09 retry/DLQ/reconciliation) | ✅ Done |
-| E-05 · API Layer & LGPD Compliance | Not started |
-| E-06 · Infrastructure as Code & Production Readiness | Not started |
+| E-05 · API Layer & LGPD Compliance | ✅ Done |
+| E-06 · Infrastructure as Code & Production Readiness | Partial — Terraform modules written (DynamoDB, KMS, Secrets, SES, IAM, EC2, GitHub OIDC), not yet applied |
 | E-07 · Marketing Email Campaigns | Not started (spec/design/tasks written) |
 | E-08 · Identity-API Integration Contract | Not started (spec written) |
 
@@ -377,12 +389,20 @@ Known gaps carried from E-01 (not yet resolved, tracked in `.specs/project/STATE
 ## Infrastructure as Code
 
 ```bash
-cd iac/
-terraform init
-terraform apply
+cd iac/terraform/
+terraform init \
+  -backend-config="bucket=rentifyx-tfstate-166613156216" \
+  -backend-config="key=communications-api/terraform.tfstate" \
+  -backend-config="region=us-east-1" \
+  -backend-config="dynamodb_table=rentifyx-tflock"
+terraform plan
 ```
 
-Terraform provisions: SES domain identity + DKIM/SPF, DynamoDB tables with GSIs, Secrets Manager entries, IAM IRSA least-privilege role (SES send + DynamoDB only).
+Terraform provisions: SES sender identity, DynamoDB single-table (with GSI1/GSI2/GSI3), Secrets
+Manager entries, a least-privilege IAM role for the service's own EC2 instance, and (count-gated,
+currently a no-op until `rentifyx-platform`'s `module.kafka` is applied) an IAM policy attachment
+read via `terraform_remote_state` granting that EC2 role MSK Serverless connect/produce/consume
+permissions. Not yet applied for real — see [`.specs/project/STATE.md`](.specs/project/STATE.md).
 
 ```bash
 # Deploy to Kubernetes
