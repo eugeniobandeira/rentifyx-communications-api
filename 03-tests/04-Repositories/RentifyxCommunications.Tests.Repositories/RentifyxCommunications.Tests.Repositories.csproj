@@ -17,6 +17,8 @@
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Moq" />
     <PackageReference Include="AWSSDK.SimpleEmail" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
