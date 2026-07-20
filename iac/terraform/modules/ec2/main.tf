@@ -195,4 +195,12 @@ resource "aws_instance" "communications_api" {
     Environment = var.environment
     ManagedBy   = "terraform"
   }
+
+  # data.aws_ami's most_recent lookup re-resolves to a newer AMI ID every
+  # time AWS publishes a patched al2023 image, which would otherwise force
+  # a replace on every plan. AMI updates should be a deliberate redeploy
+  # (new instance via CI/CD), not accidental churn from an unrelated apply.
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }

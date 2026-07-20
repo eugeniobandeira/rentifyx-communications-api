@@ -16,11 +16,6 @@ variable "app_name" {
   default     = "rentifyx"
 }
 
-variable "ses_identity" {
-  description = "Verified SES sender email address or domain"
-  type        = string
-}
-
 variable "ssh_key_name" {
   description = "EC2 key pair name for SSH access (leave empty to disable SSH)"
   type        = string
