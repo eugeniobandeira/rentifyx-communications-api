@@ -11,7 +11,7 @@ output "kms_key_arn" {
 }
 
 output "ses_identity_arn" {
-  value = module.ses.identity_arn
+  value = data.terraform_remote_state.platform.outputs.ses_identity_arn
 }
 
 output "iam_policy_arn" {
