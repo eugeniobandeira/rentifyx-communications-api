@@ -46,7 +46,7 @@ public sealed class DlqObserverHostedServiceTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         using DlqObserverHostedService sut = CreateSut(factory.Object, repository.Object);
 
@@ -70,7 +70,7 @@ public sealed class DlqObserverHostedServiceTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         using DlqObserverHostedService sut = CreateSut(factory.Object, repository.Object);
 

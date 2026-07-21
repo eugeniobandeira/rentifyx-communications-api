@@ -29,7 +29,7 @@ public sealed class NotificationRequestedConsumerTests
         consumer.Setup(c => c.Consume(It.IsAny<TimeSpan>())).Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         SharedLogEntries entries = new();
         using NotificationRequestedConsumer sut = CreateSut(entries, factory.Object);
@@ -50,7 +50,7 @@ public sealed class NotificationRequestedConsumerTests
         consumer.Setup(c => c.Consume(It.IsAny<TimeSpan>())).Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         using NotificationRequestedConsumer sut = CreateSut(new SharedLogEntries(), factory.Object);
         await sut.StartAsync(CancellationToken.None);
@@ -66,7 +66,7 @@ public sealed class NotificationRequestedConsumerTests
     public async Task StartAsync_DoesNotThrow_WhenConsumerFactoryAlwaysFails()
     {
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Throws(new KafkaException(ErrorCode.Local_Transport));
+        factory.Setup(f => f.Create(It.IsAny<string>())).Throws(new KafkaException(ErrorCode.Local_Transport));
 
         SharedLogEntries entries = new();
         using NotificationRequestedConsumer sut = CreateSut(entries, factory.Object, retryDelayOverride: TimeSpan.Zero);
@@ -75,7 +75,7 @@ public sealed class NotificationRequestedConsumerTests
 
         await act.Should().NotThrowAsync();
         entries.Count(e => e.Level == LogLevel.Error).Should().Be(NotificationRequestedConsumer.MaxStartupAttempts + 1);
-        factory.Verify(f => f.Create(), Times.Exactly(NotificationRequestedConsumer.MaxStartupAttempts));
+        factory.Verify(f => f.Create(It.IsAny<string>()), Times.Exactly(NotificationRequestedConsumer.MaxStartupAttempts));
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class NotificationRequestedConsumerTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         SharedLogEntries entries = new();
         Mock<IFailureRouter> router = new();
@@ -120,7 +120,7 @@ public sealed class NotificationRequestedConsumerTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         SharedLogEntries entries = new();
         Mock<IFailureRouter> router = new();
@@ -151,7 +151,7 @@ public sealed class NotificationRequestedConsumerTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         SharedLogEntries entries = new();
         Mock<IFailureRouter> router = new();
@@ -181,7 +181,7 @@ public sealed class NotificationRequestedConsumerTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         SharedLogEntries entries = new();
         Mock<IFailureRouter> router = new();
@@ -212,7 +212,7 @@ public sealed class NotificationRequestedConsumerTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         SharedLogEntries entries = new();
         using NotificationRequestedConsumer sut = CreateSut(entries, factory.Object, handler.Object);

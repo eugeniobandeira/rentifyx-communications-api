@@ -22,7 +22,7 @@ public sealed class KafkaConsumerFactoryTests
         environment.Setup(e => e.EnvironmentName).Returns(Environments.Development);
         KafkaConsumerFactory sut = new(configuration, KafkaOptions(), environment.Object);
 
-        Action act = () => sut.Create();
+        Action act = () => sut.Create("main");
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*kafka*");
     }
@@ -37,7 +37,7 @@ public sealed class KafkaConsumerFactoryTests
         environment.Setup(e => e.EnvironmentName).Returns(Environments.Development);
         KafkaConsumerFactory sut = new(configuration, KafkaOptions(), environment.Object);
 
-        using IConsumer<Ignore, string> consumer = sut.Create();
+        using IConsumer<Ignore, string> consumer = sut.Create("main");
 
         consumer.Should().NotBeNull();
     }
@@ -52,7 +52,7 @@ public sealed class KafkaConsumerFactoryTests
         environment.Setup(e => e.EnvironmentName).Returns(Environments.Production);
         KafkaConsumerFactory sut = new(configuration, KafkaOptions(), environment.Object);
 
-        Action act = () => sut.Create();
+        Action act = () => sut.Create("main");
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*AWS:Region*");
     }
@@ -71,7 +71,7 @@ public sealed class KafkaConsumerFactoryTests
         environment.Setup(e => e.EnvironmentName).Returns(Environments.Production);
         KafkaConsumerFactory sut = new(configuration, KafkaOptions(), environment.Object);
 
-        using IConsumer<Ignore, string> consumer = sut.Create();
+        using IConsumer<Ignore, string> consumer = sut.Create("main");
 
         consumer.Should().NotBeNull();
     }

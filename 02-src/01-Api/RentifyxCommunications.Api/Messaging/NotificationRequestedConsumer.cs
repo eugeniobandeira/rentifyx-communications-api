@@ -21,7 +21,7 @@ public sealed class NotificationRequestedConsumer(
     private readonly ILogger<NotificationRequestedConsumer> _logger = logger;
     private readonly IKafkaConsumerFactory _consumerFactory = consumerFactory;
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
-    private readonly string _groupId = kafkaOptions.Value.ConsumerGroupId;
+    private readonly string _groupId = $"{kafkaOptions.Value.ConsumerGroupId}-main";
     private readonly Action<long>? _setConsumerLag = metrics is null ? null : metrics.SetConsumerLag;
     private readonly TimeSpan? _startupRetryDelayOverride = startupRetryDelayOverride;
 
@@ -35,7 +35,7 @@ public sealed class NotificationRequestedConsumer(
         {
             try
             {
-                IConsumer<Ignore, string> consumer = _consumerFactory.Create();
+                IConsumer<Ignore, string> consumer = _consumerFactory.Create("main");
                 consumer.Subscribe(Topic);
                 _consumer = consumer;
 

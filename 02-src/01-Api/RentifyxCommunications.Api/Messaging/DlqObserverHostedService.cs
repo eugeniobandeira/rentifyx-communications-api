@@ -25,7 +25,7 @@ public sealed class DlqObserverHostedService(
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        IConsumer<Ignore, string> consumer = consumerFactory.Create();
+        IConsumer<Ignore, string> consumer = consumerFactory.Create("dlq");
         consumer.Subscribe(RetryTopicChain.DlqTopic);
         _consumer = consumer;
 

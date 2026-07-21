@@ -13,7 +13,7 @@ internal sealed class KafkaConsumerFactory(
 {
     private static readonly AWSMSKAuthTokenGenerator TokenGenerator = new();
 
-    public IConsumer<Ignore, string> Create()
+    public IConsumer<Ignore, string> Create(string groupIdSuffix)
     {
         string bootstrapServers = configuration.GetConnectionString("kafka")
             ?? throw new InvalidOperationException("Connection string 'kafka' not found.");
@@ -21,7 +21,7 @@ internal sealed class KafkaConsumerFactory(
         ConsumerConfig config = new()
         {
             BootstrapServers = bootstrapServers,
-            GroupId = kafkaOptions.Value.ConsumerGroupId,
+            GroupId = $"{kafkaOptions.Value.ConsumerGroupId}-{groupIdSuffix}",
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
         };

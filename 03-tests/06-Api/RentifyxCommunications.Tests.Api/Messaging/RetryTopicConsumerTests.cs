@@ -41,7 +41,7 @@ public sealed class RetryTopicConsumerTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         using RetryTopicConsumer sut = CreateSut(RetryTopicChain.Retry5sTopic, factory.Object, handler.Object);
         Stopwatch stopwatch = Stopwatch.StartNew();
@@ -71,7 +71,7 @@ public sealed class RetryTopicConsumerTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         using RetryTopicConsumer sut = CreateSut(RetryTopicChain.Retry5sTopic, factory.Object, handler.Object);
 
@@ -100,7 +100,7 @@ public sealed class RetryTopicConsumerTests
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
-        factory.Setup(f => f.Create()).Returns(consumer.Object);
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
 
         Mock<IFailureRouter> router = new();
         using RetryTopicConsumer sut = CreateSut(RetryTopicChain.Retry10mTopic, factory.Object, handler.Object, router.Object);

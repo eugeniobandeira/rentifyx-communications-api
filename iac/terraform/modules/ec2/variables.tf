@@ -39,6 +39,20 @@ variable "subnet_id" {
   type        = string
 }
 
+variable "kafka_bootstrap_servers" {
+  description = <<-EOT
+    MSK Serverless bootstrap broker address, read from rentifyx-platform's
+    SSM parameter and passed into the container as ConnectionStrings__kafka.
+    Empty string disables this env var - used until rentifyx-platform's
+    kafka module is actually applied (the SSM parameter doesn't exist yet).
+    Without a real value, the container fails to start entirely
+    (KafkaConsumerFactory throws at boot) - see the 2026-07-20 session's
+    consumer crash-loop.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "kafka_client_policy_json" {
   description = <<-EOT
     IAM policy JSON granting MSK Serverless access, from

@@ -19,4 +19,7 @@ docker run -d \
   -e ASPNETCORE_ENVIRONMENT=Production \
   -e AWS__Region=${aws_region} \
   -e DynamoDb__NotificationsTableName=${dynamodb_table_name} \
+%{ if kafka_bootstrap_servers != "" }
+  -e ConnectionStrings__kafka=${kafka_bootstrap_servers} \
+%{ endif }
   ${ecr_repository_url}:latest
