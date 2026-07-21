@@ -7,7 +7,7 @@ using RentifyxCommunications.Application.Features.Notifications.Handlers.GetStat
 
 namespace RentifyxCommunications.Api.Endpoints.Notifications;
 
-internal sealed class GetNotificationStatusEndpoint : IEndpoint
+internal sealed class GetNotificationStatus : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {

@@ -144,7 +144,7 @@ dotnet test
 
 ## Continuous Integration
 
-`.github/workflows/ci.yml` runs on every push/PR to `main`: build + unit tests + 80% line coverage gate, a Trivy scan of the built Docker image (fails on HIGH/CRITICAL), and an OWASP Dependency-Check scan of the full NuGet dependency graph (fails on CVSS ≥ 7).
+`.github/workflows/ci.yml` runs on every push/PR to `main`: build + unit tests (job fails if any test fails; coverage report still generated/uploaded as an artifact, no longer gated on a percentage threshold), a Trivy scan of the built Docker image (fails on HIGH/CRITICAL), and an OWASP Dependency-Check scan of the full NuGet dependency graph (fails on CVSS ≥ 7).
 
 Requires one repository secret:
 
