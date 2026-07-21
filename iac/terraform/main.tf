@@ -17,14 +17,16 @@ provider "aws" {
   }
 }
 
-# Cross-repo: rentifyx-platform's module.kafka.client_iam_policy_json (MSK
-# Serverless access) and module.ses.identity_arn (shared SES sender
-# identity), via terraform_remote_state rather than duplicating either by
-# hand and risking drift. Read-only - this repo's own AWS credentials
-# already have access to that state (same account/bucket this repo's own
-# backend uses). The Kafka policy is wrapped in try(..., "") below since
-# rentifyx-platform's network/kafka modules were applied later than this
-# block was first written; module.ses is not optional the same way.
+# Cross-repo: rentifyx-platform's module.kafka.ssm_parameter_path (the
+# self-hosted Kafka broker's bootstrap address) and module.ses.identity_arn
+# (shared SES sender identity), via terraform_remote_state rather than
+# duplicating either by hand and risking drift. Read-only - this repo's own
+# AWS credentials already have access to that state (same account/bucket
+# this repo's own backend uses). The Kafka value is wrapped in try(..., "")
+# below since rentifyx-platform's network/kafka modules were applied later
+# than this block was first written; module.ses is not optional the same
+# way. No client IAM policy is read anymore - the broker is PLAINTEXT, no
+# auth to grant.
 data "terraform_remote_state" "platform" {
   backend = "s3"
 

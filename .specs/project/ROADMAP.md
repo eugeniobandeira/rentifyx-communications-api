@@ -24,9 +24,9 @@
 
 **F-02 · CI/CD Pipeline & DevSecOps Baseline** — DONE
 
-- GitHub Actions: build → test → coverage gate ≥80% → OWASP dependency-check → Trivy scan — ✅ done (coverage gate is real but currently red at ~5.6% repo coverage; OWASP check needs an `NVD_API_KEY` repo secret added before it actually runs — see STATE.md Todos)
+- GitHub Actions: build → test → OWASP dependency-check → Trivy scan — ✅ done (coverage is reported but no longer gated on a percentage, removed 2026-07-21; OWASP check needs an `NVD_API_KEY` repo secret added before it actually runs — see STATE.md Todos)
 - Branch protection: CI green (build-test-coverage, trivy-scan, owasp-check) + 1 PR review required, force-push/deletion disabled — ✅ done 2026-07-13
-- git-secrets pre-commit hook + `ISecretsProvider` abstraction loading SES ARN + Kafka credentials from Secrets Manager — ✅ done
+- git-secrets pre-commit hook + `ISecretsProvider` abstraction loading SES ARN from Secrets Manager (Kafka is self-hosted/PLAINTEXT since 2026-07-21, no credentials to load) — ✅ done
 
 ---
 

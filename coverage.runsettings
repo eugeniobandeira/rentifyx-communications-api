@@ -6,7 +6,7 @@
         <Configuration>
           <Format>cobertura</Format>
           <!--
-            Excluded from the coverage gate:
+            Excluded from the coverage report (informational only - no gate blocks on this since 2026-07-21):
             - Pure DI/host wiring (IoC, AppHost, ServiceDefaults, Program.cs) - no branching logic,
               exercised implicitly by every integration test that boots the app, never meaningfully
               unit-testable on its own.
