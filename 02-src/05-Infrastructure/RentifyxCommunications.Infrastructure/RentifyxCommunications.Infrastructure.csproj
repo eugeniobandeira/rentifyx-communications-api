@@ -13,7 +13,6 @@
     <PackageReference Include="Polly.Core" />
     <PackageReference Include="Polly.RateLimiting" />
     <PackageReference Include="Confluent.Kafka" />
-    <PackageReference Include="AWS.MSK.Auth" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
   </ItemGroup>
   <ItemGroup>
