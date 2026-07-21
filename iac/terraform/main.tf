@@ -68,6 +68,22 @@ module "iam" {
   ses_identity_arn   = data.terraform_remote_state.platform.outputs.ses_identity_arn
 }
 
+# The SSM parameter itself only exists once rentifyx-platform's module.kafka
+# has been applied - try() so this repo's own plan/apply doesn't hard-fail
+# before that (same reasoning as kafka_client_iam_policy_json above).
+# Without a real value here, the container fails to start entirely
+# (KafkaConsumerFactory throws at boot - see the 2026-07-20 session's
+# consumer crash-loop, caused by exactly this env var being missing).
+locals {
+  kafka_ssm_parameter_path = try(data.terraform_remote_state.platform.outputs.kafka_ssm_parameter_path, "")
+}
+
+data "aws_ssm_parameter" "kafka_bootstrap_servers" {
+  count           = var.enable_ec2 && local.kafka_ssm_parameter_path != "" ? 1 : 0
+  name            = local.kafka_ssm_parameter_path
+  with_decryption = true
+}
+
 module "ec2" {
   count = var.enable_ec2 ? 1 : 0
 
@@ -79,6 +95,7 @@ module "ec2" {
   dynamodb_table_name      = module.dynamodb.table_name
   ssh_key_name             = var.ssh_key_name
   kafka_client_policy_json = try(data.terraform_remote_state.platform.outputs.kafka_client_iam_policy_json, "")
+  kafka_bootstrap_servers  = try(data.aws_ssm_parameter.kafka_bootstrap_servers[0].value, "")
   vpc_id                   = data.terraform_remote_state.platform.outputs.vpc_id
   subnet_id                = data.terraform_remote_state.platform.outputs.public_subnets[0]
 }
