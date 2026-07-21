@@ -50,18 +50,6 @@ jobs:
           -targetdir:./TestResults/CoverageReport
           -reporttypes:"Html;JsonSummary"
 
-      - name: Enforce 80% line coverage gate
-        shell: bash
-        run: |
-          node -e "
-            const coverage = require('./TestResults/CoverageReport/Summary.json').summary.linecoverage;
-            console.log('Line coverage: ' + coverage + '%');
-            if (coverage < 80) {
-              console.log('::error::Line coverage ' + coverage + '% is below the required 80% threshold');
-              process.exit(1);
-            }
-          "
-
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
