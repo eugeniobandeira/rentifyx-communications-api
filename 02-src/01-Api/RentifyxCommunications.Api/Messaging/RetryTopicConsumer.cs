@@ -23,7 +23,7 @@ public sealed class RetryTopicConsumer(
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        IConsumer<Ignore, string> consumer = consumerFactory.Create();
+        IConsumer<Ignore, string> consumer = consumerFactory.Create(topic);
         consumer.Subscribe(topic);
         _consumer = consumer;
 
