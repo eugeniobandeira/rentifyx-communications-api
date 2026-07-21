@@ -31,7 +31,7 @@ try
         .WriteTo.Console(new JsonFormatter()));
 
     builder.Services.AddApplication();
-    builder.Services.AddInfrastructure(builder.Configuration);
+    builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
     builder.Services.AddOpenApiDocumentation(builder.Configuration);
     builder.Services.AddHttpContextAccessor();
     builder.Services.AddCorsPolicy(builder.Configuration);

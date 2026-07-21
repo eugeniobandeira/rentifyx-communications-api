@@ -29,6 +29,16 @@ variable "ssh_key_name" {
   default     = ""
 }
 
+variable "vpc_id" {
+  description = "VPC ID to provision the security group in - rentifyx-platform's VPC, read via terraform_remote_state, so this instance can reach the MSK Serverless cluster (VPC-internal only)."
+  type        = string
+}
+
+variable "subnet_id" {
+  description = "Subnet ID to provision the instance in - one of rentifyx-platform's public subnets, read via terraform_remote_state."
+  type        = string
+}
+
 variable "kafka_client_policy_json" {
   description = <<-EOT
     IAM policy JSON granting MSK Serverless access, from

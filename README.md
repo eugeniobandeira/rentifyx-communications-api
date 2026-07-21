@@ -398,11 +398,22 @@ terraform init \
 terraform plan
 ```
 
-Terraform provisions: SES sender identity, DynamoDB single-table (with GSI1/GSI2/GSI3), Secrets
-Manager entries, a least-privilege IAM role for the service's own EC2 instance, and (count-gated,
-currently a no-op until `rentifyx-platform`'s `module.kafka` is applied) an IAM policy attachment
-read via `terraform_remote_state` granting that EC2 role MSK Serverless connect/produce/consume
-permissions. Not yet applied for real — see [`.specs/project/STATE.md`](.specs/project/STATE.md).
+Terraform provisions: DynamoDB single-table (with GSI1/GSI2/GSI3), KMS key, Secrets Manager
+entries, a least-privilege IAM role for the service's own EC2 instance + ECR repo, a GitHub
+Actions OIDC deploy role, and an SES configuration set (the SES sender identity itself is owned
+by `rentifyx-platform`'s `module.ses`, read here via `terraform_remote_state` along with the MSK
+Serverless client policy). Applied for real 2026-07-20 — see
+[`.specs/project/STATE.md`](.specs/project/STATE.md).
+
+Tearing down:
+
+```bash
+terraform destroy
+```
+
+Real, billable resources this creates (EC2 instance, ECR repo). Destroy this repo and
+`rentifyx-identity-api` **before** destroying `rentifyx-platform` (both read its outputs via
+`terraform_remote_state`).
 
 ```bash
 # Deploy to Kubernetes
