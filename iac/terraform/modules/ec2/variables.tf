@@ -30,7 +30,7 @@ variable "ssh_key_name" {
 }
 
 variable "vpc_id" {
-  description = "VPC ID to provision the security group in - rentifyx-platform's VPC, read via terraform_remote_state, so this instance can reach the MSK Serverless cluster (VPC-internal only)."
+  description = "VPC ID to provision the security group in - rentifyx-platform's VPC, read via terraform_remote_state, so this instance can reach the self-hosted Kafka broker (VPC-internal only)."
   type        = string
 }
 
@@ -41,13 +41,13 @@ variable "subnet_id" {
 
 variable "kafka_bootstrap_servers" {
   description = <<-EOT
-    MSK Serverless bootstrap broker address, read from rentifyx-platform's
-    SSM parameter and passed into the container as ConnectionStrings__kafka.
-    Empty string disables this env var - used until rentifyx-platform's
-    kafka module is actually applied (the SSM parameter doesn't exist yet).
-    Without a real value, the container fails to start entirely
-    (KafkaConsumerFactory throws at boot) - see the 2026-07-20 session's
-    consumer crash-loop.
+    Self-hosted Kafka broker's bootstrap address (host:port, PLAINTEXT),
+    read from rentifyx-platform's SSM parameter and passed into the
+    container as ConnectionStrings__kafka. Empty string disables this env
+    var - used until rentifyx-platform's kafka module is actually applied
+    (the SSM parameter doesn't exist yet). Without a real value, the
+    container fails to start entirely (KafkaConsumerFactory throws at boot)
+    - see the 2026-07-20 session's consumer crash-loop.
   EOT
   type        = string
   default     = ""
@@ -55,11 +55,12 @@ variable "kafka_bootstrap_servers" {
 
 variable "kafka_client_policy_json" {
   description = <<-EOT
-    IAM policy JSON granting MSK Serverless access, from
-    rentifyx-platform's module.kafka.client_iam_policy_json output (read via
-    terraform_remote_state in the root module). Empty string disables this
-    attachment entirely - used until rentifyx-platform's network/kafka
-    modules are actually applied (their outputs don't exist yet).
+    Historical: IAM policy JSON granting MSK Serverless access, from
+    rentifyx-platform's module.kafka.client_iam_policy_json output. Unused
+    since 2026-07-21 - the self-hosted broker is PLAINTEXT, so root main.tf
+    no longer passes this variable a value; it stays empty (default), which
+    keeps modules/ec2/main.tf's count-gated ec2_kafka policy attachment a
+    clean no-op.
   EOT
   type        = string
   default     = ""

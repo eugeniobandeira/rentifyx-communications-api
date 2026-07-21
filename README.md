@@ -27,7 +27,7 @@ flowchart TB
         FutureProducers["future services<br/>(planned)"]
     end
 
-    Producers -->|"NotificationRequested"| MSK[["rentifyx-platform:<br/>MSK Serverless<br/>(SASL/IAM)"]]
+    Producers -->|"NotificationRequested"| MSK[["rentifyx-platform:<br/>self-hosted Kafka<br/>(KRaft, PLAINTEXT)"]]
     MSK --> Consumer
 
     subgraph Host["RentifyX.Communications.Api — single deployable"]
@@ -59,7 +59,7 @@ The Kafka consumer runs as an `IHostedService` inside the same API host — one 
 |---|---|
 | Framework | ASP.NET Core 10 Minimal APIs |
 | Orchestration | .NET Aspire 9.3.1 |
-| Event intake | Apache Kafka (Confluent.Kafka) — `IHostedService` consumer, SASL/IAM auth against MSK Serverless in production (`AWS.MSK.Auth`) |
+| Event intake | Apache Kafka (Confluent.Kafka) — `IHostedService` consumer, PLAINTEXT against `rentifyx-platform`'s self-hosted broker (no SASL/IAM) |
 | Email delivery | AWS SES (`AWSSDK.SimpleEmail`) |
 | Persistence | AWS DynamoDB (`AWSSDK.DynamoDBv2`) — single-table design |
 | Secrets | AWS Secrets Manager (`AWSSDK.SecretsManager`) |
@@ -72,7 +72,7 @@ The Kafka consumer runs as an `IHostedService` inside the same API host — one 
 | API docs | Scalar + Microsoft.AspNetCore.OpenApi |
 | Testing | xUnit, Moq, FluentAssertions, Bogus, Testcontainers |
 | AWS environment | Real dev/sandbox AWS account (DynamoDB, SES, SecretsManager, KMS) — no local emulation (AD-012) |
-| IaC | Terraform (own EC2/DynamoDB/SES/IAM; Kafka IAM policy consumed cross-repo from `rentifyx-platform`) |
+| IaC | Terraform (own EC2/DynamoDB/SES/IAM; Kafka broker SSM parameter consumed cross-repo from `rentifyx-platform`) |
 
 ## Prerequisites
 
@@ -275,10 +275,10 @@ not HTTP. The current HTTP surface is health/docs only:
 | `GET` | `/health` | All health checks |
 | `GET` | `/alive` | Liveness probe |
 | `GET` | `/scalar` | API documentation (Development only) |
-
-Read endpoints for notification status/history and consent management (`GET /v1/api/notifications/{id}`,
-`GET /v1/api/consent/{recipientId}`, `PUT /v1/api/consent/{recipientId}`, etc.) shipped as part of
-**E-05 · API Layer & LGPD Compliance** (see [Project Status](#project-status)).
+| `GET` | `/v1/api/notifications/{id}` | Notification status by id |
+| `GET` | `/v1/api/notifications/recipient/{recipientId}` | Notifications sent to a recipient |
+| `GET` | `/v1/api/consent/{recipientId}` | Consent preference for a recipient on a given channel |
+| `PUT` | `/v1/api/consent/{recipientId}` | Update a recipient's consent preference |
 
 ## Kafka Contract
 
@@ -310,9 +310,9 @@ Secrets are loaded from AWS Secrets Manager at startup — never from `appsettin
 | `rentifyx/comms/ses-arn` | SES verified sender identity ARN |
 | `rentifyx/comms/api-key` | API key for inbound admin/consent endpoints |
 
-Kafka no longer uses SASL username/password secrets — the consumer authenticates to MSK Serverless
-via SASL/IAM (`AWS.MSK.Auth`), signing with the EC2 instance's own IAM role, so there's nothing to
-store in Secrets Manager for it.
+Kafka needs no secret at all — the broker is self-hosted and PLAINTEXT (no SASL, see
+`rentifyx-platform`'s `.specs/features/self-hosted-kafka/`), so there's nothing to store in
+Secrets Manager for it.
 
 These must already exist in the AWS dev/sandbox account before running locally — see [`docs/architecture/overview.md`](docs/architecture/overview.md#aws-dev-account-requirements). Nothing auto-creates them (no LocalStack, no init script — AD-012).
 
@@ -384,7 +384,7 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | E-07 · Marketing Email Campaigns | Not started (spec/design/tasks written) |
 | E-08 · Identity-API Integration Contract | Not started (spec written) |
 
-Known gaps carried from E-01 (not yet resolved, tracked in `.specs/project/STATE.md` Todos): branch protection's coverage gate is red until more real tests land across epics; `NVD_API_KEY` repo secret not yet added (blocks the OWASP CI job); dev-account DynamoDB/SES/Secrets Manager resources still need manual provisioning before a real (non-test) run.
+Known gaps carried from E-01 (not yet resolved, tracked in `.specs/project/STATE.md` Todos): `NVD_API_KEY` repo secret not yet added (blocks the OWASP CI job); dev-account DynamoDB/SES/Secrets Manager resources still need manual provisioning before a real (non-test) run. (The coverage-percentage gate mentioned here previously was removed entirely on 2026-07-21 — CI now only fails on a failing test.)
 
 ## Infrastructure as Code
 
@@ -401,8 +401,10 @@ terraform plan
 Terraform provisions: DynamoDB single-table (with GSI1/GSI2/GSI3), KMS key, Secrets Manager
 entries, a least-privilege IAM role for the service's own EC2 instance + ECR repo, a GitHub
 Actions OIDC deploy role, and an SES configuration set (the SES sender identity itself is owned
-by `rentifyx-platform`'s `module.ses`, read here via `terraform_remote_state` along with the MSK
-Serverless client policy). Applied for real 2026-07-20 — see
+by `rentifyx-platform`'s `module.ses`; the Kafka broker's bootstrap address is read here via
+`terraform_remote_state`/SSM, no client IAM policy needed since the broker is PLAINTEXT). Core
+infra (DynamoDB/KMS/Secrets/IAM/EC2/OIDC) was applied for real 2026-07-20; the 2026-07-21
+PLAINTEXT-Kafka Terraform change has not yet been applied against real AWS — see
 [`.specs/project/STATE.md`](.specs/project/STATE.md).
 
 Tearing down:

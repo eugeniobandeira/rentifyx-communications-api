@@ -68,9 +68,11 @@ resource "aws_iam_role_policy_attachment" "ec2_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# MSK Serverless access - see rentifyx-platform ADR-002. Skipped (count = 0)
-# until that repo's module.kafka has actually been applied and its output
-# is real JSON, not an empty string.
+# Historical: granted MSK Serverless access when the broker required
+# SASL/IAM. Unused since 2026-07-21 (self-hosted broker is PLAINTEXT, no
+# auth to grant) - root main.tf no longer passes kafka_client_policy_json,
+# so this resource's count is always 0. Left in place rather than deleted
+# in case a future auth requirement reintroduces the need.
 resource "aws_iam_role_policy" "ec2_kafka" {
   count = var.kafka_client_policy_json != "" ? 1 : 0
 
