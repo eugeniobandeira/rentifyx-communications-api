@@ -32,7 +32,7 @@ public sealed class SesEmailSender(
                 Message = new Message
                 {
                     Subject = new Content(DefaultSubject),
-                    Body = new Body { Text = new Content(renderedContent) }
+                    Body = new Body { Html = new Content(renderedContent) }
                 }
             }, cancellationToken);
 
