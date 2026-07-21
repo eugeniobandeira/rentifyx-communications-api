@@ -87,17 +87,16 @@ data "aws_ssm_parameter" "kafka_bootstrap_servers" {
 module "ec2" {
   count = var.enable_ec2 ? 1 : 0
 
-  source                   = "./modules/ec2"
-  prefix                   = local.prefix
-  environment              = var.environment
-  policy_arn               = module.iam.policy_arn
-  aws_region               = var.aws_region
-  dynamodb_table_name      = module.dynamodb.table_name
-  ssh_key_name             = var.ssh_key_name
-  kafka_client_policy_json = try(data.terraform_remote_state.platform.outputs.kafka_client_iam_policy_json, "")
-  kafka_bootstrap_servers  = try(data.aws_ssm_parameter.kafka_bootstrap_servers[0].value, "")
-  vpc_id                   = data.terraform_remote_state.platform.outputs.vpc_id
-  subnet_id                = data.terraform_remote_state.platform.outputs.public_subnets[0]
+  source                  = "./modules/ec2"
+  prefix                  = local.prefix
+  environment             = var.environment
+  policy_arn              = module.iam.policy_arn
+  aws_region              = var.aws_region
+  dynamodb_table_name     = module.dynamodb.table_name
+  ssh_key_name            = var.ssh_key_name
+  kafka_bootstrap_servers = try(data.aws_ssm_parameter.kafka_bootstrap_servers[0].value, "")
+  vpc_id                  = data.terraform_remote_state.platform.outputs.vpc_id
+  subnet_id               = data.terraform_remote_state.platform.outputs.public_subnets[0]
 }
 
 data "aws_caller_identity" "main" {}

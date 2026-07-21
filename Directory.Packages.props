@@ -43,8 +43,6 @@
   </ItemGroup>
   <ItemGroup Label="Messaging">
     <PackageVersion Include="Confluent.Kafka" Version="2.15.0" />
-    <!-- MSK Serverless SASL/IAM auth - see rentifyx-platform ADR-002 -->
-    <PackageVersion Include="AWS.MSK.Auth" Version="1.1.3" />
   </ItemGroup>
   <ItemGroup Label="Infrastructure">
     <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.100.3" />
