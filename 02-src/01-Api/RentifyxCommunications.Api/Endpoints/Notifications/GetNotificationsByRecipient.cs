@@ -7,7 +7,7 @@ using RentifyxCommunications.Application.Features.Notifications.Handlers.GetByRe
 
 namespace RentifyxCommunications.Api.Endpoints.Notifications;
 
-internal sealed class GetNotificationsByRecipientEndpoint : IEndpoint
+internal sealed class GetNotificationsByRecipient : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {

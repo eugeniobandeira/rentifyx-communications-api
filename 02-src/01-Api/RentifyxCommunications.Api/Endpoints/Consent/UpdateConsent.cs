@@ -7,7 +7,7 @@ using RentifyxCommunications.Application.Features.Consent.Handlers.Update.Respon
 
 namespace RentifyxCommunications.Api.Endpoints.Consent;
 
-internal sealed class UpdateConsentEndpoint : IEndpoint
+internal sealed class UpdateConsent : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
