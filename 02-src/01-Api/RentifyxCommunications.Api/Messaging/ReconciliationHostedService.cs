@@ -64,7 +64,22 @@ public sealed class ReconciliationHostedService(
         try
         {
             while (await timer.WaitForNextTickAsync(token))
-                await ReconcileOnceAsync(token);
+            {
+                try
+                {
+                    await ReconcileOnceAsync(token);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // A failure fetching the stuck-notification batch (e.g. a
+                    // transient DynamoDB error) must not kill the loop for the
+                    // rest of the process lifetime - per-notification failures
+                    // are already handled inside ReconcileOnceAsync; this is
+                    // the outer safety net so one bad tick doesn't silently
+                    // end all future reconciliation.
+                    logger.LogError(ex, "Reconciliation poll tick failed, will retry next tick.");
+                }
+            }
         }
         catch (OperationCanceledException)
         {
