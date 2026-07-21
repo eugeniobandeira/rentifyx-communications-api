@@ -24,9 +24,10 @@ internal static class InfrastructureDependencyInjection
 {
     internal static IServiceCollection Register(
         IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
-        services.AddAwsOptions(configuration);
+        services.AddAwsOptions(configuration, environment);
         services.AddSecretsManager(configuration);
         services.AddNotificationInfrastructure(configuration);
         services.AddMessaging(configuration);
@@ -36,18 +37,28 @@ internal static class InfrastructureDependencyInjection
 
     private static IServiceCollection AddAwsOptions(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
-        string? profile = configuration["AWS:Profile"];
-        if (string.IsNullOrWhiteSpace(profile))
-            throw new InvalidOperationException(
-                "Configuration key 'AWS:Profile' is required. Set it via dotnet user-secrets or a local environment " +
-                "variable — it must never be committed. See docs/architecture/overview.md for setup.");
+        // A named credentials profile is only how *local dev* authenticates
+        // (see docs/architecture/overview.md). In Production the EC2
+        // instance's own IAM role provides credentials via IMDS - there is
+        // no profile to configure, and configuration.GetAWSOptions() falls
+        // back to the default credential chain (IMDS included)
+        // automatically when no profile is set.
+        if (!environment.IsProduction())
+        {
+            string? profile = configuration["AWS:Profile"];
+            if (string.IsNullOrWhiteSpace(profile))
+                throw new InvalidOperationException(
+                    "Configuration key 'AWS:Profile' is required. Set it via dotnet user-secrets or a local environment " +
+                    "variable — it must never be committed. See docs/architecture/overview.md for setup.");
 
-        if (!new CredentialProfileStoreChain().TryGetAWSCredentials(profile, out _))
-            throw new InvalidOperationException(
-                $"AWS credentials profile '{profile}' was not found. Run 'aws configure --profile {profile}' " +
-                "to create it before starting the application.");
+            if (!new CredentialProfileStoreChain().TryGetAWSCredentials(profile, out _))
+                throw new InvalidOperationException(
+                    $"AWS credentials profile '{profile}' was not found. Run 'aws configure --profile {profile}' " +
+                    "to create it before starting the application.");
+        }
 
         services.AddDefaultAWSOptions(configuration.GetAWSOptions());
 

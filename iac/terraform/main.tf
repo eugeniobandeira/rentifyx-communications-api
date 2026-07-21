@@ -79,6 +79,8 @@ module "ec2" {
   dynamodb_table_name      = module.dynamodb.table_name
   ssh_key_name             = var.ssh_key_name
   kafka_client_policy_json = try(data.terraform_remote_state.platform.outputs.kafka_client_iam_policy_json, "")
+  vpc_id                   = data.terraform_remote_state.platform.outputs.vpc_id
+  subnet_id                = data.terraform_remote_state.platform.outputs.public_subnets[0]
 }
 
 data "aws_caller_identity" "main" {}
