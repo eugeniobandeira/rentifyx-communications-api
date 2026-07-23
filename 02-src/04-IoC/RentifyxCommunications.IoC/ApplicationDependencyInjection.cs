@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using System.Diagnostics.CodeAnalysis;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using RentifyxCommunications.Application.Common.Handler;
 using RentifyxCommunications.Application.Features.Consent.Handlers.Get;
@@ -25,6 +26,7 @@ using RentifyxCommunications.Application.Features.Notifications.Handlers.GetStat
 
 namespace RentifyxCommunications.IoC;
 
+[ExcludeFromCodeCoverage]
 internal static class ApplicationDependencyInjection
 {
     internal static IServiceCollection Register(IServiceCollection services)

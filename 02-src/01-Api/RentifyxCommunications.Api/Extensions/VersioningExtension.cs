@@ -1,7 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using Asp.Versioning;
 
 namespace RentifyxCommunications.Api.Extensions;
 
+[ExcludeFromCodeCoverage]
 internal static class VersioningExtension
 {
     public static IServiceCollection AddVersioning(this IServiceCollection services)

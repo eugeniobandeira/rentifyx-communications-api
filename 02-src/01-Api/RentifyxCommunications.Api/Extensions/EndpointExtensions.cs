@@ -1,8 +1,10 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using RentifyxCommunications.Api.Abstract;
 
 namespace RentifyxCommunications.Api.Extensions;
 
+[ExcludeFromCodeCoverage]
 internal static class EndpointExtensions
 {
     public static IServiceCollection AddEndpoints(this IServiceCollection services)

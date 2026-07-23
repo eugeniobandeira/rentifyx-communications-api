@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.OpenApi;
 using RentifyxCommunications.Api.Extensions.Options;
 using Scalar.AspNetCore;
 
 namespace RentifyxCommunications.Api.Extensions;
 
+[ExcludeFromCodeCoverage]
 public static class OpenApiExtensions
 {
     public static IServiceCollection AddOpenApiDocumentation(this IServiceCollection services, IConfiguration configuration)

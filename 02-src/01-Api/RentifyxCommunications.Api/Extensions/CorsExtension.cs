@@ -1,7 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
 using RentifyxCommunications.Api.Extensions.Options;
 
 namespace RentifyxCommunications.Api.Extensions;
 
+[ExcludeFromCodeCoverage]
 internal static class CorsExtension
 {
     private const string PolicyName = "DefaultCorsPolicy";
