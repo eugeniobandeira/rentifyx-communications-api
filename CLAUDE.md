@@ -2,6 +2,15 @@
 
 Guidance for Claude Code when working in this repository.
 
+## CI/CD
+
+GitHub Actions (`ci.yml`) triggers on `push` and `pull_request` to `main`:
+1. **`build-test-coverage`** – restore → build Release → test (`Category!=Integration&Category!=LoadTest` filter — integration/load tests don't run in CI) → coverage collected via `coverlet` + `ReportGenerator`, uploaded as an artifact; not a blocking gate (no minimum percentage enforced).
+2. **`trivy-scan`** (needs `build-test-coverage`) – builds the Docker image, then runs Trivy **twice** against it: once as SARIF (informational, `exit-code: 0`, always uploaded) and once as a table-format HIGH/CRITICAL gate (`exit-code: 1`, blocking). Both calls are pinned to a commit SHA (`aquasecurity/trivy-action@ed142fd...` = `v0.36.0`), not a version tag — see the inline comment in `ci.yml` for why (a March 2026 supply-chain attack retroactively repointed 76/77 of that action's tags to a credential-stealing payload).
+3. **`owasp-check`** – present in the workflow file but **commented out**, disabled until `NVD_API_KEY` is added as a repo secret (without it the job fails outright). Uncomment once the secret exists.
+
+No `secret-scan` (gitleaks) step and no `deploy.yml` in this repo, unlike `identity-api`.
+
 ## Architecture
 
 Clean Architecture, 5 layers: `01-Api`, `02-Application`, `03-Domain`, `04-IoC`, `05-Infrastructure` (see `02-src/`), plus `01-aspire/` (AppHost + ServiceDefaults) and `03-tests/` (one test project per concern: `00-Domain`, `01-Common`, `02-Validators`, `03-Handlers`, `04-Repositories`, `05-Integration`, `06-Api`).
