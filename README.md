@@ -265,20 +265,35 @@ TTL: 90 days on all notification records (LGPD Art. 46 data minimization).
 
 Full ADR docs: [`docs/decisions/`](docs/decisions/)
 
-## HTTP Endpoints
+## API Endpoints
 
 This service is primarily event-driven — dispatch happens entirely through the Kafka consumer,
-not HTTP. The current HTTP surface is health/docs only:
+not HTTP. The current HTTP surface is health/docs plus a small read/write API for querying
+notification status and managing consent:
 
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/health` | All health checks |
-| `GET` | `/alive` | Liveness probe |
-| `GET` | `/scalar` | API documentation (Development only) |
-| `GET` | `/v1/api/notifications/{id}` | Notification status by id |
-| `GET` | `/v1/api/notifications/recipient/{recipientId}` | Notifications sent to a recipient |
-| `GET` | `/v1/api/consent/{recipientId}` | Consent preference for a recipient on a given channel |
-| `PUT` | `/v1/api/consent/{recipientId}` | Update a recipient's consent preference |
+| Method | Route | Auth | Purpose |
+|---|---|---|---|
+| `GET` | `/health` | none | All health checks |
+| `GET` | `/alive` | none | Liveness probe |
+| `GET` | `/scalar` | none | API documentation (Development only) |
+| `GET` | `/v1/api/notifications/{id}` | API key | Notification status by id (`GetNotificationStatus`) |
+| `GET` | `/v1/api/notifications/recipient/{recipientId}` | API key | Notification history for a recipient, ordered by creation time (`GetNotificationsByRecipient`) |
+| `GET` | `/v1/api/consent/{recipientId}?channel={channel}` | API key | Current consent preference for a recipient on a given channel (`GetConsent`) |
+| `PUT` | `/v1/api/consent/{recipientId}` | API key | Updates a recipient's consent preference — body `{ "channel": string, "optedIn": bool }`; every change is audited per LGPD Art. 8 (`UpdateConsent`) |
+
+Routes are grouped under `MapVersionedApi(1)` (`Api/Extensions/EndpointExtensions.cs`), which is
+where the `v1/api` prefix comes from — individual endpoint classes under
+`Api/Endpoints/{Notifications,Consent,Health}/` only declare the relative route.
+
+### Authentication
+
+Every endpoint except health/docs requires a custom **API key** scheme — not JWT, unlike other
+RentifyX services (e.g. `identity-api`). Callers send the key in the `X-Api-Key` header (scheme
+and header name defined in `Api/Authentication/ApiKeyDefaults.cs`); it's validated in
+`Api/Authentication/ApiKeyAuthenticationHandler.cs` with a constant-time comparison
+(`CryptographicOperations.FixedTimeEquals`) against the `rentifyx/comms/api-key` secret loaded
+from AWS Secrets Manager at request time. This is service-to-service auth only — there's no
+end-user identity flow on this API (AD-011).
 
 ## Kafka Contract
 
@@ -380,13 +395,15 @@ Source of truth for progress lives in [`.specs/`](.specs/) (spec-driven planning
 | E-03 · Application Layer — Use Cases | ✅ Done |
 | E-04 · Infrastructure (F-07 SES/DynamoDB, F-08 throttling/circuit breaker, F-09 retry/DLQ/reconciliation) | ✅ Done |
 | E-05 · API Layer & LGPD Compliance | ✅ Done |
-| E-06 · Infrastructure as Code & Production Readiness | Partial — Terraform modules written (DynamoDB, KMS, Secrets, SES, IAM, EC2, GitHub OIDC), not yet applied |
+| E-06 · Infrastructure as Code & Production Readiness | Partial — F-11 (Terraform: DynamoDB, KMS, Secrets, SES, IAM, EC2, GitHub OIDC) done and applied for real against AWS (torn down between sessions to avoid cost — no infra is currently live); F-12 (SLOs, load test, ship gate) not started |
 | E-07 · Marketing Email Campaigns | Not started (spec/design/tasks written) |
 | E-08 · Identity-API Integration Contract | Not started (spec written) |
 
 Known gaps carried from E-01 (not yet resolved, tracked in `.specs/project/STATE.md` Todos): `NVD_API_KEY` repo secret not yet added (blocks the OWASP CI job); dev-account DynamoDB/SES/Secrets Manager resources still need manual provisioning before a real (non-test) run. (The coverage-percentage gate mentioned here previously was removed entirely on 2026-07-21 — CI now only fails on a failing test.)
 
-## Infrastructure as Code
+## Infrastructure
+
+### Terraform (`iac/terraform/`)
 
 ```bash
 cd iac/terraform/
@@ -398,12 +415,25 @@ terraform init \
 terraform plan
 ```
 
-Terraform provisions: DynamoDB single-table (with GSI1/GSI2/GSI3), KMS key, Secrets Manager
-entries, a least-privilege IAM role for the service's own EC2 instance + ECR repo, a GitHub
-Actions OIDC deploy role, and an SES configuration set (the SES sender identity itself is owned
-by `rentifyx-platform`'s `module.ses`; the Kafka broker's bootstrap address is read here via
-`terraform_remote_state`/SSM, no client IAM policy needed since the broker is PLAINTEXT). Core
-infra (DynamoDB/KMS/Secrets/IAM/EC2/OIDC) was applied for real 2026-07-20; the 2026-07-21
+| Module | Provisions |
+|---|---|
+| `dynamodb` | Single-table `{prefix}-notifications` (PAY_PER_REQUEST) — PK/SK, GSI1 (recipient history), GSI2 (lookup by internal id), GSI3 (status, for reconciliation), 90-day TTL, point-in-time recovery, encryption at rest |
+| `kms` | Customer-managed key (rotation enabled) encrypting the Secrets Manager entries and DynamoDB data |
+| `secrets` | Secrets Manager entries `rentifyx/comms/ses-arn` and `rentifyx/comms/api-key`, encrypted with the KMS key above |
+| `ses` | An SESv2 configuration set (`rentifyx-communications`) with bounce/complaint suppression and reputation metrics — the SES sender identity itself is owned by `rentifyx-platform`'s `module.ses` and shared cross-repo, not duplicated here |
+| `iam` | Least-privilege policy for the service: DynamoDB CRUD/Query on the table and its indexes, KMS encrypt/decrypt, `secretsmanager:GetSecretValue` on the two secrets above, `ses:SendEmail`/`SendRawEmail` on the shared identity |
+| `ec2` | The deploy target itself — a `t2.micro` Amazon Linux 2023 instance running the container, an ECR repository (keeps the last 5 images), and a security group (inbound 8080, optional SSH) |
+| `github-actions` | A GitHub Actions OIDC deploy role so CI can push to ECR and trigger a deploy (SSM `RunShellScript`) without long-lived AWS credentials as repo secrets |
+
+**Networking is not owned here.** VPC and subnet IDs are read cross-repo from
+`rentifyx-platform` via `data.terraform_remote_state.platform` (same pattern as
+`rentifyx-identity-api`) — this repo's own state holds only its app-specific resources. The Kafka
+broker's bootstrap address (self-hosted, PLAINTEXT, KRaft — see [Kafka
+integration](#kafka-integration) below) is likewise read from `rentifyx-platform`'s SSM
+parameter via remote state; no client IAM policy is needed since that broker has no SASL/IAM
+auth.
+
+Core infra (DynamoDB/KMS/Secrets/IAM/EC2/OIDC) was applied for real 2026-07-20; the 2026-07-21
 PLAINTEXT-Kafka Terraform change has not yet been applied against real AWS — see
 [`.specs/project/STATE.md`](.specs/project/STATE.md).
 
@@ -417,13 +447,51 @@ Real, billable resources this creates (EC2 instance, ECR repo). Destroy this rep
 `rentifyx-identity-api` **before** destroying `rentifyx-platform` (both read its outputs via
 `terraform_remote_state`).
 
+### Docker
+
+Multi-stage `Dockerfile`: builds with the .NET 10 SDK image, runs on `mcr.microsoft.com/dotnet/aspnet:10.0`, exposes port `8080`. Runs as `USER $APP_UID` — non-root — unlike some of the other RentifyX services.
+
 ```bash
-# Deploy to Kubernetes
+docker build -t rentifyx-comms:local .
+docker run -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Production rentifyx-comms:local
+```
+
+### Kubernetes (`k8s/`)
+
+Kustomize manifests: a `base/` (Deployment + Service) with `dev` and `prod` overlays.
+
+```bash
 kubectl apply -k k8s/overlays/dev
 kubectl apply -k k8s/overlays/prod
 ```
 
-Helm chart: HPA min 2 / max 6 replicas, liveness/readiness probes, PodDisruptionBudget.
+HPA min 2 / max 6 replicas, liveness/readiness probes, PodDisruptionBudget.
+
+### Kafka integration
+
+This service's core workload is consuming `NotificationRequested` events — published by
+`identity-api` via its outbox pattern — off the self-hosted Kafka broker in `rentifyx-platform`
+(PLAINTEXT, KRaft, no SASL/IAM). See [`docs/contracts/notification-requested.md`](docs/contracts/notification-requested.md)
+for the full message contract.
+
+Failure handling is a delay-chain of retry topics, defined in `RetryTopicChain`
+(`02-src/03-Domain/RentifyxCommunications.Domain/Constants/RetryTopicChain.cs`) and consumed by
+`RetryTopicConsumer`:
+
+```
+notification-requested
+  → notification-requested-retry-5s   (5s delay)
+  → notification-requested-retry-1m   (1m delay)
+  → notification-requested-retry-10m  (10m delay)
+  → notification-requested-dlq
+```
+
+Transient failures (SES throttling, circuit-breaker open) advance through the chain; poison-pill
+failures (malformed JSON, unknown `templateId`) go straight to the DLQ. `DlqObserverHostedService`
+watches the DLQ topic for observability. `ReconciliationHostedService` separately polls DynamoDB's
+`GSI3` (`STATUS#Dispatching`) to recover records where the process crashed between persisting the
+notification and getting SES's send confirmation — a distinct failure mode from a bad message,
+handled without any Kafka redelivery.
 
 ## Contributing
 

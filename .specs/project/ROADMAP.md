@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** E-06 — Infrastructure as Code & Production Readiness
-**Status:** E-01 through E-05 all complete and merged. E-01–E-04 via PRs #2-#9. Scaffold cleanup via PR #10 (`97cb912`, 2026-07-15). E-05/F-10 (status/consent endpoints, API-key auth, security headers, consent-audit trail, rate limiting) via a sequence of direct commits on `main` (2026-07-15/16), then a follow-up convention/bugfix pass merged via PR #11 (`81adc2e`, 2026-07-17). E-06 (Terraform/Helm, SLOs, load test, staging deploy) not started — next milestone, and the actual gate before this service (and the cross-repo Kafka flow with `rentifyx-identity-api`) can go live.
+**Status:** E-01 through E-05 all complete and merged. E-01–E-04 via PRs #2-#9. Scaffold cleanup via PR #10 (`97cb912`, 2026-07-15). E-05/F-10 (status/consent endpoints, API-key auth, security headers, consent-audit trail, rate limiting) via a sequence of direct commits on `main` (2026-07-15/16), then a follow-up convention/bugfix pass merged via PR #11 (`81adc2e`, 2026-07-17). E-06 F-11 (Terraform) is done — see `iac/README.md`; F-12 (SLOs, load test, ship gate) not started — the actual gate before this service (and the cross-repo Kafka flow with `rentifyx-identity-api`) can go live.
 
 ---
 
@@ -146,10 +146,10 @@
 
 ### Features
 
-**F-11 · Terraform & Kubernetes** — PLANNED
+**F-11 · Terraform & Kubernetes** — Terraform DONE (written, `terraform validate` clean, applied for real against AWS and torn down between sessions — see `.specs/project/STATE.md`); Kubernetes manifests written but not the live deploy path
 
-- Terraform: `aws_ses_domain_identity` + DKIM/SPF, `aws_dynamodb_table` with GSI2, `aws_secretsmanager_secret`, IAM IRSA least-privilege role
-- Helm: Deployment + Service + HPA (min 2 / max 6) + liveness/readiness probes + PodDisruptionBudget
+- Terraform (`iac/terraform/`, see `iac/README.md`): `dynamodb` (single-table `notifications`, GSI1/GSI2/GSI3, TTL, PITR, encryption), `kms` (customer-managed key), `secrets` (Secrets Manager entries for the SES ARN and API key), `ses` (per-app SESv2 configuration set — the SES identity itself is owned by `rentifyx-platform`'s `module.ses` and shared cross-repo), `iam` (least-privilege policy), `ec2` (deploy target — t2.micro + ECR + security group), `github-actions` (OIDC deploy role) — ✅ done. VPC/subnets and the Kafka broker's SSM parameter are read cross-repo from `rentifyx-platform` via `terraform_remote_state`, not self-provisioned.
+- Kubernetes (`k8s/`): Kustomize (not Helm) — `base/` (Deployment + Service) with `dev`/`prod` overlays, HPA min 2/max 6, liveness/readiness probes, PodDisruptionBudget — written during E-06 but **not the actual deploy path**; the real deploy target is the EC2 instance provisioned by `iac/terraform/modules/ec2`, pushed to via the GitHub Actions OIDC role. See `iac/README.md`.
 
 **F-12 · Observability, Load Testing & Ship Gate** — PLANNED
 
