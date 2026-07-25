@@ -96,14 +96,30 @@ public sealed class NotificationRequestedConsumer(
     {
         while (!token.IsCancellationRequested)
         {
-            ConsumeResult<Ignore, string>? result = consumer.Consume(KafkaConsumerHostedServiceDefaults.ConsumePollTimeout);
+            try
+            {
+                ConsumeResult<Ignore, string>? result = consumer.Consume(KafkaConsumerHostedServiceDefaults.ConsumePollTimeout);
 
-            if (result is null || result.IsPartitionEOF)
-                continue;
+                if (result is null || result.IsPartitionEOF)
+                    continue;
 
-            await ProcessMessageAsync(result, token);
-            consumer.Commit(result);
-            UpdateConsumerLag(consumer, result.TopicPartition, result.Offset.Value);
+                await ProcessMessageAsync(result, token);
+                consumer.Commit(result);
+                UpdateConsumerLag(consumer, result.TopicPartition, result.Offset.Value);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                // Expected on shutdown.
+            }
+            catch (Exception ex)
+            {
+                // consumer.Consume() itself can throw (e.g. a deserialization or
+                // broker-protocol error) - uncaught, this silently kills the whole
+                // loop task forever (librdkafka's background heartbeat thread keeps
+                // the group membership alive regardless, masking the failure as a
+                // healthy-but-stuck consumer with no error logged anywhere).
+                _logger.LogError(ex, "Consume loop tick failed on {Topic}, will retry next tick.", Topic);
+            }
         }
     }
 
