@@ -1,6 +1,8 @@
 using ErrorOr;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using RentifyxCommunications.Domain.ValueObjects;
+using RentifyxCommunications.Infrastructure.Options;
 using RentifyxCommunications.Infrastructure.Templates;
 using Xunit;
 
@@ -8,7 +10,7 @@ namespace RentifyxCommunications.Tests.Repositories.Features.Notifications;
 
 public sealed class ScribanTemplateRendererTests
 {
-    private readonly ScribanTemplateRenderer _sut = new();
+    private readonly ScribanTemplateRenderer _sut = new(Options.Create(new FrontendOptions(BaseUrl: "https://app.rentifyx.test")));
 
     [Fact]
     public async Task RenderAsync_WithCompletePayload_ShouldReturnRenderedString()

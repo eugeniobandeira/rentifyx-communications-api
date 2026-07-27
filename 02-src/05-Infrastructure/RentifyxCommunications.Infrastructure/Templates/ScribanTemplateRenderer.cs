@@ -1,16 +1,20 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using ErrorOr;
+using Microsoft.Extensions.Options;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.Interfaces.Notifications;
 using RentifyxCommunications.Domain.ValueObjects;
+using RentifyxCommunications.Infrastructure.Options;
 using Scriban;
 using Scriban.Runtime;
 
 namespace RentifyxCommunications.Infrastructure.Templates;
 
-public sealed partial class ScribanTemplateRenderer : ITemplateRenderer
+public sealed partial class ScribanTemplateRenderer(IOptions<FrontendOptions> frontendOptions) : ITemplateRenderer
 {
+    private const string FrontendBaseUrlField = "frontend_base_url";
+
     private static readonly Assembly ResourceAssembly = typeof(ScribanTemplateRenderer).Assembly;
 
     public Task<ErrorOr<string>> RenderAsync(
@@ -28,8 +32,16 @@ public sealed partial class ScribanTemplateRenderer : ITemplateRenderer
 
         string source = ReadResource(resourceName);
 
+        // frontend_base_url is supplied here, not by the caller's payload -
+        // the producer (e.g. identity-api) shouldn't need to know this
+        // repo's rendered link target, only the raw token.
+        Dictionary<string, string> effectivePayload = new(payload)
+        {
+            [FrontendBaseUrlField] = frontendOptions.Value.BaseUrl
+        };
+
         IReadOnlyList<string> requiredFields = ExtractFieldNames(source);
-        List<string> missingFields = requiredFields.Where(field => !payload.ContainsKey(field)).ToList();
+        List<string> missingFields = requiredFields.Where(field => !effectivePayload.ContainsKey(field)).ToList();
 
         if (missingFields.Count > 0)
             return Task.FromResult<ErrorOr<string>>(Error.Validation(
@@ -43,7 +55,7 @@ public sealed partial class ScribanTemplateRenderer : ITemplateRenderer
                 string.Join("; ", template.Messages)));
 
         ScriptObject scriptObject = new();
-        foreach (KeyValuePair<string, string> field in payload)
+        foreach (KeyValuePair<string, string> field in effectivePayload)
             scriptObject[field.Key] = field.Value;
 
         TemplateContext context = new();
