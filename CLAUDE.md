@@ -138,3 +138,7 @@ Always use named constants instead of inline literals repeated or meaningful acr
 **Never persist an enum as its underlying numeric value.** Always store/serialize the string name (`"Sent"`, `"Email"`), never the `int` (`3`, `0`) — a number in a database record with no enum definition next to it is meaningless on its own.
 
 - Applies to `Channel` and `NotificationStatus`, persisted via `DynamoDbNotificationRepository`/`NotificationItemMapper` (E-04, done) — both use `.ToString()` on write and `Enum.Parse<T>()` on read, never the default numeric marshalling.
+
+## System architecture
+
+Cross-repo system architecture (all RentifyX services, shared infra, Kafka event contracts) lives in `rentifyx-platform`, not duplicated here: [`../rentifyx-platform/docs/system-architecture.md`](../rentifyx-platform/docs/system-architecture.md) (or `.html` for a rendered view with the diagram).
