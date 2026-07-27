@@ -97,6 +97,7 @@ module "ec2" {
   dynamodb_table_name     = module.dynamodb.table_name
   ssh_key_name            = var.ssh_key_name
   kafka_bootstrap_servers = try(data.aws_ssm_parameter.kafka_bootstrap_servers[0].value, "")
+  frontend_base_url       = var.frontend_base_url
   vpc_id                  = data.terraform_remote_state.platform.outputs.vpc_id
   subnet_id               = data.terraform_remote_state.platform.outputs.public_subnets[0]
 }

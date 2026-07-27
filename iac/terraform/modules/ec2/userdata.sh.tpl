@@ -31,6 +31,11 @@ KAFKA_ENV=""
 KAFKA_ENV="-e ConnectionStrings__kafka=${kafka_bootstrap_servers}"
 %{ endif }
 
+FRONTEND_ENV=""
+%{ if frontend_base_url != "" }
+FRONTEND_ENV="-e Frontend__BaseUrl=${frontend_base_url}"
+%{ endif }
+
 # Run the API container (restarts automatically on failure or reboot)
 docker run -d \
   --name rentifyx-communications-api \
@@ -40,4 +45,5 @@ docker run -d \
   -e AWS__Region=${aws_region} \
   -e DynamoDb__NotificationsTableName=${dynamodb_table_name} \
   $KAFKA_ENV \
+  $FRONTEND_ENV \
   ${ecr_repository_url}:latest

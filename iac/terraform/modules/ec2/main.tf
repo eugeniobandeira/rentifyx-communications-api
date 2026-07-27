@@ -188,6 +188,7 @@ resource "aws_instance" "communications_api" {
     ecr_repository_url      = aws_ecr_repository.communications_api.repository_url
     dynamodb_table_name     = var.dynamodb_table_name
     kafka_bootstrap_servers = var.kafka_bootstrap_servers
+    frontend_base_url       = var.frontend_base_url
   }))
 
   root_block_device {

@@ -28,6 +28,18 @@ variable "github_repo" {
   default     = "eugeniobandeira/rentifyx-communications-api"
 }
 
+variable "frontend_base_url" {
+  description = <<-EOT
+    Base URL of the deployed rentityx-frontend, used to build links in
+    outbound emails (verify-email, etc). rentityx-frontend has no fixed
+    domain yet, only an EC2 public IP - update this (and re-apply) whenever
+    that instance is replaced. Empty string falls back to the container's
+    own hardcoded default (see modules/ec2/variables.tf).
+  EOT
+  type        = string
+  default     = "http://54.20.34.102:4000"
+}
+
 variable "enable_ec2" {
   description = "Provision the EC2 deploy target (instance, ECR repo, security group). Disable for a lightweight dev bootstrap that only needs DynamoDB/SES/KMS/Secrets."
   type        = bool

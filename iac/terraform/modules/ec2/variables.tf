@@ -53,6 +53,21 @@ variable "kafka_bootstrap_servers" {
   default     = ""
 }
 
+variable "frontend_base_url" {
+  description = <<-EOT
+    Base URL of the deployed rentityx-frontend, injected into the container
+    as Frontend__BaseUrl and used to build links in outbound emails (e.g.
+    verify-email). Without an override, RentifyxCommunications.Infrastructure's
+    FrontendOptions falls back to its hardcoded appsettings.json default
+    (https://app.rentifyx.com), a domain that never actually existed - see
+    STATE.md, 2026-07-27. rentityx-frontend has no fixed domain yet, only an
+    EC2 public IP, so this must be updated (and re-applied) whenever that
+    instance is replaced.
+  EOT
+  type        = string
+  default     = ""
+}
+
 variable "kafka_client_policy_json" {
   description = <<-EOT
     Historical: IAM policy JSON granting MSK Serverless access, from
