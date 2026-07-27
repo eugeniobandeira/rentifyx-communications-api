@@ -66,13 +66,29 @@ public sealed class DlqObserverHostedService(
     {
         while (!token.IsCancellationRequested)
         {
-            ConsumeResult<Ignore, string>? result = consumer.Consume(KafkaConsumerHostedServiceDefaults.ConsumePollTimeout);
+            try
+            {
+                ConsumeResult<Ignore, string>? result = consumer.Consume(KafkaConsumerHostedServiceDefaults.ConsumePollTimeout);
 
-            if (result is null || result.IsPartitionEOF)
-                continue;
+                if (result is null || result.IsPartitionEOF)
+                    continue;
 
-            await ProcessMessageAsync(result, token);
-            consumer.Commit(result);
+                await ProcessMessageAsync(result, token);
+                consumer.Commit(result);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                // Expected on shutdown.
+            }
+            catch (Exception ex)
+            {
+                // consumer.Consume() itself can throw (e.g. a deserialization or
+                // broker-protocol error) - uncaught, this silently kills the whole
+                // loop task forever (librdkafka's background heartbeat thread keeps
+                // the group membership alive regardless, masking the failure as a
+                // healthy-but-stuck consumer with no error logged anywhere).
+                logger.LogError(ex, "Consume loop tick failed on {Topic}, will retry next tick.", RetryTopicChain.DlqTopic);
+            }
         }
     }
 
