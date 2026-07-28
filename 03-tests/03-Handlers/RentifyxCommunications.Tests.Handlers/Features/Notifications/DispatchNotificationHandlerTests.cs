@@ -54,7 +54,7 @@ public sealed class DispatchNotificationHandlerTests
         result.IsError.Should().BeTrue();
         _notificationRepository.Verify(r => r.SaveIfNotExistsAsync(It.IsAny<NotificationEntity>(), It.IsAny<CancellationToken>()), Times.Never);
         _consentRepository.Verify(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()), Times.Never);
-        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
         _emailSender.Verify(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -85,7 +85,7 @@ public sealed class DispatchNotificationHandlerTests
         result.Value.WasDuplicate.Should().BeTrue();
         result.Value.Status.Should().Be(NotificationStatus.Pending);
         _consentRepository.Verify(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()), Times.Never);
-        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
         _emailSender.Verify(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -99,7 +99,7 @@ public sealed class DispatchNotificationHandlerTests
             .Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ConsentPreference?)null);
         _templateRenderer
-            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Error.Failure("Render.NotReached"));
 
         DispatchNotificationHandler sut = CreateSut();
@@ -127,7 +127,7 @@ public sealed class DispatchNotificationHandlerTests
         result.IsError.Should().BeFalse();
         result.Value.Status.Should().Be(NotificationStatus.Suppressed);
         _notificationRepository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), NotificationStatus.Suppressed, It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
-        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Never);
         _emailSender.Verify(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -142,14 +142,14 @@ public sealed class DispatchNotificationHandlerTests
             .Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(optedIn);
         _templateRenderer
-            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Error.Failure("Render.NotReached"));
 
         DispatchNotificationHandler sut = CreateSut();
 
         await sut.HandleAsync(ValidRequest());
 
-        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -162,14 +162,14 @@ public sealed class DispatchNotificationHandlerTests
             .Setup(r => r.GetAsync(It.IsAny<Guid>(), It.IsAny<Channel>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ConsentPreference?)null);
         _templateRenderer
-            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Error.Failure("Render.NotReached"));
 
         DispatchNotificationHandler sut = CreateSut();
 
         await sut.HandleAsync(ValidRequest());
 
-        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _templateRenderer.Verify(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private void SetupHappyPathUpToConsent()
@@ -187,7 +187,7 @@ public sealed class DispatchNotificationHandlerTests
     {
         SetupHappyPathUpToConsent();
         _templateRenderer
-            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Error.Failure("Render.TemplateNotFound"));
 
         DispatchNotificationHandler sut = CreateSut();
@@ -205,7 +205,7 @@ public sealed class DispatchNotificationHandlerTests
     {
         SetupHappyPathUpToConsent();
         _templateRenderer
-            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("rendered content");
         _emailSender
             .Setup(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -236,7 +236,7 @@ public sealed class DispatchNotificationHandlerTests
     {
         SetupHappyPathUpToConsent();
         _templateRenderer
-            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("rendered content");
         _emailSender
             .Setup(s => s.SendAsync(It.IsAny<EmailAddress>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -264,7 +264,7 @@ public sealed class DispatchNotificationHandlerTests
             .Callback(() => callOrder.Add("GetAsync"))
             .ReturnsAsync((ConsentPreference?)null);
         _templateRenderer
-            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
+            .Setup(r => r.RenderAsync(It.IsAny<TemplateId>(), It.IsAny<EmailAddress>(), It.IsAny<IReadOnlyDictionary<string, string>>(), It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("RenderAsync"))
             .ReturnsAsync("rendered content");
         _notificationRepository

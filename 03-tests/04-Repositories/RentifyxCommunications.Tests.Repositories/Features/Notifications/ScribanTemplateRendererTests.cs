@@ -11,6 +11,7 @@ namespace RentifyxCommunications.Tests.Repositories.Features.Notifications;
 public sealed class ScribanTemplateRendererTests
 {
     private readonly ScribanTemplateRenderer _sut = new(Options.Create(new FrontendOptions(BaseUrl: "https://app.rentifyx.test")));
+    private static readonly EmailAddress Recipient = EmailAddress.Create("alice@example.com").Value;
 
     [Fact]
     public async Task RenderAsync_WithCompletePayload_ShouldReturnRenderedString()
@@ -18,7 +19,7 @@ public sealed class ScribanTemplateRendererTests
         TemplateId templateId = TemplateId.Create("welcome-email").Value;
         Dictionary<string, string> payload = new() { ["name"] = "Alice" };
 
-        ErrorOr<string> result = await _sut.RenderAsync(templateId, payload);
+        ErrorOr<string> result = await _sut.RenderAsync(templateId, Recipient, payload);
 
         result.IsError.Should().BeFalse();
         result.Value.Should().Contain("Hello Alice");
@@ -29,7 +30,7 @@ public sealed class ScribanTemplateRendererTests
     {
         TemplateId templateId = TemplateId.Create("does-not-exist").Value;
 
-        ErrorOr<string> result = await _sut.RenderAsync(templateId, new Dictionary<string, string>());
+        ErrorOr<string> result = await _sut.RenderAsync(templateId, Recipient, new Dictionary<string, string>());
 
         result.IsError.Should().BeTrue();
         result.FirstError.Type.Should().Be(ErrorType.NotFound);
@@ -40,7 +41,7 @@ public sealed class ScribanTemplateRendererTests
     {
         TemplateId templateId = TemplateId.Create("welcome-email").Value;
 
-        ErrorOr<string> result = await _sut.RenderAsync(templateId, new Dictionary<string, string>());
+        ErrorOr<string> result = await _sut.RenderAsync(templateId, Recipient, new Dictionary<string, string>());
 
         result.IsError.Should().BeTrue();
         result.FirstError.Type.Should().Be(ErrorType.Validation);
@@ -53,10 +54,11 @@ public sealed class ScribanTemplateRendererTests
         TemplateId templateId = TemplateId.Create("email-verification").Value;
         Dictionary<string, string> payload = new() { ["token"] = "abc123" };
 
-        ErrorOr<string> result = await _sut.RenderAsync(templateId, payload);
+        ErrorOr<string> result = await _sut.RenderAsync(templateId, Recipient, payload);
 
         result.IsError.Should().BeFalse();
         result.Value.Should().Contain("token=abc123");
+        result.Value.Should().Contain($"email={Uri.EscapeDataString(Recipient.Value)}");
     }
 
     [Fact]
@@ -65,9 +67,10 @@ public sealed class ScribanTemplateRendererTests
         TemplateId templateId = TemplateId.Create("password-reset").Value;
         Dictionary<string, string> payload = new() { ["token"] = "xyz789" };
 
-        ErrorOr<string> result = await _sut.RenderAsync(templateId, payload);
+        ErrorOr<string> result = await _sut.RenderAsync(templateId, Recipient, payload);
 
         result.IsError.Should().BeFalse();
         result.Value.Should().Contain("token=xyz789");
+        result.Value.Should().Contain($"email={Uri.EscapeDataString(Recipient.Value)}");
     }
 }

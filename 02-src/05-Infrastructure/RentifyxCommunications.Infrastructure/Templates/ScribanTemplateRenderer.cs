@@ -14,11 +14,13 @@ namespace RentifyxCommunications.Infrastructure.Templates;
 public sealed partial class ScribanTemplateRenderer(IOptions<FrontendOptions> frontendOptions) : ITemplateRenderer
 {
     private const string FrontendBaseUrlField = "frontend_base_url";
+    private const string EmailField = "email";
 
     private static readonly Assembly ResourceAssembly = typeof(ScribanTemplateRenderer).Assembly;
 
     public Task<ErrorOr<string>> RenderAsync(
         TemplateId templateId,
+        EmailAddress recipient,
         IReadOnlyDictionary<string, string> payload,
         CancellationToken cancellationToken = default)
     {
@@ -32,12 +34,16 @@ public sealed partial class ScribanTemplateRenderer(IOptions<FrontendOptions> fr
 
         string source = ReadResource(resourceName);
 
-        // frontend_base_url is supplied here, not by the caller's payload -
-        // the producer (e.g. identity-api) shouldn't need to know this
-        // repo's rendered link target, only the raw token.
+        // frontend_base_url and email are supplied here, not by the caller's
+        // payload - the producer (e.g. identity-api) shouldn't need to know
+        // this repo's rendered link target, only the raw token. Email is
+        // URL-encoded since it can legally contain '+' (a valid local-part
+        // character, common in test/alias addresses), which a query-string
+        // parser would otherwise decode back into a space.
         Dictionary<string, string> effectivePayload = new(payload)
         {
-            [FrontendBaseUrlField] = frontendOptions.Value.BaseUrl
+            [FrontendBaseUrlField] = frontendOptions.Value.BaseUrl,
+            [EmailField] = Uri.EscapeDataString(recipient.Value)
         };
 
         IReadOnlyList<string> requiredFields = ExtractFieldNames(source);

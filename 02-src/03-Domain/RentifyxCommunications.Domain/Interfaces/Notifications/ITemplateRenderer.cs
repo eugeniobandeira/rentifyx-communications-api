@@ -7,6 +7,7 @@ public interface ITemplateRenderer
 {
     Task<ErrorOr<string>> RenderAsync(
         TemplateId templateId,
+        EmailAddress recipient,
         IReadOnlyDictionary<string, string> payload,
         CancellationToken cancellationToken = default);
 }

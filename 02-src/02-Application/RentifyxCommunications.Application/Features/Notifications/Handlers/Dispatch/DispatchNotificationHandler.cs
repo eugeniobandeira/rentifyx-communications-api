@@ -87,7 +87,7 @@ public sealed class DispatchNotificationHandler(
             return new DispatchNotificationResponse(NotificationStatus.Suppressed, WasDuplicate: false);
         }
 
-        ErrorOr<string> renderResult = await templateRenderer.RenderAsync(notification.TemplateId, notification.Payload, cancellationToken);
+        ErrorOr<string> renderResult = await templateRenderer.RenderAsync(notification.TemplateId, notification.Recipient, notification.Payload, cancellationToken);
         if (renderResult.IsError)
         {
             notification.MarkFailed(renderResult.FirstError.Description);
