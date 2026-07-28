@@ -1,5 +1,12 @@
 # State
 
+## Quick Status (read this first — everything below is historical detail/changelog)
+
+- **Infra**: nothing deployed right now — full teardown confirmed 2026-07-28.
+- **Code**: both the `Frontend__BaseUrl` wiring and the verify-email/password-reset link `email` param fix are committed and were verified working end-to-end before teardown — nothing to re-investigate.
+- **Don't trust prose claims of "live"/"destroyed" in this file at face value** — verify against the real AWS account before assuming either way.
+- Full history below, newest first.
+
 **Last Updated:** 2026-07-28
 
 **⚠️ 2026-07-28, end of session: all real AWS infra for this repo was destroyed (`terraform destroy`) — see `rentifyx-platform`'s STATE.md for the full cross-repo teardown writeup. Both fixes below are real, committed, and verified working before teardown — nothing to re-investigate, just needs a real `terraform apply` + fresh image deploy next time this repo is tested live.**
