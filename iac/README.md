@@ -157,3 +157,8 @@ Manager secret created by `modules/secrets` (seeded with a placeholder Terraform
 after the first apply — see the `secrets` module row above) and is validated per-request via
 `ApiKeyAuthenticationHandler` against the `X-Api-Key` header. There is no end-user identity flow
 on this API — it's service-to-service only.
+
+## Windows / Git Bash gotchas (deploying from this OS)
+
+- **MSYS path conversion silently mangles any argument starting with `/`** — `aws ssm get-parameter --name "/rentifyx/..."` or `aws logs delete-log-group --log-group-name "/aws/lambda/..."` get rewritten to a Windows path before AWS ever sees them, producing misleading errors (`ParameterNotFound` for a parameter that exists, `Invalid...` for a log group that exists). Prefix the command with `MSYS_NO_PATHCONV=1` whenever an argument starts with `/`.
+- A stale `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/`AWS_SESSION_TOKEN` in the shell session silently overrides `--profile`/`AWS_PROFILE` (SDK credential-resolution order puts env vars first). Prefix real commands with `env -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SESSION_TOKEN AWS_PROFILE=rentifyx-admin AWS_SDK_LOAD_CONFIG=1` to guarantee the right credentials are used.

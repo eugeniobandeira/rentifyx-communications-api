@@ -47,7 +47,16 @@ variable "enable_ec2" {
 }
 
 variable "enable_github_actions" {
-  description = "Provision the GitHub Actions OIDC deploy role. Requires enable_ec2 = true (it grants access to the EC2 instance and ECR repo); ignored otherwise."
+  description = <<-EOT
+    Provision the GitHub Actions OIDC deploy role. Requires enable_ec2 = true
+    (it grants access to the EC2 instance and ECR repo); ignored otherwise.
+    Defaults to false: this module's data lookup for the shared
+    token.actions.githubusercontent.com OIDC provider (created by
+    rentifyx-platform's module.github_actions_oidc) fails outright if that
+    provider doesn't currently exist in the account, breaking every plan/
+    destroy by default. Set to true only once that provider is confirmed
+    live and a real CI/CD pipeline is ready to use this role.
+  EOT
   type        = bool
-  default     = true
+  default     = false
 }
