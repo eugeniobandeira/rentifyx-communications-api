@@ -1,8 +1,10 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using Confluent.Kafka;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 using RentifyxCommunications.Domain.ValueObjects;
+using Serilog.Context;
 
 namespace RentifyxCommunications.Api.Messaging;
 
@@ -103,6 +105,16 @@ public sealed class RetryTopicConsumer(
             }
 
             RetryContext context = BuildRetryContext(result.Message.Headers);
+
+            ActivityContext parentContext = TraceContextHeaders.Extract(result.Message.Headers, logger);
+
+            using Activity? activity = MessagingActivitySource.Instance.StartActivity(
+                "retry-topic consume",
+                ActivityKind.Consumer,
+                parentContext);
+
+            using IDisposable traceIdScope = LogContext.PushProperty("TraceId", activity?.TraceId.ToString());
+            using IDisposable spanIdScope = LogContext.PushProperty("SpanId", activity?.SpanId.ToString());
 
             using IServiceScope scope = scopeFactory.CreateScope();
             NotificationDispatchProcessor processor = scope.ServiceProvider.GetRequiredService<NotificationDispatchProcessor>();
