@@ -159,7 +159,7 @@ public sealed class NotificationRequestedConsumer(
             using IServiceScope scope = _scopeFactory.CreateScope();
             NotificationDispatchProcessor processor = scope.ServiceProvider.GetRequiredService<NotificationDispatchProcessor>();
 
-            RetryContext context = new(Topic);
+            RetryContext context = new(Topic, TraceParent: activity?.Id, TraceState: activity?.TraceStateString);
             await processor.ProcessAsync(result.Message.Value, context, token);
         }
         catch (Exception ex)

@@ -104,8 +104,6 @@ public sealed class RetryTopicConsumer(
                     await Task.Delay(remaining, token);
             }
 
-            RetryContext context = BuildRetryContext(result.Message.Headers);
-
             ActivityContext parentContext = TraceContextHeaders.Extract(result.Message.Headers, logger);
 
             using Activity? activity = MessagingActivitySource.Instance.StartActivity(
@@ -115,6 +113,12 @@ public sealed class RetryTopicConsumer(
 
             using IDisposable traceIdScope = LogContext.PushProperty("TraceId", activity?.TraceId.ToString());
             using IDisposable spanIdScope = LogContext.PushProperty("SpanId", activity?.SpanId.ToString());
+
+            RetryContext context = BuildRetryContext(result.Message.Headers) with
+            {
+                TraceParent = activity?.Id,
+                TraceState = activity?.TraceStateString
+            };
 
             using IServiceScope scope = scopeFactory.CreateScope();
             NotificationDispatchProcessor processor = scope.ServiceProvider.GetRequiredService<NotificationDispatchProcessor>();
