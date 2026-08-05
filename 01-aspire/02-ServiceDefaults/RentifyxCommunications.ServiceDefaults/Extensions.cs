@@ -14,9 +14,11 @@ namespace RentifyxCommunications.ServiceDefaults;
 
 public static class Extensions
 {
-    public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder AddServiceDefaults(
+        this IHostApplicationBuilder builder,
+        params string[] activitySourceNames)
     {
-        builder.ConfigureOpenTelemetry();
+        builder.ConfigureOpenTelemetry(activitySourceNames);
         builder.AddDefaultHealthChecks();
         builder.Services.AddServiceDiscovery();
         builder.Services.ConfigureHttpClientDefaults(http =>
@@ -28,7 +30,9 @@ public static class Extensions
         return builder;
     }
 
-    public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder ConfigureOpenTelemetry(
+        this IHostApplicationBuilder builder,
+        params string[] activitySourceNames)
     {
         builder.Logging.AddOpenTelemetry(logging =>
         {
@@ -48,7 +52,8 @@ public static class Extensions
             {
                 tracing
                     .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddSource(activitySourceNames);
             });
 
         builder.AddOpenTelemetryExporters();
