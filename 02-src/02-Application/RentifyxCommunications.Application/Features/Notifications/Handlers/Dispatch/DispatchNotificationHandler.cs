@@ -45,7 +45,7 @@ public sealed class DispatchNotificationHandler(
         }
 
         ErrorOr<NotificationEntity> notificationResult = NotificationEntity.Create(
-            request.CorrelationId,
+            request.IdempotencyKey,
             request.RecipientId,
             emailResult.Value,
             channel,
@@ -62,8 +62,8 @@ public sealed class DispatchNotificationHandler(
         if (!saved)
         {
             logger.LogInformation(
-                "Duplicate NotificationRequested message. CorrelationId={CorrelationId}",
-                request.CorrelationId);
+                "Duplicate NotificationRequested message. IdempotencyKey={IdempotencyKey}",
+                request.IdempotencyKey);
             return new DispatchNotificationResponse(NotificationStatus.Pending, WasDuplicate: true);
         }
 
@@ -82,8 +82,8 @@ public sealed class DispatchNotificationHandler(
         {
             await notificationRepository.UpdateStatusAsync(notification.Id, NotificationStatus.Suppressed, cancellationToken: cancellationToken);
             logger.LogInformation(
-                "Notification suppressed - recipient opted out. CorrelationId={CorrelationId}",
-                request.CorrelationId);
+                "Notification suppressed - recipient opted out. IdempotencyKey={IdempotencyKey}",
+                request.IdempotencyKey);
             return new DispatchNotificationResponse(NotificationStatus.Suppressed, WasDuplicate: false);
         }
 

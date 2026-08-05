@@ -120,12 +120,12 @@ public sealed class DlqObserverHostedService(
             using IServiceScope scope = scopeFactory.CreateScope();
             INotificationRepository repository = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
 
-            NotificationEntity? notification = await repository.GetByCorrelationIdAsync(request.CorrelationId, token);
+            NotificationEntity? notification = await repository.GetByIdempotencyKeyAsync(request.IdempotencyKey, token);
             if (notification is null)
             {
                 logger.LogWarning(
-                    "No notification record found for CorrelationId={CorrelationId} - skipping status update.",
-                    request.CorrelationId);
+                    "No notification record found for IdempotencyKey={IdempotencyKey} - skipping status update.",
+                    request.IdempotencyKey);
                 return;
             }
 
@@ -135,8 +135,8 @@ public sealed class DlqObserverHostedService(
         {
             logger.LogError(
                 ex,
-                "Unexpected error marking a DLQ'd notification as Failed. CorrelationId={CorrelationId}",
-                request?.CorrelationId);
+                "Unexpected error marking a DLQ'd notification as Failed. IdempotencyKey={IdempotencyKey}",
+                request?.IdempotencyKey);
         }
     }
 

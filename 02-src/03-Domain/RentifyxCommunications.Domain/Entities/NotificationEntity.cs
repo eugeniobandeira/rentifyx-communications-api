@@ -11,7 +11,7 @@ public sealed class NotificationEntity
     private readonly List<IDomainEvent> _domainEvents = [];
 
     public Guid Id { get; private set; }
-    public Guid CorrelationId { get; private set; }
+    public Guid IdempotencyKey { get; private set; }
     public Guid RecipientId { get; private set; }
     public EmailAddress Recipient { get; private set; } = null!;
     public Channel Channel { get; private set; }
@@ -27,7 +27,7 @@ public sealed class NotificationEntity
     private NotificationEntity() { }
 
     public static ErrorOr<NotificationEntity> Create(
-        Guid correlationId,
+        Guid idempotencyKey,
         Guid recipientId,
         EmailAddress recipient,
         Channel channel,
@@ -40,7 +40,7 @@ public sealed class NotificationEntity
         return new NotificationEntity
         {
             Id = Guid.NewGuid(),
-            CorrelationId = correlationId,
+            IdempotencyKey = idempotencyKey,
             RecipientId = recipientId,
             Recipient = recipient,
             Channel = channel,
@@ -53,7 +53,7 @@ public sealed class NotificationEntity
 
     public static NotificationEntity Rehydrate(
         Guid id,
-        Guid correlationId,
+        Guid idempotencyKey,
         Guid recipientId,
         EmailAddress recipient,
         Channel channel,
@@ -67,7 +67,7 @@ public sealed class NotificationEntity
         return new NotificationEntity
         {
             Id = id,
-            CorrelationId = correlationId,
+            IdempotencyKey = idempotencyKey,
             RecipientId = recipientId,
             Recipient = recipient,
             Channel = channel,
@@ -95,13 +95,13 @@ public sealed class NotificationEntity
         {
             Status = NotificationStatus.Suppressed;
             UpdatedAt = DateTime.UtcNow;
-            _domainEvents.Add(new NotificationSuppressed(Id, CorrelationId, DateTime.UtcNow));
+            _domainEvents.Add(new NotificationSuppressed(Id, IdempotencyKey, DateTime.UtcNow));
             return Result.Success;
         }
 
         Status = NotificationStatus.Dispatching;
         UpdatedAt = DateTime.UtcNow;
-        _domainEvents.Add(new NotificationDispatched(Id, CorrelationId, DateTime.UtcNow));
+        _domainEvents.Add(new NotificationDispatched(Id, IdempotencyKey, DateTime.UtcNow));
         return Result.Success;
     }
 
@@ -113,7 +113,7 @@ public sealed class NotificationEntity
 
         Status = NotificationStatus.Sent;
         UpdatedAt = DateTime.UtcNow;
-        _domainEvents.Add(new NotificationDelivered(Id, CorrelationId, DateTime.UtcNow));
+        _domainEvents.Add(new NotificationDelivered(Id, IdempotencyKey, DateTime.UtcNow));
         return Result.Success;
     }
 
@@ -126,7 +126,7 @@ public sealed class NotificationEntity
         Status = NotificationStatus.Failed;
         FailureReason = reason;
         UpdatedAt = DateTime.UtcNow;
-        _domainEvents.Add(new NotificationFailed(Id, CorrelationId, reason, DateTime.UtcNow));
+        _domainEvents.Add(new NotificationFailed(Id, IdempotencyKey, reason, DateTime.UtcNow));
         return Result.Success;
     }
 

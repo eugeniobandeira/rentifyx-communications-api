@@ -11,7 +11,7 @@ namespace RentifyxCommunications.Tests.Handlers.Features.Notifications;
 public sealed class FailureClassifierTests
 {
     [Theory]
-    [InlineData("Dispatch.CorrelationIdRequired")]
+    [InlineData("Dispatch.IdempotencyKeyRequired")]
     [InlineData("Notification.InvalidTransition")]
     [InlineData("Notification.InvalidEmailAddress")]
     [InlineData("Notification.InvalidTemplateId")]

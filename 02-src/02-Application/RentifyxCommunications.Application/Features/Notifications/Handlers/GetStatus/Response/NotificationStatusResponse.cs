@@ -4,7 +4,7 @@ namespace RentifyxCommunications.Application.Features.Notifications.Handlers.Get
 
 public sealed record NotificationStatusResponse(
     Guid Id,
-    Guid CorrelationId,
+    Guid IdempotencyKey,
     Guid RecipientId,
     Channel Channel,
     NotificationStatus Status,

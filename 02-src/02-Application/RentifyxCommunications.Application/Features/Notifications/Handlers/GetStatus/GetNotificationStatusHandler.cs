@@ -36,7 +36,7 @@ public sealed class GetNotificationStatusHandler(
 
         return new NotificationStatusResponse(
             notification.Id,
-            notification.CorrelationId,
+            notification.IdempotencyKey,
             notification.RecipientId,
             notification.Channel,
             notification.Status,

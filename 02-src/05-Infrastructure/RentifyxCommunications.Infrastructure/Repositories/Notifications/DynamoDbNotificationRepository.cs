@@ -51,14 +51,14 @@ public sealed class DynamoDbNotificationRepository(
         return response.Items.Count == 0 ? null : NotificationItemMapper.ToEntity(response.Items[0]);
     }
 
-    public async Task<NotificationEntity?> GetByCorrelationIdAsync(Guid correlationId, CancellationToken cancellationToken = default)
+    public async Task<NotificationEntity?> GetByIdempotencyKeyAsync(Guid idempotencyKey, CancellationToken cancellationToken = default)
     {
         GetItemResponse response = await client.GetItemAsync(new GetItemRequest
         {
             TableName = _tableName,
             Key = new Dictionary<string, AttributeValue>
             {
-                [NotificationTableSchema.PartitionKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{correlationId}"),
+                [NotificationTableSchema.PartitionKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{idempotencyKey}"),
                 [NotificationTableSchema.SortKey] = new(NotificationTableSchema.MetadataSortKeyValue)
             }
         }, cancellationToken);
@@ -110,7 +110,7 @@ public sealed class DynamoDbNotificationRepository(
             TableName = _tableName,
             Key = new Dictionary<string, AttributeValue>
             {
-                [NotificationTableSchema.PartitionKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{notification.CorrelationId}"),
+                [NotificationTableSchema.PartitionKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{notification.IdempotencyKey}"),
                 [NotificationTableSchema.SortKey] = new(NotificationTableSchema.MetadataSortKeyValue)
             },
             UpdateExpression = updateExpression,

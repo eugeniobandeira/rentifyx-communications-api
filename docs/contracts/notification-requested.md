@@ -4,11 +4,13 @@
 **Consumer group**: `rentifyx-communications-api` (see `Kafka:ConsumerGroupId` in `appsettings.json`)
 **Direction**: Producers (e.g. `rentifyx-identity-api`, `rentifyx-leasing-api`) publish; `communications-api` consumes only. There is no synchronous HTTP intake for notification dispatch (ADR-C01) — producers only receive acknowledgement that the event was accepted onto the topic, not that the email was actually sent. Query delivery status afterward via `GET /v1/api/notifications/{id}` or `GET /v1/api/notifications/recipient/{recipientId}` (E-05 F-10).
 
+Trace correlation across services uses standard W3C `traceparent`/`tracestate` Kafka message headers (identity-api's producer side already sets these) — this is a separate concept from the `idempotencyKey` field below, which is purely a dedup key, not a distributed-tracing mechanism.
+
 ## Message Schema
 
 ```json
 {
-  "correlationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "idempotencyKey": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "recipientId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
   "recipientEmail": "user@example.com",
   "channel": "Email",
@@ -22,7 +24,7 @@
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `correlationId` | `Guid` | Yes | **Idempotency key** (AD-008). Re-publishing the same `correlationId` (e.g. on consumer redelivery) is a no-op — the duplicate write is rejected at the DynamoDB layer and the message is acked without reprocessing. Producers should generate one `correlationId` per logical notification attempt, not per Kafka publish retry. |
+| `idempotencyKey` | `Guid` | Yes | **Idempotency key** (AD-008). Re-publishing the same `idempotencyKey` (e.g. on consumer redelivery) is a no-op — the duplicate write is rejected at the DynamoDB layer and the message is acked without reprocessing. Producers should generate one `idempotencyKey` per logical notification attempt, not per Kafka publish retry. This is purely a dedup key, not a trace-correlation mechanism — see the note above on `traceparent`/`tracestate` headers for that. |
 | `recipientId` | `Guid` | Yes | Used for consent lookup (`IConsentRepository`) and notification history queries (`GET /notifications/recipient/{recipientId}`). |
 | `recipientEmail` | `string` | Yes | Destination address for the `Email` channel. Ignored (but still required by the schema) for channels without an email-shaped destination once those ship. |
 | `channel` | `string` | Yes | One of the `Channel` enum's member names, as a string — never persist or transmit the numeric value (see Enum Persistence in the root `CLAUDE.md`). See **Channel values** below. |
@@ -47,7 +49,7 @@ Before dispatch, `communications-api` independently checks `IConsentRepository` 
 
 ## Delivery guarantees
 
-- **At-least-once, deduplicated by `correlationId`.** A crash between "notification persisted as `Pending`" and "SES confirms send" is recovered by the reconciliation sweep (`ReconciliationHostedService`, polls `GSI3`/`STATUS#Dispatching`), not by re-delivery from the producer.
+- **At-least-once, deduplicated by `idempotencyKey`.** A crash between "notification persisted as `Pending`" and "SES confirms send" is recovered by the reconciliation sweep (`ReconciliationHostedService`, polls `GSI3`/`STATUS#Dispatching`), not by re-delivery from the producer.
 - **No synchronous send confirmation.** Publish success only means the event was accepted onto the topic. Query the status endpoints for actual delivery outcome.
 - **Retry/DLQ**: transient failures (SES throttling, circuit-breaker open) are retried via a delay-chain (`notification-requested-retry-5s` → `-1m` → `-10m` → dlq). Poison-pill failures (malformed JSON, unknown `templateId`) go straight to DLQ, no retry.
 

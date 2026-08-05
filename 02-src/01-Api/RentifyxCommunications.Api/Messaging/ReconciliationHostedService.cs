@@ -113,17 +113,17 @@ public sealed class ReconciliationHostedService(
                     token);
 
                 logger.LogWarning(
-                    "Republished stuck notification. Id={Id} CorrelationId={CorrelationId}",
+                    "Republished stuck notification. Id={Id} IdempotencyKey={IdempotencyKey}",
                     notification.Id,
-                    notification.CorrelationId);
+                    notification.IdempotencyKey);
             }
             catch (Exception ex)
             {
                 logger.LogError(
                     ex,
-                    "Failed to republish stuck notification. Id={Id} CorrelationId={CorrelationId}",
+                    "Failed to republish stuck notification. Id={Id} IdempotencyKey={IdempotencyKey}",
                     notification.Id,
-                    notification.CorrelationId);
+                    notification.IdempotencyKey);
             }
         }
     }
@@ -131,7 +131,7 @@ public sealed class ReconciliationHostedService(
     private static string BuildRawMessage(NotificationEntity notification)
     {
         DispatchNotificationRequest request = new(
-            notification.CorrelationId,
+            notification.IdempotencyKey,
             notification.RecipientId,
             notification.Recipient.Value,
             notification.Channel.ToString(),

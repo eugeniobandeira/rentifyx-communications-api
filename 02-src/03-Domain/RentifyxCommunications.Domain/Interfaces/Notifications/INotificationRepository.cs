@@ -9,7 +9,7 @@ public interface INotificationRepository
 
     Task<NotificationEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
-    Task<NotificationEntity?> GetByCorrelationIdAsync(Guid correlationId, CancellationToken cancellationToken = default);
+    Task<NotificationEntity?> GetByIdempotencyKeyAsync(Guid idempotencyKey, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<NotificationEntity>> GetByRecipientAsync(Guid recipientId, CancellationToken cancellationToken = default);
 
