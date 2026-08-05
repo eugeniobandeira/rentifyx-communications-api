@@ -1,9 +1,11 @@
-﻿using Confluent.Kafka;
+﻿using System.Diagnostics;
+using Confluent.Kafka;
 using Microsoft.Extensions.Options;
 using RentifyxCommunications.Application.Abstractions;
 using RentifyxCommunications.Application.Features.Notifications.Handlers.Dispatch.Common;
 using RentifyxCommunications.Domain.Constants;
 using RentifyxCommunications.Domain.ValueObjects;
+using Serilog.Context;
 
 namespace RentifyxCommunications.Api.Messaging;
 
@@ -144,6 +146,16 @@ public sealed class NotificationRequestedConsumer(
     {
         try
         {
+            ActivityContext parentContext = TraceContextHeaders.Extract(result.Message.Headers, _logger);
+
+            using Activity? activity = MessagingActivitySource.Instance.StartActivity(
+                "notification-requested consume",
+                ActivityKind.Consumer,
+                parentContext);
+
+            using IDisposable traceIdScope = LogContext.PushProperty("TraceId", activity?.TraceId.ToString());
+            using IDisposable spanIdScope = LogContext.PushProperty("SpanId", activity?.SpanId.ToString());
+
             using IServiceScope scope = _scopeFactory.CreateScope();
             NotificationDispatchProcessor processor = scope.ServiceProvider.GetRequiredService<NotificationDispatchProcessor>();
 

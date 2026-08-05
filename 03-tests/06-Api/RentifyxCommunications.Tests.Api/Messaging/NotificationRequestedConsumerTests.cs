@@ -1,4 +1,6 @@
-﻿using Confluent.Kafka;
+﻿using System.Diagnostics;
+using System.Text;
+using Confluent.Kafka;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -224,15 +226,111 @@ public sealed class NotificationRequestedConsumerTests
         handler.Verify(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    private static ConsumeResult<Ignore, string> ValidMessageResult()
+    [Fact]
+    public async Task ConsumeLoop_WithValidTraceparentHeader_StartsChildActivityWithMatchingTraceId()
+    {
+        const string TraceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+        const string ParentSpanId = "00f067aa0ba902b7";
+        string traceParent = $"00-{TraceId}-{ParentSpanId}-01";
+
+        Headers headers = new()
+        {
+            { "traceparent", Encoding.UTF8.GetBytes(traceParent) }
+        };
+
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
+        handler
+            .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false));
+
+        Mock<IConsumer<Ignore, string>> consumer = new();
+        consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
+            .Returns(ValidMessageResult(headers))
+            .Returns((ConsumeResult<Ignore, string>)null!);
+
+        Mock<IKafkaConsumerFactory> factory = new();
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
+
+        List<Activity> startedActivities = [];
+        using ActivityListener listener = CreateActivityListener(startedActivities);
+        ActivitySource.AddActivityListener(listener);
+
+        SharedLogEntries entries = new();
+        using NotificationRequestedConsumer sut = CreateSut(entries, factory.Object, handler.Object);
+
+        await sut.StartAsync(CancellationToken.None);
+        await WaitForAsync(() => startedActivities.Count > 0);
+        await sut.StopAsync(CancellationToken.None);
+
+        startedActivities.Should().ContainSingle();
+        startedActivities[0].TraceId.ToString().Should().Be(TraceId);
+        startedActivities[0].Kind.Should().Be(ActivityKind.Consumer);
+    }
+
+    [Fact]
+    public async Task ConsumeLoop_WithoutTraceparentHeader_StartsRootActivityWithoutThrowing()
+    {
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
+        handler
+            .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false));
+
+        Mock<IConsumer<Ignore, string>> consumer = new();
+        consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
+            .Returns(ValidMessageResult())
+            .Returns((ConsumeResult<Ignore, string>)null!);
+
+        Mock<IKafkaConsumerFactory> factory = new();
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
+
+        List<Activity> startedActivities = [];
+        using ActivityListener listener = CreateActivityListener(startedActivities);
+        ActivitySource.AddActivityListener(listener);
+
+        SharedLogEntries entries = new();
+        using NotificationRequestedConsumer sut = CreateSut(entries, factory.Object, handler.Object);
+
+        Func<Task> act = async () =>
+        {
+            await sut.StartAsync(CancellationToken.None);
+            await WaitForAsync(() => startedActivities.Count > 0);
+            await sut.StopAsync(CancellationToken.None);
+        };
+
+        await act.Should().NotThrowAsync();
+        startedActivities.Should().ContainSingle();
+        startedActivities[0].Parent.Should().BeNull();
+    }
+
+    private static ActivityListener CreateActivityListener(List<Activity> startedActivities)
+    {
+        return new ActivityListener
+        {
+            ShouldListenTo = source => string.Equals(source.Name, MessagingActivitySource.Name, StringComparison.Ordinal),
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = activity =>
+            {
+                lock (startedActivities)
+                {
+                    startedActivities.Add(activity);
+                }
+            }
+        };
+    }
+
+    private static ConsumeResult<Ignore, string> ValidMessageResult(Headers? headers = null)
     {
         string json = """
             {"correlationId":"11111111-1111-1111-1111-111111111111","recipientId":"22222222-2222-2222-2222-222222222222","recipientEmail":"user@example.com","channel":"Email","templateId":"welcome-email","payload":{"name":"Alice"}}
             """;
 
+        Message<Ignore, string> message = new() { Value = json };
+        if (headers is not null)
+            message.Headers = headers;
+
         return new ConsumeResult<Ignore, string>
         {
-            Message = new Message<Ignore, string> { Value = json },
+            Message = message,
             TopicPartitionOffset = new TopicPartitionOffset(new TopicPartition(NotificationRequestedConsumer.Topic, new Partition(0)), new Offset(0))
         };
     }
