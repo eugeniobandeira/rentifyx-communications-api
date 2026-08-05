@@ -117,7 +117,7 @@ public sealed class GetNotificationStatusHandlerTests
         result.IsError.Should().BeFalse();
         NotificationStatusResponse response = result.Value;
         response.Id.Should().Be(notification.Id);
-        response.CorrelationId.Should().Be(notification.CorrelationId);
+        response.IdempotencyKey.Should().Be(notification.IdempotencyKey);
         response.RecipientId.Should().Be(notification.RecipientId);
         response.Channel.Should().Be(notification.Channel);
         response.Status.Should().Be(notification.Status);

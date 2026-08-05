@@ -16,6 +16,8 @@ public sealed class KafkaFailureRouter(IKafkaProducerFactory producerFactory) : 
     private const string ExceptionTypeHeader = "x-exception-type";
     private const string ExceptionMessageHeader = "x-exception-message";
     private const string NextRetryAtHeader = "x-next-retry-at";
+    private const string TraceParentHeader = "traceparent";
+    private const string TraceStateHeader = "tracestate";
 
     public async Task RouteAsync(
         string rawMessage,
@@ -48,6 +50,13 @@ public sealed class KafkaFailureRouter(IKafkaProducerFactory producerFactory) : 
         {
             DateTimeOffset nextRetryAt = DateTimeOffset.UtcNow + RetryTopicChain.DelayFor(targetTopic);
             headers.Add(new Header(NextRetryAtHeader, Encoding.UTF8.GetBytes(nextRetryAt.ToString("O", CultureInfo.InvariantCulture))));
+        }
+
+        if (context.TraceParent is not null)
+        {
+            headers.Add(new Header(TraceParentHeader, Encoding.UTF8.GetBytes(context.TraceParent)));
+            if (context.TraceState is not null)
+                headers.Add(new Header(TraceStateHeader, Encoding.UTF8.GetBytes(context.TraceState)));
         }
 
         using IProducer<Null, string> producer = producerFactory.Create();

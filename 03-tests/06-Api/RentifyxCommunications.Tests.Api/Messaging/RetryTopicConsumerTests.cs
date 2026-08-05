@@ -119,6 +119,96 @@ public sealed class RetryTopicConsumerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task ProcessMessage_WithValidTraceparentHeader_StartsChildActivityWithMatchingTraceId()
+    {
+        const string TraceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+        const string ParentSpanId = "00f067aa0ba902b7";
+        string traceParent = $"00-{TraceId}-{ParentSpanId}-01";
+
+        Headers headers = BuildHeaders(nextRetryAt: DateTimeOffset.UtcNow.AddSeconds(-5));
+        headers.Add("traceparent", Encoding.UTF8.GetBytes(traceParent));
+
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
+        handler
+            .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false));
+
+        Mock<IConsumer<Ignore, string>> consumer = new();
+        consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
+            .Returns(MessageResult(headers))
+            .Returns((ConsumeResult<Ignore, string>)null!);
+
+        Mock<IKafkaConsumerFactory> factory = new();
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
+
+        List<Activity> startedActivities = [];
+        using ActivityListener listener = CreateActivityListener(startedActivities);
+        ActivitySource.AddActivityListener(listener);
+
+        using RetryTopicConsumer sut = CreateSut(RetryTopicChain.Retry5sTopic, factory.Object, handler.Object);
+
+        await sut.StartAsync(CancellationToken.None);
+        await WaitForAsync(() => startedActivities.Count > 0);
+        await sut.StopAsync(CancellationToken.None);
+
+        startedActivities.Should().ContainSingle();
+        startedActivities[0].TraceId.ToString().Should().Be(TraceId);
+        startedActivities[0].Kind.Should().Be(ActivityKind.Consumer);
+    }
+
+    [Fact]
+    public async Task ProcessMessage_WithoutTraceparentHeader_StartsRootActivityWithoutThrowing()
+    {
+        Headers headers = BuildHeaders(nextRetryAt: DateTimeOffset.UtcNow.AddSeconds(-5));
+
+        Mock<IHandler<DispatchNotificationRequest, DispatchNotificationResponse>> handler = new();
+        handler
+            .Setup(h => h.HandleAsync(It.IsAny<DispatchNotificationRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DispatchNotificationResponse(NotificationStatus.Sent, WasDuplicate: false));
+
+        Mock<IConsumer<Ignore, string>> consumer = new();
+        consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
+            .Returns(MessageResult(headers))
+            .Returns((ConsumeResult<Ignore, string>)null!);
+
+        Mock<IKafkaConsumerFactory> factory = new();
+        factory.Setup(f => f.Create(It.IsAny<string>())).Returns(consumer.Object);
+
+        List<Activity> startedActivities = [];
+        using ActivityListener listener = CreateActivityListener(startedActivities);
+        ActivitySource.AddActivityListener(listener);
+
+        using RetryTopicConsumer sut = CreateSut(RetryTopicChain.Retry5sTopic, factory.Object, handler.Object);
+
+        Func<Task> act = async () =>
+        {
+            await sut.StartAsync(CancellationToken.None);
+            await WaitForAsync(() => startedActivities.Count > 0);
+            await sut.StopAsync(CancellationToken.None);
+        };
+
+        await act.Should().NotThrowAsync();
+        startedActivities.Should().ContainSingle();
+        startedActivities[0].Parent.Should().BeNull();
+    }
+
+    private static ActivityListener CreateActivityListener(List<Activity> startedActivities)
+    {
+        return new ActivityListener
+        {
+            ShouldListenTo = source => string.Equals(source.Name, MessagingActivitySource.Name, StringComparison.Ordinal),
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStarted = activity =>
+            {
+                lock (startedActivities)
+                {
+                    startedActivities.Add(activity);
+                }
+            }
+        };
+    }
+
     private static Headers BuildHeaders(DateTimeOffset nextRetryAt, string originalTopic = RetryTopicChain.OriginalTopic, int retryCount = 1)
     {
         return new Headers

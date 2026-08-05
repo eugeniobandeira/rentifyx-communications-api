@@ -39,13 +39,13 @@ public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationIn
     }
 
     [Fact]
-    public async Task SaveIfNotExistsAsync_CalledTwiceWithSameCorrelationId_ShouldReturnFalseOnSecondCall()
+    public async Task SaveIfNotExistsAsync_CalledTwiceWithSameIdempotencyKey_ShouldReturnFalseOnSecondCall()
     {
         NotificationEntity notification = CreateNotification();
         await _sut.SaveIfNotExistsAsync(notification);
 
         NotificationEntity duplicate = NotificationEntity.Create(
-            notification.CorrelationId,
+            notification.IdempotencyKey,
             Guid.NewGuid(),
             EmailAddress.Create("other@example.com").Value,
             Channel.Email,
@@ -67,7 +67,7 @@ public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationIn
 
         result.Should().NotBeNull();
         result!.Id.Should().Be(notification.Id);
-        result.CorrelationId.Should().Be(notification.CorrelationId);
+        result.IdempotencyKey.Should().Be(notification.IdempotencyKey);
         result.RecipientId.Should().Be(notification.RecipientId);
         result.Recipient.Value.Should().Be("user@example.com");
         result.Channel.Should().Be(Channel.Email);
@@ -137,22 +137,22 @@ public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationIn
     }
 
     [Fact]
-    public async Task GetByCorrelationIdAsync_WithExistingNotification_ShouldReturnHydratedEntity()
+    public async Task GetByIdempotencyKeyAsync_WithExistingNotification_ShouldReturnHydratedEntity()
     {
         NotificationEntity notification = CreateNotification();
         await _sut.SaveIfNotExistsAsync(notification);
 
-        NotificationEntity? result = await _sut.GetByCorrelationIdAsync(notification.CorrelationId);
+        NotificationEntity? result = await _sut.GetByIdempotencyKeyAsync(notification.IdempotencyKey);
 
         result.Should().NotBeNull();
         result!.Id.Should().Be(notification.Id);
-        result.CorrelationId.Should().Be(notification.CorrelationId);
+        result.IdempotencyKey.Should().Be(notification.IdempotencyKey);
     }
 
     [Fact]
-    public async Task GetByCorrelationIdAsync_WithMissingNotification_ShouldReturnNull()
+    public async Task GetByIdempotencyKeyAsync_WithMissingNotification_ShouldReturnNull()
     {
-        NotificationEntity? result = await _sut.GetByCorrelationIdAsync(Guid.NewGuid());
+        NotificationEntity? result = await _sut.GetByIdempotencyKeyAsync(Guid.NewGuid());
 
         result.Should().BeNull();
     }
@@ -163,7 +163,7 @@ public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationIn
         NotificationEntity notification = CreateNotification();
         await _sut.SaveIfNotExistsAsync(notification);
         await _sut.UpdateStatusAsync(notification.Id, NotificationStatus.Dispatching);
-        await BackdateGsi3Async(notification.CorrelationId, TimeSpan.FromMinutes(5));
+        await BackdateGsi3Async(notification.IdempotencyKey, TimeSpan.FromMinutes(5));
 
         IReadOnlyList<NotificationEntity> stuck = await _sut.GetStuckDispatchingAsync(TimeSpan.FromMinutes(2));
 
@@ -188,7 +188,7 @@ public sealed class DynamoDbNotificationRepositoryTests(LocalStackNotificationIn
         NotificationEntity notification = CreateNotification();
         await _sut.SaveIfNotExistsAsync(notification);
         await _sut.UpdateStatusAsync(notification.Id, NotificationStatus.Sent);
-        await BackdateGsi3Async(notification.CorrelationId, TimeSpan.FromMinutes(5));
+        await BackdateGsi3Async(notification.IdempotencyKey, TimeSpan.FromMinutes(5));
 
         IReadOnlyList<NotificationEntity> stuck = await _sut.GetStuckDispatchingAsync(TimeSpan.FromMinutes(2));
 

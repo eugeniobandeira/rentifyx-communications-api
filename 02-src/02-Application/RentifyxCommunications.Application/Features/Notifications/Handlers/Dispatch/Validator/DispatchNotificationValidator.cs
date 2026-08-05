@@ -10,10 +10,10 @@ public sealed class DispatchNotificationValidator : AbstractValidator<DispatchNo
 {
     public DispatchNotificationValidator()
     {
-        RuleFor(x => x.CorrelationId)
+        RuleFor(x => x.IdempotencyKey)
             .NotEqual(Guid.Empty)
-                .WithErrorCode(DispatchValidationErrorCodes.CorrelationIdRequired)
-                .WithMessage(ValidationMessageResource.CORRELATION_ID_REQUIRED);
+                .WithErrorCode(DispatchValidationErrorCodes.IdempotencyKeyRequired)
+                .WithMessage(ValidationMessageResource.IDEMPOTENCY_KEY_REQUIRED);
 
         RuleFor(x => x.RecipientId)
             .NotEqual(Guid.Empty)

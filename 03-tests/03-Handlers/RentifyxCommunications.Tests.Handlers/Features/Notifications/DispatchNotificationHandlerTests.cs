@@ -47,7 +47,7 @@ public sealed class DispatchNotificationHandlerTests
     public async Task Handle_WithInvalidRequest_ShouldReturnValidationErrorsWithoutTouchingRepositories()
     {
         DispatchNotificationHandler sut = CreateSut();
-        DispatchNotificationRequest request = ValidRequest() with { CorrelationId = Guid.Empty };
+        DispatchNotificationRequest request = ValidRequest() with { IdempotencyKey = Guid.Empty };
 
         ErrorOr<DispatchNotificationResponse> result = await sut.HandleAsync(request);
 

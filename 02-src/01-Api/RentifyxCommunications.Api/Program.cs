@@ -18,7 +18,7 @@ try
 {
     WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-    builder.AddServiceDefaults();
+    builder.AddServiceDefaults(MessagingActivitySource.Name);
     builder.Services.AddOpenTelemetry().WithMetrics(metrics => metrics.AddMeter(NotificationMetrics.MeterName));
 
     builder.Host.UseSerilog((context, services, configuration) => configuration

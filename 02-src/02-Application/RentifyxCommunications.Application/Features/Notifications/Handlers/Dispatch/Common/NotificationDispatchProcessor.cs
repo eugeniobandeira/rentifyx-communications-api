@@ -62,8 +62,8 @@ public sealed class NotificationDispatchProcessor(
             if (outcome.IsError)
             {
                 logger.LogError(
-                    "DispatchNotificationHandler returned errors. CorrelationId={CorrelationId} Errors={@Errors}",
-                    request.CorrelationId,
+                    "DispatchNotificationHandler returned errors. IdempotencyKey={IdempotencyKey} Errors={@Errors}",
+                    request.IdempotencyKey,
                     outcome.Errors);
 
                 FailureClassification classification = FailureClassifier.Classify(outcome.Errors);
@@ -73,14 +73,14 @@ public sealed class NotificationDispatchProcessor(
             }
 
             logger.LogInformation(
-                "Notification processed. CorrelationId={CorrelationId} Status={Status} WasDuplicate={WasDuplicate}",
-                request.CorrelationId,
+                "Notification processed. IdempotencyKey={IdempotencyKey} Status={Status} WasDuplicate={WasDuplicate}",
+                request.IdempotencyKey,
                 outcome.Value.Status,
                 outcome.Value.WasDuplicate);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Unexpected error processing NotificationRequested message. CorrelationId={CorrelationId}", request.CorrelationId);
+            logger.LogError(ex, "Unexpected error processing NotificationRequested message. IdempotencyKey={IdempotencyKey}", request.IdempotencyKey);
 
             FailureClassification classification = FailureClassifier.Classify(ex);
             await failureRouter.RouteAsync(rawMessage, context, classification, ex.GetType().Name, ex.Message, cancellationToken);

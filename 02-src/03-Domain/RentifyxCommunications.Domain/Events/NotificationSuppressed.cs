@@ -2,5 +2,5 @@
 
 public sealed record NotificationSuppressed(
     Guid NotificationId,
-    Guid CorrelationId,
+    Guid IdempotencyKey,
     DateTime OccurredAt) : IDomainEvent;

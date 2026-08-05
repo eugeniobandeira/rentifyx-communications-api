@@ -111,4 +111,42 @@ public sealed class KafkaFailureRouterTests
         captured.Headers.TryGetLastBytes("x-first-failure-timestamp", out _).Should().BeTrue();
         captured.Headers.TryGetLastBytes("x-next-retry-at", out _).Should().BeTrue();
     }
+
+    [Fact]
+    public async Task RouteAsync_ForwardsTraceparentAndTracestate_WhenPresentOnContext()
+    {
+        (KafkaFailureRouter sut, Mock<IProducer<Null, string>> producer) = CreateSut();
+        const string traceParent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+        const string traceState = "vendor=value";
+        RetryContext context = new(RetryTopicChain.OriginalTopic, RetryCount: 0, TraceParent: traceParent, TraceState: traceState);
+        Message<Null, string>? captured = null;
+        producer
+            .Setup(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<Null, string>>(), It.IsAny<CancellationToken>()))
+            .Callback<string, Message<Null, string>, CancellationToken>((_, message, _) => captured = message)
+            .ReturnsAsync(new DeliveryResult<Null, string>());
+
+        await sut.RouteAsync("payload", context, FailureClassification.Transient, "InvalidOperationException", "db unreachable");
+
+        captured.Should().NotBeNull();
+        HeaderValue(captured!.Headers, "traceparent").Should().Be(traceParent);
+        HeaderValue(captured.Headers, "tracestate").Should().Be(traceState);
+    }
+
+    [Fact]
+    public async Task RouteAsync_DoesNotSetTraceHeaders_WhenAbsentFromContext()
+    {
+        (KafkaFailureRouter sut, Mock<IProducer<Null, string>> producer) = CreateSut();
+        RetryContext context = new(RetryTopicChain.OriginalTopic, RetryCount: 0);
+        Message<Null, string>? captured = null;
+        producer
+            .Setup(p => p.ProduceAsync(It.IsAny<string>(), It.IsAny<Message<Null, string>>(), It.IsAny<CancellationToken>()))
+            .Callback<string, Message<Null, string>, CancellationToken>((_, message, _) => captured = message)
+            .ReturnsAsync(new DeliveryResult<Null, string>());
+
+        await sut.RouteAsync("payload", context, FailureClassification.Transient, "InvalidOperationException", "db unreachable");
+
+        captured.Should().NotBeNull();
+        captured!.Headers.TryGetLastBytes("traceparent", out _).Should().BeFalse();
+        captured.Headers.TryGetLastBytes("tracestate", out _).Should().BeFalse();
+    }
 }

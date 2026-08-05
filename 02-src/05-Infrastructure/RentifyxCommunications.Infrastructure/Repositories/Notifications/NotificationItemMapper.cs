@@ -24,7 +24,7 @@ public static class NotificationItemMapper
 
         Dictionary<string, AttributeValue> item = new()
         {
-            [NotificationTableSchema.PartitionKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{notification.CorrelationId}"),
+            [NotificationTableSchema.PartitionKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{notification.IdempotencyKey}"),
             [NotificationTableSchema.SortKey] = new(NotificationTableSchema.MetadataSortKeyValue),
             [NotificationTableSchema.Gsi1PartitionKey] = new($"{NotificationTableSchema.RecipientPartitionKeyPrefix}{notification.RecipientId}"),
             [NotificationTableSchema.Gsi1SortKey] = new($"{NotificationTableSchema.NotificationPartitionKeyPrefix}{notification.CreatedAt:O}#{notification.Id}"),
@@ -33,7 +33,7 @@ public static class NotificationItemMapper
             [NotificationTableSchema.Gsi3PartitionKey] = new($"{NotificationTableSchema.StatusPartitionKeyPrefix}{notification.Status}"),
             [NotificationTableSchema.Gsi3SortKey] = new(lastUpdated),
             ["Id"] = new(notification.Id.ToString()),
-            ["CorrelationId"] = new(notification.CorrelationId.ToString()),
+            ["CorrelationId"] = new(notification.IdempotencyKey.ToString()),
             ["RecipientId"] = new(notification.RecipientId.ToString()),
             ["RecipientEmail"] = new(notification.Recipient.Value),
             ["Channel"] = new(notification.Channel.ToString()),
@@ -61,7 +61,7 @@ public static class NotificationItemMapper
 
         return NotificationEntity.Rehydrate(
             id: Guid.Parse(item["Id"].S),
-            correlationId: Guid.Parse(item["CorrelationId"].S),
+            idempotencyKey: Guid.Parse(item["CorrelationId"].S),
             recipientId: Guid.Parse(item["RecipientId"].S),
             recipient: recipient,
             channel: Enum.Parse<Channel>(item["Channel"].S),

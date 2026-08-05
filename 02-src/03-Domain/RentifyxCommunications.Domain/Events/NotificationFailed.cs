@@ -2,6 +2,6 @@
 
 public sealed record NotificationFailed(
     Guid NotificationId,
-    Guid CorrelationId,
+    Guid IdempotencyKey,
     string Reason,
     DateTime OccurredAt) : IDomainEvent;

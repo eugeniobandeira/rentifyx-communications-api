@@ -61,11 +61,11 @@ namespace RentifyxCommunications.Domain.MessageResource {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Correlation id is required..
+        ///   Looks up a localized string similar to Idempotency key is required..
         /// </summary>
-        public static string CORRELATION_ID_REQUIRED {
+        public static string IDEMPOTENCY_KEY_REQUIRED {
             get {
-                return ResourceManager.GetString("CORRELATION_ID_REQUIRED", resourceCulture);
+                return ResourceManager.GetString("IDEMPOTENCY_KEY_REQUIRED", resourceCulture);
             }
         }
 

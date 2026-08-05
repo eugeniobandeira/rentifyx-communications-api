@@ -2,5 +2,5 @@
 
 public sealed record NotificationDispatched(
     Guid NotificationId,
-    Guid CorrelationId,
+    Guid IdempotencyKey,
     DateTime OccurredAt) : IDomainEvent;

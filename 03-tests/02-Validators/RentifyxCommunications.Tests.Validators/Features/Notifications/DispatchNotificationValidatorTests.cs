@@ -28,12 +28,12 @@ public sealed class DispatchNotificationValidatorTests
     }
 
     [Fact]
-    public void Validate_WithEmptyCorrelationId_ShouldFail()
+    public void Validate_WithEmptyIdempotencyKey_ShouldFail()
     {
-        ValidationResult result = _validator.Validate(ValidRequest() with { CorrelationId = Guid.Empty });
+        ValidationResult result = _validator.Validate(ValidRequest() with { IdempotencyKey = Guid.Empty });
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().ContainSingle(e => e.ErrorCode == DispatchValidationErrorCodes.CorrelationIdRequired);
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == DispatchValidationErrorCodes.IdempotencyKeyRequired);
     }
 
     [Fact]

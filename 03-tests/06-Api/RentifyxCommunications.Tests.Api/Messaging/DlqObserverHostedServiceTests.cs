@@ -15,10 +15,10 @@ namespace RentifyxCommunications.Tests.Api.Messaging;
 
 public sealed class DlqObserverHostedServiceTests
 {
-    private static readonly Guid CorrelationId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly Guid IdempotencyKey = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
-    private static string ValidMessage(Guid correlationId) =>
-        "{\"correlationId\":\"" + correlationId + "\",\"recipientId\":\"22222222-2222-2222-2222-222222222222\"," +
+    private static string ValidMessage(Guid idempotencyKey) =>
+        "{\"idempotencyKey\":\"" + idempotencyKey + "\",\"recipientId\":\"22222222-2222-2222-2222-222222222222\"," +
         "\"recipientEmail\":\"user@example.com\",\"channel\":\"Email\",\"templateId\":\"welcome-email\"," +
         "\"payload\":{\"name\":\"Alice\"}}";
 
@@ -26,7 +26,7 @@ public sealed class DlqObserverHostedServiceTests
     public async Task ProcessMessage_ShouldMarkNotificationFailed_WhenRecordExists()
     {
         NotificationEntity notification = NotificationEntity.Create(
-            CorrelationId,
+            IdempotencyKey,
             Guid.NewGuid(),
             EmailAddress.Create("user@example.com").Value,
             Channel.Email,
@@ -34,7 +34,7 @@ public sealed class DlqObserverHostedServiceTests
             new Dictionary<string, string> { ["name"] = "Alice" }).Value;
 
         Mock<INotificationRepository> repository = new();
-        repository.Setup(r => r.GetByCorrelationIdAsync(CorrelationId, It.IsAny<CancellationToken>())).ReturnsAsync(notification);
+        repository.Setup(r => r.GetByIdempotencyKeyAsync(IdempotencyKey, It.IsAny<CancellationToken>())).ReturnsAsync(notification);
 
         Headers headers = new()
         {
@@ -42,7 +42,7 @@ public sealed class DlqObserverHostedServiceTests
         };
         Mock<IConsumer<Ignore, string>> consumer = new();
         consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
-            .Returns(MessageResult(ValidMessage(CorrelationId), headers))
+            .Returns(MessageResult(ValidMessage(IdempotencyKey), headers))
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
@@ -62,11 +62,11 @@ public sealed class DlqObserverHostedServiceTests
     public async Task ProcessMessage_ShouldSkipUpdate_WhenNoMatchingRecordExists()
     {
         Mock<INotificationRepository> repository = new();
-        repository.Setup(r => r.GetByCorrelationIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((NotificationEntity?)null);
+        repository.Setup(r => r.GetByIdempotencyKeyAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((NotificationEntity?)null);
 
         Mock<IConsumer<Ignore, string>> consumer = new();
         consumer.SetupSequence(c => c.Consume(It.IsAny<TimeSpan>()))
-            .Returns(MessageResult(ValidMessage(CorrelationId), []))
+            .Returns(MessageResult(ValidMessage(IdempotencyKey), []))
             .Returns((ConsumeResult<Ignore, string>)null!);
 
         Mock<IKafkaConsumerFactory> factory = new();
@@ -75,7 +75,7 @@ public sealed class DlqObserverHostedServiceTests
         using DlqObserverHostedService sut = CreateSut(factory.Object, repository.Object);
 
         await sut.StartAsync(CancellationToken.None);
-        await WaitForAsync(() => repository.Invocations.Any(i => i.Method.Name == nameof(INotificationRepository.GetByCorrelationIdAsync)));
+        await WaitForAsync(() => repository.Invocations.Any(i => i.Method.Name == nameof(INotificationRepository.GetByIdempotencyKeyAsync)));
         await sut.StopAsync(CancellationToken.None);
 
         repository.Verify(r => r.UpdateStatusAsync(It.IsAny<Guid>(), It.IsAny<NotificationStatus>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
